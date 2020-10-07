@@ -1,0 +1,16 @@
+[package]
+name = "imxrt106x-async-hal"
+version = "0.1.0"
+authors = ["Ian McIntyre <ianpmcintyre@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies.imxrt-async-hal]
+path = ".."
+version = "0.1"
+features = ["imxrt106x"]
+
+[dependencies.imxrt-iomuxc]
+version = "0.1"
+features = ["imxrt106x"]

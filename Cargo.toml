@@ -1,0 +1,25 @@
+[package]
+name = "imxrt-async-hal"
+version = "0.1.0"
+authors = ["Ian McIntyre <ianpmcintyre@gmail.com>"]
+edition = "2018"
+description = """
+Async peripherals for the NXP iMX RT processors.
+"""
+
+[dependencies]
+cortex-m = "0.6"
+imxrt-iomuxc = "0.1"
+imxrt-ral = "0.4"
+
+[dependencies.futures]
+version = "0.3"
+default-features = false
+
+[features]
+imxrt106x = ["imxrt-ral/imxrt1062"]
+
+[workspace]
+members = [
+    "imxrt106x",
+]
