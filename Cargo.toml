@@ -12,14 +12,13 @@ cortex-m = "0.6"
 imxrt-iomuxc = "0.1"
 imxrt-ral = "0.4"
 
+[target.thumbv7em-none-eabihf.dependencies.cortex-m-rt]
+version = "0.6"
+features = ["device"]
+
 [dependencies.futures]
 version = "0.3"
 default-features = false
 
 [features]
-imxrt106x = ["imxrt-ral/imxrt1062"]
-
-[workspace]
-members = [
-    "imxrt106x",
-]
+imxrt106x = ["imxrt-iomuxc/imxrt106x", "imxrt-ral/imxrt1062"]
