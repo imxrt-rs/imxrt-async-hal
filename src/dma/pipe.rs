@@ -22,18 +22,19 @@
 //!
 //! # Example
 //!
-//! Transmit an incrementing counter every 100ms using DMA channel 13. The sender is delayed by SYSTICK, which delays
+//! Transmit an incrementing counter every 100ms using DMA channel 13. The sender is delayed by a GPT timer, which delays
 //! the receiver.
 //!
 //! ```no_run
 //! use imxrt_async_hal as hal;
 //! use hal::dma;
-//! use hal::ral::{ccm, dma0, dmamux};
+//! use hal::ral::{ccm, dma0, dmamux, gpt::GPT1};
 //!
 //! let mut ccm = ccm::CCM::take().unwrap();
 //!
-//! let core_peripherals = cortex_m::Peripherals::take().unwrap();
-//! let mut systick = hal::SystemTick::new(core_peripherals.SYST);
+//! let mut gpt = GPT1::take()
+//!     .map(|inst| hal::GPT::new(inst, &mut ccm))
+//!     .unwrap();
 //!
 //! let mut channels = dma::channels(
 //!     dma0::DMA0::take().unwrap(),
@@ -46,7 +47,7 @@
 //!     let mut counter: i32 = 0;
 //!     loop {
 //!         tx.send(&counter).await.unwrap();
-//!         systick.delay_ms(100).await;
+//!         gpt.delay_us(100_000u32).await;
 //!         counter = counter.wrapping_add(1);
 //!     }
 //! };

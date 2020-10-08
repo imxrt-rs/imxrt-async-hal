@@ -25,7 +25,6 @@ use core::fmt;
 /// };
 ///
 /// let pads = IOMUXC::take().map(iomuxc::new).unwrap();
-/// let pins = hal::t40::into_pins(pads);
 ///
 /// let mut ccm = CCM::take().unwrap();
 /// let mut channels = dma::channels(
@@ -36,8 +35,8 @@ use core::fmt;
 /// let uart2 = LPUART2::take().and_then(instance::uart).unwrap();
 /// let mut uart = UART::new(
 ///     uart2,
-///     pins.p14, // TX
-///     pins.p15, // RX
+///     pads.ad_b1.p02, // TX
+///     pads.ad_b1.p03, // RX
 ///     channels[7].take().unwrap(),
 ///     &mut ccm
 /// );

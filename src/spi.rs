@@ -12,14 +12,14 @@ const DEFAULT_CLOCK_SPEED_HZ: u32 = 8_000_000;
 ///
 /// ```no_run
 /// use imxrt_async_hal as hal;
-/// use hal::pins;
+/// use hal::iomuxc::b0::*;
 ///
 /// // SPI pins used in my application
 /// type SPIPins = hal::SPIPins<
-///     pins::P11,
-///     pins::P12,
-///     pins::P13,
-///     pins::P10,
+///     B0_02,
+///     B0_01,
+///     B0_03,
+///     B0_00,
 /// >;
 ///
 /// // Helper type for your SPI peripheral
@@ -58,14 +58,13 @@ pub struct Pins<SDO, SDI, SCK, PCS0> {
 ///
 /// ```no_run
 /// use imxrt_async_hal as hal;
-/// use hal::{dma, instance, iomuxc, t40, SPI, SPIPins};
+/// use hal::{dma, instance, iomuxc, SPI, SPIPins};
 /// use hal::ral::{
 ///     ccm::CCM, dma0::DMA0, dmamux::DMAMUX,
 ///     iomuxc::IOMUXC, lpspi::LPSPI4,
 /// };
 ///
 /// let pads = IOMUXC::take().map(iomuxc::new).unwrap();
-/// let pins = t40::into_pins(pads);
 ///
 /// let mut ccm = CCM::take().unwrap();
 /// let mut channels = dma::channels(
@@ -75,10 +74,10 @@ pub struct Pins<SDO, SDI, SCK, PCS0> {
 /// );
 ///
 /// let spi_pins = SPIPins {
-///     sdo: pins.p11,
-///     sdi: pins.p12,
-///     sck: pins.p13,
-///     pcs0: pins.p10,
+///     sdo: pads.b0.p02,
+///     sdi: pads.b0.p01,
+///     sck: pads.b0.p03,
+///     pcs0: pads.b0.p00,
 /// };
 /// let mut spi4 = LPSPI4::take().and_then(instance::spi).unwrap();
 /// let mut spi = SPI::new(

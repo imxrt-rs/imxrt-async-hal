@@ -10,8 +10,7 @@
 //!
 //! # async {
 //! let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
-//! let pins = hal::t40::into_pins(pads);
-//! let mut input = GPIO::new(pins.p12);
+//! let mut input = GPIO::new(pads.b0.p03);
 //! input.wait_for(Sensitivity::FallingEdge).await;
 //! // Transitioned from high to low!
 //! assert!(!input.is_set());
@@ -24,8 +23,7 @@
 //! use imxrt_async_hal as hal;
 //!
 //! let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
-//! let pins = hal::t40::into_pins(pads);
-//! let input = hal::gpio::GPIO::new(pins.p11);
+//! let input = hal::gpio::GPIO::new(pads.b0.p03);
 //! let mut output = input.output();
 //!
 //! output.set();
@@ -45,9 +43,8 @@
 //!
 //! # fn block_on<F: core::future::Future<Output = ()>>(f: F) {};
 //! # let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
-//! # let pins = hal::t40::into_pins(pads);
-//! let mut led = GPIO::new(pins.p13).output();
-//! let mut input_pin = GPIO::new(pins.p14);
+//! let mut led = GPIO::new(pads.b0.p03).output();
+//! let mut input_pin = GPIO::new(pads.b0.p02);
 //!
 //! let blinking_loop = async {
 //!     loop {
@@ -90,8 +87,7 @@ pub enum Output {}
 /// use hal::gpio::GPIO;
 ///
 /// let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
-/// let pins = hal::t40::into_pins(pads);
-/// let mut led = GPIO::new(pins.p13);
+/// let mut led = GPIO::new(pads.b0.p03);
 /// assert!(!led.is_set());
 /// let mut led = led.output();
 /// led.set();
@@ -153,8 +149,7 @@ where
     /// use hal::gpio::GPIO;
     ///
     /// let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
-    /// let pins = hal::t40::into_pins(pads);
-    /// let input_pin = GPIO::new(pins.p16);
+    /// let input_pin = GPIO::new(pads.b0.p03);
     /// ```
     pub fn new(mut pin: P) -> Self {
         crate::iomuxc::gpio::prepare(&mut pin);
@@ -238,8 +233,7 @@ where
     /// use hal::gpio::{GPIO, Sensitivity};
     ///
     /// let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
-    /// let pins = hal::t40::into_pins(pads);
-    /// let mut input_pin = GPIO::new(pins.p16);
+    /// let mut input_pin = GPIO::new(pads.ad_b1.p02);
     /// // ...
     /// # async {
     /// input_pin.wait_for(Sensitivity::RisingEdge).await;

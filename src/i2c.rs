@@ -61,18 +61,17 @@ use crate::{
 /// };
 /// # const PINCONFIG: iomuxc::Config = iomuxc::Config::zero();
 ///
-/// let mut pins = IOMUXC::take()
+/// let mut pads = IOMUXC::take()
 ///     .map(iomuxc::new)
-///     .map(hal::t40::into_pins)
 ///     .unwrap();
 ///
-/// iomuxc::configure(&mut pins.p16, PINCONFIG);
-/// iomuxc::configure(&mut pins.p17, PINCONFIG);
+/// iomuxc::configure(&mut pads.ad_b1.p07, PINCONFIG);
+/// iomuxc::configure(&mut pads.ad_b1.p06, PINCONFIG);
 ///
 /// let mut ccm = CCM::take().unwrap();
 ///
 /// let i2c3 = LPI2C3::take().and_then(hal::instance::i2c).unwrap();
-/// let mut i2c = I2C::new(i2c3, pins.p16, pins.p17, &mut ccm);
+/// let mut i2c = I2C::new(i2c3, pads.ad_b1.p07, pads.ad_b1.p06, &mut ccm);
 /// i2c.set_clock_speed(I2CClockSpeed::KHz400).unwrap();
 ///
 /// # async {

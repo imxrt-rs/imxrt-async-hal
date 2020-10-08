@@ -101,14 +101,14 @@ pub struct IPGClock {
 ///
 /// [`imxrt-iomuxc`]: https://docs.rs/imxrt-iomuxc/0.1/imxrt_iomuxc/
 pub mod iomuxc {
-    #[cfg(features = "imxrt106x")]
+    #[cfg(feature = "imxrt106x")]
     pub use imxrt_iomuxc::imxrt106x::*;
     pub use imxrt_iomuxc::prelude::*;
 
     /// Turn the `IOMUXC` instance into pads
     ///
     /// See the [module-level docs](index.html) for an example.
-    #[cfg(any(features = "imxrt106x"))]
+    #[cfg(any(feature = "imxrt106x"))]
     pub fn new(_: crate::ral::iomuxc::Instance) -> Pads {
         // Safety: ^--- there's a single instance. Either the user
         // used an `unsafe` method to steal it, or we own the only
