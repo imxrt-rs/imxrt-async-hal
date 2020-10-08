@@ -1,0 +1,47 @@
+[package]
+name = "imxrt-async-hal-teensy4-examples"
+version = "0.1.0"
+authors = ["Ian McIntyre <ianpmcintyre@gmail.com>"]
+edition = "2018"
+publish = false # These are examples and should not be published
+description = """
+imxrt-async-hal examples that run on the Teensy 4
+
+Supports both the Teensy 4.0 and 4.1 boards.
+"""
+
+[lib]
+name = "t4_startup"
+
+[dependencies]
+panic-halt = "0.2"
+
+[dependencies.futures]
+version = "0.3"
+default-features = false
+
+[dependencies.imxrt-async-hal]
+version = "0.1"
+path = "../.."
+features = ["rt", "imxrt106x"]
+
+[dependencies.cortex-m-rt]
+version = "0.6"
+features = ["device"]
+
+[dependencies.async-embedded]
+git = "https://github.com/rust-embedded-community/async-on-embedded"
+rev = "aa43ccd"
+
+[dependencies.teensy4-fcb]
+version = "0.2"
+git = "https://github.com/mciantyre/teensy4-rs"
+
+[dependencies.teensy4-pins]
+version = "0.1"
+git = "https://github.com/mciantyre/teensy4-rs"
+
+# Don't optimize build dependencies, like proc macros.
+# Helps with build times.
+[profile.release.build-override]
+opt-level = 0

@@ -14,11 +14,16 @@ imxrt-ral = "0.4"
 
 [target.thumbv7em-none-eabihf.dependencies.cortex-m-rt]
 version = "0.6"
-features = ["device"]
 
 [dependencies.futures]
 version = "0.3"
 default-features = false
 
 [features]
+rt = ["imxrt-ral/rt", "cortex-m-rt/device"]
 imxrt106x = ["imxrt-iomuxc/imxrt106x", "imxrt-ral/imxrt1062"]
+
+# Don't optimize build dependencies, like proc macros.
+# Helps with build times.
+[profile.release.build-override]
+opt-level = 0
