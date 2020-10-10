@@ -63,7 +63,7 @@
 //! block_on(futures::future::join(sender, receiver));
 //! ```
 
-use crate::dma::{self, interrupt::State};
+use crate::dma::{self, interrupt::state};
 use core::{
     future::Future,
     marker::PhantomData,
@@ -169,7 +169,7 @@ impl<E: Copy> Sender<E> {
     /// if the transfer failed.
     pub async fn send<'t>(&'t mut self, value: &'t E) -> Result<()> {
         unsafe {
-            self.channel.shared_mut()[SENDER_STATE].state = State::Ready;
+            self.channel.shared_mut()[SENDER_STATE].set_state(state::READY);
         }
         Send {
             channel: &mut self.channel,
@@ -185,11 +185,11 @@ impl<'t, E: Copy> Future for Send<'t, E> {
         let this = self.get_mut();
         let (sender_state, receiver_state) = unsafe {
             let shared = this.channel.shared();
-            (shared[SENDER_STATE].state, shared[RECEIVER_STATE].state)
+            (shared[SENDER_STATE].state(), shared[RECEIVER_STATE].state())
         };
         match (sender_state, receiver_state) {
-            (_, State::Dropped) => Poll::Ready(Err(dma::Error::Cancelled)),
-            (State::Ready, _) => {
+            (_, state::DROPPED) => Poll::Ready(Err(dma::Error::Cancelled)),
+            (state::READY, _) => {
                 let data = this.value as *const E as *const u8;
                 let len = core::mem::size_of_val(this.value);
 
@@ -202,17 +202,17 @@ impl<'t, E: Copy> Future for Send<'t, E> {
                     ));
                     let sender_shared = &mut this.channel.shared_mut()[SENDER_STATE];
                     sender_shared.waker = Some(cx.waker().clone());
-                    sender_shared.state = State::Pending;
+                    sender_shared.set_state(state::PENDING);
                     atomic::compiler_fence(atomic::Ordering::Release);
-                    if State::Pending == receiver_state {
+                    if state::PENDING == receiver_state {
                         this.channel.set_enable(true);
                         this.channel.start();
                     }
                 }
                 Poll::Pending
             }
-            (State::Complete, _) => Poll::Ready(Ok(())),
-            (State::Pending, _) => Poll::Pending,
+            (state::COMPLETE, _) => Poll::Ready(Ok(())),
+            (state::PENDING, _) => Poll::Pending,
             _ => unreachable!(),
         }
     }
@@ -224,7 +224,7 @@ impl<'t, E> Drop for Send<'t, E> {
         atomic::compiler_fence(atomic::Ordering::Release);
         // Safety: channel is disabled, so there is no ISR that can run.
         unsafe {
-            self.channel.shared_mut()[SENDER_STATE].state = State::Undefined;
+            self.channel.shared_mut()[SENDER_STATE].set_state(state::UNDEFINED);
         }
     }
 }
@@ -236,7 +236,7 @@ impl<E> Drop for Sender<E> {
         // this runs, we cannot be prempted by the DMA ISR.
         unsafe {
             let shared = self.channel.shared_mut();
-            shared[SENDER_STATE].state = State::Dropped;
+            shared[SENDER_STATE].set_state(state::DROPPED);
             if let Some(waker) = shared[RECEIVER_STATE].waker.take() {
                 waker.wake();
             }
@@ -255,7 +255,7 @@ impl<E: Copy + Unpin> Receiver<E> {
     /// Returns the transmitted data, or an [`Error`](../enum.Error.html) if the transfer failed.
     pub async fn receive(&mut self) -> Result<E> {
         unsafe {
-            self.channel.shared_mut()[RECEIVER_STATE].state = State::Ready;
+            self.channel.shared_mut()[RECEIVER_STATE].set_state(state::READY);
         }
         Receive {
             channel: &mut self.channel,
@@ -272,11 +272,11 @@ impl<'t, E: Copy + Unpin> Future for Receive<'t, E> {
         let this = self.get_mut();
         let (receiver_state, sender_state) = unsafe {
             let shared = this.channel.shared();
-            (shared[RECEIVER_STATE].state, shared[SENDER_STATE].state)
+            (shared[RECEIVER_STATE].state(), shared[SENDER_STATE].state())
         };
         match (receiver_state, sender_state) {
-            (_, State::Dropped) => Poll::Ready(Err(dma::Error::Cancelled)),
-            (State::Ready, _) => {
+            (_, state::DROPPED) => Poll::Ready(Err(dma::Error::Cancelled)),
+            (state::READY, _) => {
                 let data = this.value.as_mut_ptr() as *mut u8;
                 let len = core::mem::size_of::<E>();
                 unsafe {
@@ -287,9 +287,9 @@ impl<'t, E: Copy + Unpin> Future for Receive<'t, E> {
 
                     let receiver_shared = &mut this.channel.shared_mut()[RECEIVER_STATE];
                     receiver_shared.waker = Some(cx.waker().clone());
-                    receiver_shared.state = State::Pending;
+                    receiver_shared.set_state(state::PENDING);
                     atomic::compiler_fence(atomic::Ordering::Release);
-                    if State::Pending == sender_state {
+                    if state::PENDING == sender_state {
                         this.channel.set_enable(true);
                         this.channel.start();
                     }
@@ -297,8 +297,8 @@ impl<'t, E: Copy + Unpin> Future for Receive<'t, E> {
                     Poll::Pending
                 }
             }
-            (State::Complete, _) => unsafe { Poll::Ready(Ok(this.value.assume_init())) },
-            (State::Pending, _) => Poll::Pending,
+            (state::COMPLETE, _) => unsafe { Poll::Ready(Ok(this.value.assume_init())) },
+            (state::PENDING, _) => Poll::Pending,
             _ => unreachable!(),
         }
     }
@@ -310,7 +310,7 @@ impl<'t, E> Drop for Receive<'t, E> {
         atomic::compiler_fence(atomic::Ordering::Release);
         // Safety: channel is disabled, so there is no ISR that can run.
         unsafe {
-            self.channel.shared_mut()[RECEIVER_STATE].state = State::Undefined;
+            self.channel.shared_mut()[RECEIVER_STATE].set_state(state::UNDEFINED);
         }
     }
 }
@@ -322,7 +322,7 @@ impl<E> Drop for Receiver<E> {
         // this runs, we cannot be prempted by the DMA ISR.
         unsafe {
             let shared = self.channel.shared_mut();
-            shared[RECEIVER_STATE].state = State::Dropped;
+            shared[RECEIVER_STATE].set_state(state::DROPPED);
             if let Some(waker) = shared[SENDER_STATE].waker.take() {
                 waker.wake();
             }

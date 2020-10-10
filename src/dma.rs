@@ -72,7 +72,7 @@ impl Channel {
     /// A `Channel` will be temporarily allocated in an interrupt to disable it.
     /// This `Channel` will alias the other `Channel` that's in use by the user.
     #[inline(always)]
-    unsafe fn new(index: usize) -> Self {
+    const unsafe fn new(index: usize) -> Self {
         Channel {
             index,
             registers: DMA,

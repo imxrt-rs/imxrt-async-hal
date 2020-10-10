@@ -12,13 +12,12 @@ use core::{
 
 pub const NUM_SHARED_STATES: usize = 2;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum State {
-    Undefined,
-    Ready,
-    Pending,
-    Complete,
-    Dropped,
+pub mod state {
+    pub const UNDEFINED: u32 = 0;
+    pub const READY: u32 = 1;
+    pub const PENDING: u32 = 2;
+    pub const COMPLETE: u32 = 3;
+    pub const DROPPED: u32 = 4;
 }
 
 /// Shared state for DMA interrupts and futures
@@ -27,7 +26,7 @@ pub struct Shared {
     ///
     /// Values are implementation specific, except for those defined
     /// in this module.
-    pub state: State,
+    state: atomic::AtomicU32,
     /// Task wakers
     pub waker: Option<Waker>,
 }
@@ -35,9 +34,15 @@ pub struct Shared {
 impl Shared {
     const fn new() -> Self {
         Shared {
-            state: State::Undefined,
+            state: atomic::AtomicU32::new(state::UNDEFINED),
             waker: None,
         }
+    }
+    pub fn set_state(&mut self, state: u32) {
+        self.state.store(state, atomic::Ordering::SeqCst);
+    }
+    pub fn state(&self) -> u32 {
+        self.state.load(atomic::Ordering::SeqCst)
     }
 }
 
@@ -85,7 +90,7 @@ unsafe fn on_interrupt(idx: usize) {
     if channel.is_complete() {
         let states = &mut SHARED_STATES[idx];
         states.iter_mut().for_each(|state| {
-            state.state = State::Complete;
+            state.set_state(state::COMPLETE);
             if let Some(waker) = state.waker.take() {
                 waker.wake();
             }
@@ -214,7 +219,7 @@ unsafe fn DMA15_DMA31() {
 /// `Interrupt` will disable the transaction when dropped.
 pub struct Interrupt<'c, F: FnMut(&mut Channel)> {
     channel: &'c mut Channel,
-    state: State,
+    state: u32,
     on_drop: F,
 }
 
@@ -223,27 +228,29 @@ impl<'c, F: FnMut(&mut Channel)> Future for Interrupt<'c, F> {
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = unsafe { self.get_unchecked_mut() };
         match this.state {
-            State::Pending if this.channel.is_complete() => {
-                this.state = State::Complete;
+            state::PENDING if this.channel.is_complete() => {
+                this.state = state::COMPLETE;
                 this.channel.clear_complete();
                 Poll::Ready(Ok(()))
             }
-            State::Pending => Poll::Pending,
-            State::Ready if this.channel.is_enabled() => Poll::Ready(Err(Error::ScheduledTransfer)),
-            State::Ready => unsafe {
+            state::PENDING => Poll::Pending,
+            state::READY if this.channel.is_enabled() => {
+                Poll::Ready(Err(Error::ScheduledTransfer))
+            }
+            state::READY => unsafe {
                 SHARED_STATES[this.channel.channel()][0].waker = Some(cx.waker().clone());
                 atomic::compiler_fence(atomic::Ordering::Release);
                 this.channel.set_enable(true);
                 if this.channel.is_error() {
                     this.channel.set_enable(false);
                     atomic::compiler_fence(atomic::Ordering::Acquire);
-                    this.state = State::Undefined;
+                    this.state = state::UNDEFINED;
                     SHARED_STATES[this.channel.channel()][0].waker = None;
                     let es = super::ErrorStatus::new(this.channel.error_status());
                     this.channel.clear_error();
                     Poll::Ready(Err(Error::Setup(es)))
                 } else {
-                    this.state = State::Pending;
+                    this.state = state::PENDING;
                     Poll::Pending
                 }
             },
@@ -277,7 +284,7 @@ pub unsafe fn interrupt<F: FnMut(&mut Channel)>(channel: &mut Channel, on_drop: 
     channel.set_interrupt_on_completion(true);
     Interrupt {
         channel,
-        state: State::Ready,
+        state: state::READY,
         on_drop,
     }
 }
