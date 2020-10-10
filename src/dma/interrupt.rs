@@ -1,8 +1,6 @@
 //! DMA interrupts and shared state
 
 use crate::dma::{Channel, Error};
-#[cfg(target_arch = "arm")]
-use crate::ral::interrupt;
 use core::{
     future::Future,
     pin::Pin,
@@ -98,116 +96,86 @@ unsafe fn on_interrupt(idx: usize) {
     }
 }
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused))]
-unsafe fn DMA0_DMA16() {
-    on_interrupt(0);
-    on_interrupt(16);
-}
+interrupts! {
+    unsafe fn DMA0_DMA16() {
+        on_interrupt(0);
+        on_interrupt(16);
+    }
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused))]
-unsafe fn DMA1_DMA17() {
-    on_interrupt(1);
-    on_interrupt(17);
-}
+    unsafe fn DMA1_DMA17() {
+        on_interrupt(1);
+        on_interrupt(17);
+    }
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused))]
-unsafe fn DMA2_DMA18() {
-    on_interrupt(2);
-    on_interrupt(18);
-}
+    unsafe fn DMA2_DMA18() {
+        on_interrupt(2);
+        on_interrupt(18);
+    }
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused))]
-unsafe fn DMA3_DMA19() {
-    on_interrupt(3);
-    on_interrupt(19);
-}
+    unsafe fn DMA3_DMA19() {
+        on_interrupt(3);
+        on_interrupt(19);
+    }
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused))]
-unsafe fn DMA4_DMA20() {
-    on_interrupt(4);
-    on_interrupt(20);
-}
+    unsafe fn DMA4_DMA20() {
+        on_interrupt(4);
+        on_interrupt(20);
+    }
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused))]
-unsafe fn DMA5_DMA21() {
-    on_interrupt(5);
-    on_interrupt(21);
-}
+    unsafe fn DMA5_DMA21() {
+        on_interrupt(5);
+        on_interrupt(21);
+    }
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused))]
-unsafe fn DMA6_DMA22() {
-    on_interrupt(6);
-    on_interrupt(22);
-}
+    unsafe fn DMA6_DMA22() {
+        on_interrupt(6);
+        on_interrupt(22);
+    }
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused))]
-unsafe fn DMA7_DMA23() {
-    on_interrupt(7);
-    on_interrupt(23);
-}
+    unsafe fn DMA7_DMA23() {
+        on_interrupt(7);
+        on_interrupt(23);
+    }
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused))]
-unsafe fn DMA8_DMA24() {
-    on_interrupt(8);
-    on_interrupt(24);
-}
+    unsafe fn DMA8_DMA24() {
+        on_interrupt(8);
+        on_interrupt(24);
+    }
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused))]
-unsafe fn DMA9_DMA25() {
-    on_interrupt(9);
-    on_interrupt(25);
-}
+    unsafe fn DMA9_DMA25() {
+        on_interrupt(9);
+        on_interrupt(25);
+    }
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused))]
-unsafe fn DMA10_DMA26() {
-    on_interrupt(10);
-    on_interrupt(26);
-}
+    unsafe fn DMA10_DMA26() {
+        on_interrupt(10);
+        on_interrupt(26);
+    }
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused))]
-unsafe fn DMA11_DMA27() {
-    on_interrupt(11);
-    on_interrupt(27);
-}
+    unsafe fn DMA11_DMA27() {
+        on_interrupt(11);
+        on_interrupt(27);
+    }
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused))]
-unsafe fn DMA12_DMA28() {
-    on_interrupt(12);
-    on_interrupt(28);
-}
+    unsafe fn DMA12_DMA28() {
+        on_interrupt(12);
+        on_interrupt(28);
+    }
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused))]
-unsafe fn DMA13_DMA29() {
-    on_interrupt(13);
-    on_interrupt(29);
-}
+    unsafe fn DMA13_DMA29() {
+        on_interrupt(13);
+        on_interrupt(29);
+    }
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused))]
-unsafe fn DMA14_DMA30() {
-    on_interrupt(14);
-    on_interrupt(30);
-}
+    unsafe fn DMA14_DMA30() {
+        on_interrupt(14);
+        on_interrupt(30);
+    }
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused))]
-unsafe fn DMA15_DMA31() {
-    on_interrupt(15);
-    on_interrupt(31);
+    unsafe fn DMA15_DMA31() {
+        on_interrupt(15);
+        on_interrupt(31);
+    }
 }
 
 /// A future that wakes when a DMA interrupt fires
@@ -234,9 +202,7 @@ impl<'c, F: FnMut(&mut Channel)> Future for Interrupt<'c, F> {
                 Poll::Ready(Ok(()))
             }
             state::PENDING => Poll::Pending,
-            state::READY if this.channel.is_enabled() => {
-                Poll::Ready(Err(Error::ScheduledTransfer))
-            }
+            state::READY if this.channel.is_enabled() => Poll::Ready(Err(Error::ScheduledTransfer)),
             state::READY => unsafe {
                 SHARED_STATES[this.channel.channel()][0].waker = Some(cx.waker().clone());
                 atomic::compiler_fence(atomic::Ordering::Release);

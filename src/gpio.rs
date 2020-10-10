@@ -55,9 +55,6 @@
 //! block_on(blinking_loop);
 //! ```
 
-#[cfg(target_arch = "arm")]
-use crate::ral::interrupt;
-
 use crate::iomuxc::{consts::Unsigned, gpio::Pin};
 use crate::ral::{
     self,
@@ -369,62 +366,53 @@ unsafe fn on_interrupt(gpio: *const ral::gpio::RegisterBlock, mut module: usize)
         .for_each(|waker| waker.wake());
 }
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused, non_snake_case))]
-unsafe fn GPIO1_Combined_0_15() {
-    on_interrupt(ral::gpio::GPIO1, 1);
-}
+interrupts! {
+    unsafe fn GPIO1_Combined_0_15() {
+        on_interrupt(ral::gpio::GPIO1, 1);
+    }
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused, non_snake_case))]
-unsafe fn GPIO1_Combined_16_31() {
-    on_interrupt(ral::gpio::GPIO1, 1);
-}
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused, non_snake_case))]
-unsafe fn GPIO2_Combined_0_15() {
-    on_interrupt(ral::gpio::GPIO2, 2);
-}
+    unsafe fn GPIO1_Combined_16_31() {
+        on_interrupt(ral::gpio::GPIO1, 1);
+    }
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused, non_snake_case))]
-unsafe fn GPIO2_Combined_16_31() {
-    on_interrupt(ral::gpio::GPIO2, 2);
-}
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused, non_snake_case))]
-unsafe fn GPIO3_Combined_0_15() {
-    on_interrupt(ral::gpio::GPIO3, 3);
-}
+    unsafe fn GPIO2_Combined_0_15() {
+        on_interrupt(ral::gpio::GPIO2, 2);
+    }
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused, non_snake_case))]
-unsafe fn GPIO3_Combined_16_31() {
-    on_interrupt(ral::gpio::GPIO3, 3);
-}
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused, non_snake_case))]
-unsafe fn GPIO4_Combined_0_15() {
-    on_interrupt(ral::gpio::GPIO4, 4);
-}
+    unsafe fn GPIO2_Combined_16_31() {
+        on_interrupt(ral::gpio::GPIO2, 2);
+    }
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused, non_snake_case))]
-unsafe fn GPIO4_Combined_16_31() {
-    on_interrupt(ral::gpio::GPIO4, 4);
-}
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused, non_snake_case))]
-unsafe fn GPIO5_Combined_0_15() {
-    on_interrupt(ral::gpio::GPIO5, 5);
-}
+    unsafe fn GPIO3_Combined_0_15() {
+        on_interrupt(ral::gpio::GPIO3, 3);
+    }
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused, non_snake_case))]
-unsafe fn GPIO5_Combined_16_31() {
-    on_interrupt(ral::gpio::GPIO5, 5);
+
+    unsafe fn GPIO3_Combined_16_31() {
+        on_interrupt(ral::gpio::GPIO3, 3);
+    }
+
+
+    unsafe fn GPIO4_Combined_0_15() {
+        on_interrupt(ral::gpio::GPIO4, 4);
+    }
+
+
+    unsafe fn GPIO4_Combined_16_31() {
+        on_interrupt(ral::gpio::GPIO4, 4);
+    }
+
+
+    unsafe fn GPIO5_Combined_0_15() {
+        on_interrupt(ral::gpio::GPIO5, 5);
+    }
+
+
+    unsafe fn GPIO5_Combined_16_31() {
+        on_interrupt(ral::gpio::GPIO5, 5);
+    }
 }

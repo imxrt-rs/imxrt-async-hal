@@ -2,6 +2,25 @@
 
 #![no_std]
 
+/// Decorates one or more functions that will be statically registered
+/// in the interrupt table
+///
+/// `interrupts!` may only be used once per module. It should only include
+/// function definitions. The function names should reflect the IRQ name as
+/// provided by the RAL's `interrupt` macro.
+macro_rules! interrupts {
+    ($($isr:item)*) => {
+        #[cfg(all(target_arch = "arm", feature = "rt"))]
+        use crate::ral::interrupt;
+
+        $(
+            #[cfg_attr(all(target_arch = "arm", feature = "rt"), crate::rt::interrupt)]
+            #[cfg_attr(any(not(target_arch = "arm"), not(feature = "rt")), allow(unused, non_snake_case))]
+            $isr
+        )*
+    };
+}
+
 //
 // Modules
 //

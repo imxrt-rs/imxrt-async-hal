@@ -27,7 +27,6 @@ features = ["rt", "imxrt106x"]
 
 [dependencies.cortex-m-rt]
 version = "0.6"
-features = ["device"]
 
 [dependencies.async-embedded]
 git = "https://github.com/rust-embedded-community/async-on-embedded"

@@ -1,6 +1,4 @@
 use crate::ral;
-#[cfg(target_arch = "arm")]
-use crate::ral::interrupt;
 
 use core::{
     future::Future,
@@ -144,31 +142,31 @@ impl<'a> Drop for Delay<'a> {
     }
 }
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused, non_snake_case))]
-unsafe fn PIT() {
-    use register::ChannelInstance;
-    const CHANNELS: [ChannelInstance; 4] = unsafe {
-        [
-            ChannelInstance::zero(),
-            ChannelInstance::one(),
-            ChannelInstance::two(),
-            ChannelInstance::three(),
-        ]
-    };
+interrupts! {
+    unsafe fn PIT() {
+        use register::ChannelInstance;
+        const CHANNELS: [ChannelInstance; 4] = unsafe {
+            [
+                ChannelInstance::zero(),
+                ChannelInstance::one(),
+                ChannelInstance::two(),
+                ChannelInstance::three(),
+            ]
+        };
 
-    CHANNELS
-        .iter_mut()
-        .zip(STATES.iter_mut())
-        .filter(|(channel, _)| ral::read_reg!(register, channel, TFLG, TIF == 1))
-        .for_each(|(channel, state)| {
-            ral::write_reg!(register, channel, TFLG, TIF: 1);
-            ral::write_reg!(register, channel, TCTRL, 0);
-            state.0 = State::Complete;
-            if let Some(waker) = state.1.take() {
-                waker.wake();
-            }
-        });
+        CHANNELS
+            .iter_mut()
+            .zip(STATES.iter_mut())
+            .filter(|(channel, _)| ral::read_reg!(register, channel, TFLG, TIF == 1))
+            .for_each(|(channel, state)| {
+                ral::write_reg!(register, channel, TFLG, TIF: 1);
+                ral::write_reg!(register, channel, TCTRL, 0);
+                state.0 = State::Complete;
+                if let Some(waker) = state.1.take() {
+                    waker.wake();
+                }
+            });
+    }
 }
 
 /// The auto-generated RAL API is cumbersome. This is a macro-compatible API that makes it

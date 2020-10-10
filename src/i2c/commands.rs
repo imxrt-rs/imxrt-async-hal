@@ -11,8 +11,6 @@
 //! while clocking-out data.
 
 use super::Error;
-#[cfg(target_arch = "arm")]
-use crate::ral::interrupt;
 use crate::{
     instance::Inst,
     ral::{self, lpi2c::Instance},
@@ -240,26 +238,23 @@ fn waker(i2c: &Instance) -> &'static mut Option<Waker> {
     unsafe { &mut WAKERS[i2c.inst().wrapping_sub(1)] }
 }
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused, non_snake_case))]
-unsafe fn LPI2C1() {
-    on_interrupt(&ral::lpi2c::LPI2C1::steal());
-}
+interrupts! {
+    unsafe fn LPI2C1() {
+        on_interrupt(&ral::lpi2c::LPI2C1::steal());
+    }
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused, non_snake_case))]
-unsafe fn LPI2C2() {
-    on_interrupt(&ral::lpi2c::LPI2C2::steal());
-}
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused, non_snake_case))]
-unsafe fn LPI2C3() {
-    on_interrupt(&ral::lpi2c::LPI2C3::steal());
-}
+    unsafe fn LPI2C2() {
+        on_interrupt(&ral::lpi2c::LPI2C2::steal());
+    }
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused, non_snake_case))]
-unsafe fn LPI2C4() {
-    on_interrupt(&ral::lpi2c::LPI2C4::steal());
+
+    unsafe fn LPI2C3() {
+        on_interrupt(&ral::lpi2c::LPI2C3::steal());
+    }
+
+
+    unsafe fn LPI2C4() {
+        on_interrupt(&ral::lpi2c::LPI2C4::steal());
+    }
 }

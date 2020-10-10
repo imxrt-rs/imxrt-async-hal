@@ -220,19 +220,15 @@ fn on_interrupt(gpt: &ral::gpt::Instance, state: &mut State) {
     }
 }
 
-#[cfg(target_arch = "arm")]
-use crate::ral::interrupt;
+interrupts! {
+    unsafe fn GPT1() {
+        let gpt = ral::gpt::GPT1::steal();
+        on_interrupt(&gpt, state(&gpt));
+    }
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused, non_snake_case))]
-unsafe fn GPT1() {
-    let gpt = ral::gpt::GPT1::steal();
-    on_interrupt(&gpt, state(&gpt));
-}
 
-#[cfg_attr(target_arch = "arm", crate::rt::interrupt)]
-#[cfg_attr(not(target_arch = "arm"), allow(unused, non_snake_case))]
-unsafe fn GPT2() {
-    let gpt = ral::gpt::GPT2::steal();
-    on_interrupt(&gpt, state(&gpt));
+    unsafe fn GPT2() {
+        let gpt = ral::gpt::GPT2::steal();
+        on_interrupt(&gpt, state(&gpt));
+    }
 }
