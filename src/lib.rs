@@ -1,4 +1,4 @@
-//! Asynchronous i.MX RT peripherals
+//! Asynchronous i.MX RT peripherals for embedded systems
 //!
 //! `imxrt-async-hal` brings async Rust support to NXP's i.MX RT processor family.
 //! The crate includes peripherals and timers. Peripheral I/O blocks on `await`, and
@@ -165,6 +165,20 @@
 //!     executor::block_on(future::join(blinking_loop, echo_loop));
 //!     unreachable!();
 //! }
+//! ```
+//!
+//! ## License
+//!
+//! Licensed under either of
+//!
+//! - [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
+//! - [MIT License](http://opensource.org/licenses/MIT)
+//!
+//! at your option.
+//!
+//! Unless you explicitly state otherwise, any contribution intentionally submitted
+//! for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
+//! dual licensed as above, without any additional terms or conditions.
 
 #![no_std]
 #![cfg_attr(docsrs, feature(doc_cfg))]
