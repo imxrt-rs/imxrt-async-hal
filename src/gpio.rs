@@ -91,6 +91,7 @@ pub enum Output {}
 /// ```
 ///
 /// When using a `GPIO` as an input, you can wait for transitions using [`wait_for`](#method.wait_for).
+#[cfg_attr(docsrs, doc(cfg(feature = "gpio")))]
 pub struct GPIO<P, D> {
     pin: P,
     dir: PhantomData<D>,
@@ -290,6 +291,7 @@ where
 ///
 /// See [`GPIO::wait_for`](#method.wait_for) for more information.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(docsrs, doc(cfg(feature = "gpio")))]
 pub enum Sensitivity {
     /// Interrupt when GPIO is low
     Low,

@@ -149,6 +149,7 @@
 //! }
 
 #![no_std]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 /// Decorates one or more functions that will be statically registered
 /// in the interrupt table
@@ -173,13 +174,22 @@ macro_rules! interrupts {
 // Modules
 //
 pub mod ccm;
+#[cfg(feature = "dma")]
+#[cfg_attr(docsrs, doc(cfg(feature = "dma")))]
 pub mod dma;
+#[cfg(feature = "gpio")]
+#[cfg_attr(docsrs, doc(cfg(feature = "gpio")))]
 pub mod gpio;
+#[cfg(feature = "gpt")]
 mod gpt;
+#[cfg(feature = "i2c")]
 mod i2c;
 pub mod instance;
+#[cfg(feature = "pit")]
 mod pit;
+#[cfg(feature = "spi")]
 mod spi;
+#[cfg(feature = "uart")]
 mod uart;
 
 pub use imxrt_ral as ral;
@@ -190,10 +200,15 @@ use cortex_m_rt as rt;
 //
 // Module re-exports
 //
+#[cfg(feature = "gpt")]
 pub use gpt::GeneralPurposeTimer as GPT;
+#[cfg(feature = "i2c")]
 pub use i2c::{ClockSpeed as I2CClockSpeed, Error as I2CError, I2C};
+#[cfg(feature = "pit")]
 pub use pit::PeriodicTimer as PIT;
+#[cfg(feature = "spi")]
 pub use spi::{Error as SPIError, Pins as SPIPins, SPI};
+#[cfg(feature = "uart")]
 pub use uart::{Error as UARTError, UART};
 
 /// A `once` sentinel, since it doesn't exist in `core::sync`.
@@ -251,6 +266,7 @@ pub struct IPGClock {
 ///
 /// [`imxrt-iomuxc`]: https://docs.rs/imxrt-iomuxc/0.1/imxrt_iomuxc/
 pub mod iomuxc {
+    #[cfg_attr(docsrs, doc(cfg(feature = "imxrt106x")))]
     #[cfg(feature = "imxrt106x")]
     pub use imxrt_iomuxc::imxrt106x::*;
     pub use imxrt_iomuxc::prelude::*;
@@ -263,6 +279,7 @@ pub mod iomuxc {
     ///
     /// let pads = iomuxc::new(IOMUXC::take().unwrap());
     /// ```
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "imxrt106x"))))]
     #[cfg(any(feature = "imxrt106x"))]
     pub fn new(_: crate::ral::iomuxc::Instance) -> Pads {
         // Safety: ^--- there's a single instance. Either the user

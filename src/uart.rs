@@ -55,6 +55,7 @@ use core::fmt;
 /// }
 /// # };
 /// ```
+#[cfg_attr(docsrs, doc(cfg(feature = "uart")))]
 pub struct UART<TX, RX> {
     uart: ral::lpuart::Instance,
     channel: dma::Channel,
@@ -172,6 +173,7 @@ struct Timings {
 /// Errors propagated from a [`UART`](struct.UART.html) device
 #[non_exhaustive]
 #[derive(Debug)]
+#[cfg_attr(docsrs, doc(cfg(feature = "uart")))]
 pub enum Error {
     /// There was an error when preparing the baud rate or clocks
     Clock,

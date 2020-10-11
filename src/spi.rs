@@ -19,6 +19,7 @@ use crate::{dma, instance, iomuxc, ral};
 /// // Helper type for your SPI peripheral
 /// type SPI = hal::SPI<SPIPins>;
 /// ```
+#[cfg_attr(docsrs, doc(cfg(feature = "spi")))]
 pub struct Pins<SDO, SDI, SCK, PCS0> {
     /// Serial data out
     ///
@@ -92,6 +93,7 @@ pub struct Pins<SDO, SDI, SCK, PCS0> {
 /// spi.full_duplex_u16(&mut buffer).await;
 /// # };
 /// ```
+#[cfg_attr(docsrs, doc(cfg(feature = "spi")))]
 pub struct SPI<Pins> {
     pins: Pins,
     spi: ral::lpspi::Instance,
@@ -159,6 +161,7 @@ where
 /// Errors propagated from a [`SPI`](struct.SPI.html) device
 #[non_exhaustive]
 #[derive(Debug)]
+#[cfg_attr(docsrs, doc(cfg(feature = "spi")))]
 pub enum Error {
     /// Error when coordinating a DMA transaction
     DMA(dma::Error),

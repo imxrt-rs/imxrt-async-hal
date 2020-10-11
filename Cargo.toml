@@ -20,10 +20,28 @@ version = "0.3"
 default-features = false
 
 [features]
+# Peripheral features
+dma = []
+gpio = []
+gpt = []
+i2c = []
+pipe = ["dma"]
+pit = []
+spi = ["dma"]
+uart = ["dma"]
+# All features on by default
+default = ["dma", "gpio", "gpt", "i2c", "pipe", "pit", "spi", "uart"]
+# Runtime features
 rt = ["imxrt-ral/rt", "cortex-m-rt/device"]
+# Chip variant features
 imxrt106x = ["imxrt-iomuxc/imxrt106x", "imxrt-ral/imxrt1062"]
+
 
 # Don't optimize build dependencies, like proc macros.
 # Helps with build times.
 [profile.release.build-override]
 opt-level = 0
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

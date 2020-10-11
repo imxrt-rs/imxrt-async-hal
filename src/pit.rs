@@ -40,6 +40,7 @@ const CLOCK_PERIOD: Duration = Duration::from_micros(CLOCK_PERIOD_US as u64);
 /// pit.delay_us(100).await;
 /// # };
 /// ```
+#[cfg_attr(docsrs, doc(cfg(feature = "pit")))]
 pub struct PeriodicTimer(register::ChannelInstance);
 
 impl PeriodicTimer {

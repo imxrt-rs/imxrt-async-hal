@@ -6,6 +6,7 @@ const I2C_CLOCK_HZ: u32 = crate::ccm::I2CClock::frequency();
 
 /// I2C clock speed
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(docsrs, doc(cfg(feature = "i2c")))]
 pub enum ClockSpeed {
     /// 100 KHz clock speed
     KHz100,

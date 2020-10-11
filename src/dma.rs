@@ -16,6 +16,8 @@
 mod element;
 mod interrupt;
 mod peripheral;
+#[cfg(feature = "pipe")]
+#[cfg_attr(docsrs, doc(cfg(feature = "pipe")))]
 pub mod pipe;
 mod register;
 

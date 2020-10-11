@@ -7,6 +7,8 @@ const CLOCK_DIVIDER: u32 = 5;
 /// If changing this, make sure to update `clock`
 const CLOCK_HZ: u32 = 528_000_000 / CLOCK_DIVIDER;
 
+#[cfg(feature = "spi")]
+#[cfg_attr(docsrs, doc(cfg(feature = "spi")))]
 impl Disabled<SPIClock> {
     /// Enable the SPI clocks
     pub fn enable(self, handle: &mut Handle) -> SPIClock {
@@ -15,6 +17,8 @@ impl Disabled<SPIClock> {
     }
 }
 
+#[cfg(feature = "spi")]
+#[cfg_attr(docsrs, doc(cfg(feature = "spi")))]
 impl SPIClock {
     /// Set the clock gate activity for the SPI instance
     pub fn clock_gate(&mut self, spi: &mut ral::lpspi::Instance, activity: ClockActivity) {
@@ -33,6 +37,8 @@ impl SPIClock {
 ///
 /// This could be called anywhere, by anyone who uses the globally-accessible SPI memory.
 /// Consider using the safer `SPIClock::clock_gate` API.
+#[cfg(feature = "spi")]
+#[cfg_attr(docsrs, doc(cfg(feature = "spi")))]
 pub unsafe fn clock_gate(spi: *const ral::lpspi::RegisterBlock, activity: ClockActivity) {
     let ccgr = CCGR_BASE.add(1);
     let gate = match spi {
@@ -52,6 +58,8 @@ pub unsafe fn clock_gate(spi: *const ral::lpspi::RegisterBlock, activity: ClockA
 /// This modifies easily-accessible global state. Consider using `SPIClock::enable`
 /// for a safery API.
 #[inline(always)]
+#[cfg(feature = "spi")]
+#[cfg_attr(docsrs, doc(cfg(feature = "spi")))]
 pub unsafe fn enable(ccm: *const ral::ccm::RegisterBlock) {
     // Select clock, and commit prescalar
     ral::modify_reg!(

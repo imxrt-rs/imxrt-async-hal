@@ -83,6 +83,7 @@ use crate::{
 /// i2c.write_read(DEVICE_ADDRESS, &output, &mut input).await.unwrap();
 /// # };
 /// ```
+#[cfg_attr(docsrs, doc(cfg(feature = "i2c")))]
 pub struct I2C<SCL, SDA> {
     i2c: Instance,
     scl: SCL,
@@ -134,6 +135,7 @@ where
 /// Errors propagated from an [`I2C`](struct.I2C.html) device
 #[non_exhaustive]
 #[derive(Debug)]
+#[cfg_attr(docsrs, doc(cfg(feature = "i2c")))]
 pub enum Error {
     /// There was an issue when setting the clock speed
     ///

@@ -47,14 +47,26 @@
 //! let mut gpt = GPT::new(gpt2, &perclock);
 //! ```
 
+#[cfg(feature = "i2c")]
 mod i2c;
+#[cfg(any(feature = "gpt", feature = "pit"))]
 mod perclock;
+#[cfg(feature = "spi")]
 mod spi;
+#[cfg(feature = "uart")]
 mod uart;
 
+#[cfg(feature = "i2c")]
 pub use i2c::{clock_gate as clock_gate_i2c, enable as enable_i2c};
-pub use perclock::{clock_gate_gpt, clock_gate_pit, enable as enable_perclock};
+#[cfg(feature = "gpt")]
+pub use perclock::clock_gate_gpt;
+#[cfg(feature = "pit")]
+pub use perclock::clock_gate_pit;
+#[cfg(any(feature = "gpt", feature = "pit"))]
+pub use perclock::enable as enable_perclock;
+#[cfg(feature = "spi")]
 pub use spi::{clock_gate as clock_gate_spi, enable as enable_spi};
+#[cfg(feature = "uart")]
 pub use uart::{clock_gate as clock_gate_uart, enable as enable_uart};
 
 use crate::ral;
@@ -67,6 +79,8 @@ pub struct Handle(pub(crate) ral::ccm::Instance);
 
 impl Handle {
     /// Set the clock gate activity for the DMA controller
+    #[cfg(feature = "dma")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "dma")))]
     pub fn clock_gate_dma(&mut self, dma: &mut ral::dma0::Instance, activity: ClockActivity) {
         unsafe { clock_gate_dma(&**dma, activity) };
     }
@@ -79,6 +93,8 @@ impl Handle {
 /// This could be called by anyone who can access the DMA register block, which is always
 /// available. Consider using [`Handle::clock_gate_dma`](struct.Handle.html#method.clock_gate_dma)
 /// which supports a safer interface.
+#[cfg(feature = "dma")]
+#[cfg_attr(docsrs, doc(cfg(feature = "dma")))]
 pub unsafe fn clock_gate_dma(_: *const ral::dma0::RegisterBlock, activity: ClockActivity) {
     set_clock_gate(CCGR_BASE.add(5), &[3], activity as u8);
 }
@@ -96,18 +112,26 @@ pub struct CCM {
     /// The periodic clock handle
     ///
     /// `perclock` is used for timers, including [`GPT`](../struct.GPT.html) and [`PIT`](../struct.PIT.html).
+    #[cfg(any(feature = "gpt", feature = "pit"))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "gpt", feature = "pit"))))]
     pub perclock: Disabled<PerClock>,
     /// The UART clock
     ///
     /// `uart_clock` is for [`UART`](../struct.UART.html) peripherals.
+    #[cfg(feature = "uart")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "uart")))]
     pub uart_clock: Disabled<UARTClock>,
     /// The SPI clock
     ///
     /// `spi_clock` is for [`SPI`](../struct.SPI.html) peripherals.
+    #[cfg(feature = "spi")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "spi")))]
     pub spi_clock: Disabled<SPIClock>,
     /// The I2C clock
     ///
     /// `i2c_clock` is for [`I2C`](../struct.I2C.html) peripherals.
+    #[cfg(feature = "i2c")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "i2c")))]
     pub i2c_clock: Disabled<I2CClock>,
 }
 
@@ -116,9 +140,13 @@ impl CCM {
     pub const fn new(ccm: ral::ccm::Instance) -> Self {
         CCM {
             handle: Handle(ccm),
+            #[cfg(any(feature = "gpt", feature = "pit"))]
             perclock: Disabled(PerClock(())),
+            #[cfg(feature = "uart")]
             uart_clock: Disabled(UARTClock(())),
+            #[cfg(feature = "spi")]
             spi_clock: Disabled(SPIClock(())),
+            #[cfg(feature = "i2c")]
             i2c_clock: Disabled(I2CClock(())),
         }
     }
@@ -150,8 +178,12 @@ pub struct Disabled<Clock>(Clock);
 ///
 /// `PerClock` is the input clock for GPT and PIT. It runs at
 /// 1MHz.
+#[cfg(any(feature = "gpt", feature = "pit"))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "gpt", feature = "pit"))))]
 pub struct PerClock(());
 
+#[cfg(any(feature = "gpt", feature = "pit"))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "gpt", feature = "pit"))))]
 impl PerClock {
     /// Assume that the clock is enabled, and acquire the enabled clock
     ///
@@ -166,8 +198,12 @@ impl PerClock {
 }
 
 /// The UART clock
+#[cfg(feature = "uart")]
+#[cfg_attr(docsrs, doc(cfg(feature = "uart")))]
 pub struct UARTClock(());
 
+#[cfg(feature = "uart")]
+#[cfg_attr(docsrs, doc(cfg(feature = "uart")))]
 impl UARTClock {
     /// Assume that the clock is enabled, and acquire the enabled clock
     ///
@@ -182,8 +218,12 @@ impl UARTClock {
 }
 
 /// The SPI clock
+#[cfg(feature = "spi")]
+#[cfg_attr(docsrs, doc(cfg(feature = "spi")))]
 pub struct SPIClock(());
 
+#[cfg(feature = "spi")]
+#[cfg_attr(docsrs, doc(cfg(feature = "spi")))]
 impl SPIClock {
     /// Assume that the clock is enabled, and acquire the enabled clock
     ///
@@ -198,8 +238,12 @@ impl SPIClock {
 }
 
 /// The I2C clock
+#[cfg(feature = "i2c")]
+#[cfg_attr(docsrs, doc(cfg(feature = "i2c")))]
 pub struct I2CClock(());
 
+#[cfg(feature = "i2c")]
+#[cfg_attr(docsrs, doc(cfg(feature = "i2c")))]
 impl I2CClock {
     /// Assume that the clock is enabled, and acquire the enabled clock
     ///

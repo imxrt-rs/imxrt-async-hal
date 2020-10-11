@@ -33,6 +33,7 @@ use core::{
 /// gpt.delay(core::time::Duration::from_millis(250)).await; // Equivalent
 /// # };
 /// ```
+#[cfg_attr(docsrs, doc(cfg(feature = "gpt")))]
 pub struct GeneralPurposeTimer(ral::gpt::Instance);
 
 /// GPT clock divider
