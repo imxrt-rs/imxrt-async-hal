@@ -32,10 +32,12 @@ fn main() -> ! {
     let hal::ccm::CCM {
         mut handle,
         perclock,
+        spi_clock,
         ..
     } = hal::ral::ccm::CCM::take().map(hal::ccm::CCM::new).unwrap();
     let mut gpt = hal::ral::gpt::GPT2::take().unwrap();
     let mut perclock = perclock.enable(&mut handle);
+    let mut spi_clock = spi_clock.enable(&mut handle);
     perclock.clock_gate_gpt(&mut gpt, hal::ccm::ClockActivity::On);
 
     let mut timer = hal::GPT::new(gpt, &perclock);
@@ -49,9 +51,10 @@ fn main() -> ! {
         hal::ral::dmamux::DMAMUX::take().unwrap(),
     );
 
-    let spi4 = hal::ral::lpspi::LPSPI4::take()
+    let mut spi4 = hal::ral::lpspi::LPSPI4::take()
         .and_then(hal::instance::spi)
         .unwrap();
+    spi_clock.clock_gate(&mut spi4, hal::ccm::ClockActivity::On);
     let pins = hal::SPIPins {
         sdo: pins.p11,
         sdi: pins.p12,
@@ -62,7 +65,7 @@ fn main() -> ! {
         pins,
         spi4,
         (channels[8].take().unwrap(), channels[9].take().unwrap()),
-        &mut handle,
+        &spi_clock,
     );
 
     spi.set_clock_speed(SPI_CLOCK_HZ).unwrap();

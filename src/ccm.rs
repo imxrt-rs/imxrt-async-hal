@@ -14,9 +14,12 @@
 
 mod gates;
 mod perclock;
+mod spi;
 mod uart;
 
-pub use uart::enable as uart_enable;
+pub use perclock::{clock_gate_gpt, clock_gate_pit, enable as enable_perclock};
+pub use spi::{clock_gate as clock_gate_spi, enable as enable_spi};
+pub use uart::{clock_gate as clock_gate_uart, enable as enable_uart};
 
 use crate::ral;
 
@@ -55,6 +58,8 @@ pub struct CCM {
     pub perclock: Disabled<PerClock>,
     /// The UART clock
     pub uart_clock: Disabled<UARTClock>,
+    /// The SPI clock
+    pub spi_clock: Disabled<SPIClock>,
 }
 
 impl CCM {
@@ -64,6 +69,7 @@ impl CCM {
             handle: Handle(ccm),
             perclock: Disabled(PerClock(())),
             uart_clock: Disabled(UARTClock(())),
+            spi_clock: Disabled(SPIClock(())),
         }
     }
 }
@@ -110,6 +116,9 @@ pub struct PerClock(());
 
 /// The UART clock
 pub struct UARTClock(());
+
+/// The SPI clock
+pub struct SPIClock(());
 
 /// Starting address of the clock control gate registers
 const CCGR_BASE: *mut u32 = 0x400F_C068 as *mut u32;

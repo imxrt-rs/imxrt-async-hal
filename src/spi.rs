@@ -1,11 +1,5 @@
 use crate::{dma, instance, iomuxc, ral};
 
-const CLOCK_DIVIDER: u32 = 5;
-/// If changing this, make sure to update `clock`
-const CLOCK_HZ: u32 = 528_000_000 / CLOCK_DIVIDER;
-
-const DEFAULT_CLOCK_SPEED_HZ: u32 = 8_000_000;
-
 /// Pins for a SPI device
 ///
 /// Consider using type aliases to simplify your [`SPI`](struct.SPI.html) usage:
@@ -74,6 +68,7 @@ pub struct Pins<SDO, SDI, SCK, PCS0> {
 ///     DMAMUX::take().unwrap(),
 /// );
 ///
+/// let mut spi_clock = ccm.spi_clock.enable(&mut ccm.handle);
 /// let spi_pins = SPIPins {
 ///     sdo: pads.b0.p02,
 ///     sdi: pads.b0.p01,
@@ -81,11 +76,12 @@ pub struct Pins<SDO, SDI, SCK, PCS0> {
 ///     pcs0: pads.b0.p00,
 /// };
 /// let mut spi4 = LPSPI4::take().and_then(instance::spi).unwrap();
+/// spi_clock.clock_gate(&mut spi4, ClockActivity::On);
 /// let mut spi = SPI::new(
 ///     spi_pins,
 ///     spi4,
 ///     (channels[8].take().unwrap(), channels[9].take().unwrap()),
-///     &mut ccm.handle,
+///     &spi_clock,
 /// );
 ///
 /// spi.set_clock_speed(1_000_000).unwrap();
@@ -103,6 +99,9 @@ pub struct SPI<Pins> {
     rx_channel: dma::Channel,
 }
 
+const DEFAULT_CLOCK_SPEED_HZ: u32 = 8_000_000;
+const CLOCK_HZ: u32 = crate::ccm::SPIClock::frequency();
+
 impl<SDO, SDI, SCK, PCS0, M> SPI<Pins<SDO, SDI, SCK, PCS0>>
 where
     SDO: iomuxc::spi::Pin<Module = M, Signal = iomuxc::spi::SDO>,
@@ -119,10 +118,8 @@ where
         mut pins: Pins<SDO, SDI, SCK, PCS0>,
         spi: instance::SPI<M>,
         channels: (dma::Channel, dma::Channel),
-        ccm: &mut crate::ccm::Handle,
+        _: &crate::ccm::SPIClock,
     ) -> Self {
-        enable_clocks(ccm);
-
         iomuxc::spi::prepare(&mut pins.sdo);
         iomuxc::spi::prepare(&mut pins.sdi);
         iomuxc::spi::prepare(&mut pins.sck);
@@ -320,42 +317,6 @@ fn set_clock_speed(spi: &ral::lpspi::Instance, hz: u32) {
     );
 }
 
-fn enable_clocks(ccm: &mut crate::ccm::Handle) {
-    static ONCE: crate::once::Once = crate::once::new();
-    ONCE.call(|| {
-        // First, disable clocks
-        ral::modify_reg!(
-            ral::ccm,
-            ccm.0,
-            CCGR1,
-            CG0: 0,
-            CG1: 0,
-            CG2: 0,
-            CG3: 0
-        );
-
-        // Select clock, and commit prescalar
-        ral::modify_reg!(
-            ral::ccm,
-            ccm.0,
-            CBCMR,
-            LPSPI_PODF: CLOCK_DIVIDER - 1,
-            LPSPI_CLK_SEL: LPSPI_CLK_SEL_2 // PLL2
-        );
-
-        // Enable clocks
-        ral::modify_reg!(
-            ral::ccm,
-            ccm.0,
-            CCGR1,
-            CG0: 0b11,
-            CG1: 0b11,
-            CG2: 0b11,
-            CG3: 0b11
-        );
-    });
-}
-
 /// SPI RX DMA Request signal
 ///
 /// See table 4-3 of the iMXRT1060 Reference Manual (Rev 2)
@@ -476,3 +437,37 @@ impl dma::Destination<u16> for ral::lpspi::Instance {
         disable_destination(self);
     }
 }
+
+/// ```no_run
+/// use imxrt_async_hal as hal;
+/// use hal::ral::{ccm::CCM, lpspi::LPSPI2};
+///
+/// let hal::ccm::CCM {
+///     mut handle,
+///     spi_clock,
+///     ..
+/// } = CCM::take().map(hal::ccm::CCM::new).unwrap();
+/// let mut spi_clock = spi_clock.enable(&mut handle);
+/// let mut spi2 = LPSPI2::take().unwrap();
+/// spi_clock.clock_gate(&mut spi2, hal::ccm::ClockActivity::On);
+/// ```
+#[cfg(doctest)]
+struct ClockingWeakRalInstance;
+
+/// ```no_run
+/// use imxrt_async_hal as hal;
+/// use hal::ral::{ccm::CCM, lpspi::LPSPI2};
+///
+/// let hal::ccm::CCM {
+///     mut handle,
+///     spi_clock,
+///     ..
+/// } = CCM::take().map(hal::ccm::CCM::new).unwrap();
+/// let mut spi_clock = spi_clock.enable(&mut handle);
+/// let mut spi2: hal::instance::SPI<hal::iomuxc::consts::U2> = LPSPI2::take()
+///     .and_then(hal::instance::spi)
+///     .unwrap();
+/// spi_clock.clock_gate(&mut spi2, hal::ccm::ClockActivity::On);
+/// ```
+#[cfg(doctest)]
+struct ClockingStrongHalInstance;

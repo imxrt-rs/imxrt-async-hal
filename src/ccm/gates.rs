@@ -18,17 +18,3 @@ impl ClockGate for ral::lpi2c::RegisterBlock {
         }
     }
 }
-
-impl ClockGate for ral::lpspi::RegisterBlock {
-    unsafe fn clock_gate(&self, activity: ClockActivity) {
-        let ccgr = CCGR_BASE.add(1);
-        let gate = match &*self as *const _ {
-            ral::lpspi::LPSPI1 => 0,
-            ral::lpspi::LPSPI2 => 1,
-            ral::lpspi::LPSPI3 => 2,
-            ral::lpspi::LPSPI4 => 3,
-            _ => unreachable!(),
-        };
-        set_clock_gate(ccgr, &[gate], activity as u8);
-    }
-}
