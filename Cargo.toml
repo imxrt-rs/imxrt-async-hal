@@ -21,16 +21,15 @@ default-features = false
 
 [features]
 # Peripheral features
-dma = []
 gpio = []
 gpt = []
 i2c = []
-pipe = ["dma"]
+pipe = []
 pit = []
-spi = ["dma"]
-uart = ["dma"]
+spi = []
+uart = []
 # All features on by default
-default = ["dma", "gpio", "gpt", "i2c", "pipe", "pit", "spi", "uart"]
+default = ["gpio", "gpt", "i2c", "pipe", "pit", "spi", "uart"]
 # Runtime features
 rt = ["imxrt-ral/rt", "cortex-m-rt/device"]
 # Chip variant features

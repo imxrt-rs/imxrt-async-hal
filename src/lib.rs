@@ -157,6 +157,7 @@
 /// `interrupts!` may only be used once per module. It should only include
 /// function definitions. The function names should reflect the IRQ name as
 /// provided by the RAL's `interrupt` macro.
+#[cfg(any(dma, feature = "gpio", feature = "i2c"))]
 macro_rules! interrupts {
     ($($isr:item)*) => {
         #[cfg(all(target_arch = "arm", feature = "rt"))]
@@ -174,8 +175,8 @@ macro_rules! interrupts {
 // Modules
 //
 pub mod ccm;
-#[cfg(feature = "dma")]
-#[cfg_attr(docsrs, doc(cfg(feature = "dma")))]
+#[cfg(dma)]
+#[cfg_attr(docsrs, doc(cfg(dma)))]
 pub mod dma;
 #[cfg(feature = "gpio")]
 #[cfg_attr(docsrs, doc(cfg(feature = "gpio")))]
@@ -212,6 +213,7 @@ pub use spi::{Error as SPIError, Pins as SPIPins, SPI};
 pub use uart::{Error as UARTError, UART};
 
 /// A `once` sentinel, since it doesn't exist in `core::sync`.
+#[cfg(any(feature = "gpio", feature = "i2c"))]
 mod once {
     use core::sync::atomic::{AtomicBool, Ordering};
     pub struct Once(AtomicBool);

@@ -79,8 +79,8 @@ pub struct Handle(pub(crate) ral::ccm::Instance);
 
 impl Handle {
     /// Set the clock gate activity for the DMA controller
-    #[cfg(feature = "dma")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "dma")))]
+    #[cfg(dma)]
+    #[cfg_attr(docsrs, doc(cfg(dma)))]
     pub fn clock_gate_dma(&mut self, dma: &mut ral::dma0::Instance, activity: ClockActivity) {
         unsafe { clock_gate_dma(&**dma, activity) };
     }
@@ -93,8 +93,8 @@ impl Handle {
 /// This could be called by anyone who can access the DMA register block, which is always
 /// available. Consider using [`Handle::clock_gate_dma`](struct.Handle.html#method.clock_gate_dma)
 /// which supports a safer interface.
-#[cfg(feature = "dma")]
-#[cfg_attr(docsrs, doc(cfg(feature = "dma")))]
+#[cfg(dma)]
+#[cfg_attr(docsrs, doc(cfg(dma)))]
 pub unsafe fn clock_gate_dma(_: *const ral::dma0::RegisterBlock, activity: ClockActivity) {
     set_clock_gate(CCGR_BASE.add(5), &[3], activity as u8);
 }
@@ -167,6 +167,7 @@ pub enum ClockActivity {
 }
 
 /// Crystal oscillator frequency
+#[allow(unused)] // Used when features are enabled
 const OSCILLATOR_FREQUENCY_HZ: u32 = 24_000_000;
 
 /// A disabled clock of type `Clock`
@@ -258,6 +259,7 @@ impl I2CClock {
 }
 
 /// Starting address of the clock control gate registers
+#[allow(unused)] // Used when features are enabled
 const CCGR_BASE: *mut u32 = 0x400F_C068 as *mut u32;
 
 /// # Safety
@@ -265,6 +267,7 @@ const CCGR_BASE: *mut u32 = 0x400F_C068 as *mut u32;
 /// Should only be used when you have a mutable reference to an enabled clock.
 /// Should only be used on a valid clock gate register.
 #[inline(always)]
+#[allow(unused)] // Used when features are enabled
 unsafe fn set_clock_gate(ccgr: *mut u32, gates: &[usize], value: u8) {
     const MASK: u32 = 0b11;
     let mut register = core::ptr::read_volatile(ccgr);
