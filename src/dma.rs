@@ -329,10 +329,13 @@ pub enum Error {
 /// prepare_peripheral(channels[7].take().unwrap());
 /// ```
 pub fn channels(
-    dma: ral::dma0::Instance,
+    mut dma: ral::dma0::Instance,
     mux: ral::dmamux::Instance,
     ccm: &mut crate::ccm::Handle,
 ) -> [Option<Channel>; MAX_DMA_CHANNELS] {
+    use crate::ccm::{ClockActivity, ClockGate};
+    dma.gate(ccm, ClockActivity::On);
+
     drop(dma);
     drop(mux);
 
@@ -342,7 +345,6 @@ pub fn channels(
         None, None,
     ];
 
-    ral::modify_reg!(ral::ccm, ccm.0, CCGR5, CG3: 0x03);
     for (idx, channel) in channels.iter_mut().enumerate() {
         let c = unsafe { Channel::new(idx) };
         c.tcd().reset();

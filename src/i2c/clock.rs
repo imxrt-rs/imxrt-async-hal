@@ -6,7 +6,7 @@ use crate::ral::{self, lpi2c::Instance};
 ///
 /// If changing the root clock in `enable`, you'll need to update
 /// this value.
-const I2C_CLOCK_HZ: u32 = crate::OSCILLATOR_FREQUENCY_HZ / I2C_CLOCK_DIVIDER;
+const I2C_CLOCK_HZ: u32 = crate::ccm::OSCILLATOR_FREQUENCY_HZ / I2C_CLOCK_DIVIDER;
 /// I2C peripheral clock divider
 const I2C_CLOCK_DIVIDER: u32 = 3;
 

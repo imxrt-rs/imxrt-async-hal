@@ -48,24 +48,6 @@ pub use pit::PeriodicTimer as PIT;
 pub use spi::{Error as SPIError, Pins as SPIPins, SPI};
 pub use uart::{Error as UARTError, UART};
 
-const OSCILLATOR_FREQUENCY_HZ: u32 = 24_000_000;
-const PERIODIC_CLOCK_FREQUENCY_HZ: u32 = OSCILLATOR_FREQUENCY_HZ / PERIODIC_CLOCK_DIVIDER;
-const PERIODIC_CLOCK_DIVIDER: u32 = 24;
-
-/// Enable the periodic clock root
-fn enable_periodic_clock_root(ccm: &crate::ccm::Handle) {
-    static ONCE: once::Once = once::new();
-    ONCE.call(|| {
-        ral::modify_reg!(
-            ral::ccm,
-            ccm.0,
-            CSCMR1,
-            PERCLK_CLK_SEL: PERCLK_CLK_SEL_1,
-            PERCLK_PODF: PERIODIC_CLOCK_DIVIDER - 1
-        );
-    });
-}
-
 /// A `once` sentinel, since it doesn't exist in `core::sync`.
 mod once {
     use core::sync::atomic::{AtomicBool, Ordering};

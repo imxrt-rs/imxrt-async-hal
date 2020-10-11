@@ -153,7 +153,7 @@ impl<TX, RX> UART<TX, RX> {
     }
 }
 
-const UART_CLOCK: u32 = crate::OSCILLATOR_FREQUENCY_HZ;
+const UART_CLOCK: u32 = crate::ccm::OSCILLATOR_FREQUENCY_HZ;
 
 fn enable_clocks(ccm: &mut crate::ccm::Handle) {
     static ONCE: crate::once::Once = crate::once::new();

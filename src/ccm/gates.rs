@@ -109,7 +109,7 @@ mod tests {
     #[test]
     fn test_set_clock_gate() {
         let mut reg = 0;
-        
+
         unsafe {
             set_clock_gate(&mut reg, &[3, 7], 0b11);
         }
