@@ -25,13 +25,20 @@ pub struct Handle(pub(crate) ral::ccm::Instance);
 
 impl Handle {
     /// Set the clock gate activity for the DMA controller
-    pub fn clock_gate_dma(
-        &mut self,
-        dma: &mut crate::ral::dma0::Instance,
-        activity: ClockActivity,
-    ) {
-        unsafe { dma.clock_gate(activity) };
+    pub fn clock_gate_dma(&mut self, dma: &mut ral::dma0::Instance, activity: ClockActivity) {
+        unsafe { clock_gate_dma(&**dma, activity) };
     }
+}
+
+/// Set the clock activity for the DMA controller
+///
+/// # Safety
+///
+/// This could be called by anyone who can access the DMA register block, which is always
+/// available. Consider using [`Handle::clock_gate_dma`](struct.Handle.html#method.clock_gate_dma)
+/// which supports a safer interface.
+pub unsafe fn clock_gate_dma(_: *const ral::dma0::RegisterBlock, activity: ClockActivity) {
+    set_clock_gate(CCGR_BASE.add(5), &[3], activity as u8);
 }
 
 /// The CCM components
@@ -94,3 +101,44 @@ pub struct Disabled<Clock>(Clock);
 /// `PerClock` is the input clock for GPT and PIT. It runs at
 /// 1MHz.
 pub struct PerClock(());
+
+/// Starting address of the clock control gate registers
+const CCGR_BASE: *mut u32 = 0x400F_C068 as *mut u32;
+
+/// # Safety
+///
+/// Should only be used when you have a mutable reference to an enabled clock.
+/// Should only be used on a valid clock gate register.
+#[inline(always)]
+unsafe fn set_clock_gate(ccgr: *mut u32, gates: &[usize], value: u8) {
+    const MASK: u32 = 0b11;
+    let mut register = core::ptr::read_volatile(ccgr);
+
+    for gate in gates {
+        let shift: usize = gate * 2;
+        register &= !(MASK << shift);
+        register |= (MASK & (value as u32)) << shift;
+    }
+
+    core::ptr::write_volatile(ccgr, register);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::set_clock_gate;
+
+    #[test]
+    fn test_set_clock_gate() {
+        let mut reg = 0;
+
+        unsafe {
+            set_clock_gate(&mut reg, &[3, 7], 0b11);
+        }
+        assert_eq!(reg, (0b11 << 14) | (0b11 << 6));
+
+        unsafe {
+            set_clock_gate(&mut reg, &[3], 0b1);
+        }
+        assert_eq!(reg, (0b11 << 14) | (0b01 << 6));
+    }
+}

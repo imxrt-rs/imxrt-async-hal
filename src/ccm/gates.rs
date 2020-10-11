@@ -3,49 +3,8 @@
 //! Intentionally not using the `instance` API so as to make this
 //! module more portable across projects
 
-use super::{ClockActivity, ClockGate};
+use super::{set_clock_gate, ClockActivity, ClockGate, CCGR_BASE};
 use crate::ral;
-use core::ptr;
-
-/// Starting address of the clock control gate registers
-const CCGR_BASE: *mut u32 = 0x400F_C068 as *mut u32;
-
-/// # Safety
-///
-/// Should only be used when you have a mutable reference to an enabled clock.
-/// Should only be used on a valid clock gate register.
-#[inline(always)]
-unsafe fn set_clock_gate(ccgr: *mut u32, gates: &[usize], value: u8) {
-    const MASK: u32 = 0b11;
-    let mut register = ptr::read_volatile(ccgr);
-
-    for gate in gates {
-        let shift: usize = gate * 2;
-        register &= !(MASK << shift);
-        register |= (MASK & (value as u32)) << shift;
-    }
-
-    ptr::write_volatile(ccgr, register);
-}
-
-impl ClockGate for ral::dma0::RegisterBlock {
-    unsafe fn clock_gate(&self, activity: ClockActivity) {
-        set_clock_gate(CCGR_BASE.add(5), &[3], activity as u8);
-    }
-}
-
-impl ClockGate for ral::gpt::RegisterBlock {
-    unsafe fn clock_gate(&self, activity: ClockActivity) {
-        let value = activity as u8;
-        match &*self as *const _ {
-            ral::gpt::GPT1 => {
-                set_clock_gate(CCGR_BASE.add(1), &[10, 11], value);
-            }
-            ral::gpt::GPT2 => set_clock_gate(CCGR_BASE.add(0), &[12, 13], value),
-            _ => unreachable!(),
-        }
-    }
-}
 
 impl ClockGate for ral::lpi2c::RegisterBlock {
     unsafe fn clock_gate(&self, activity: ClockActivity) {
@@ -55,15 +14,6 @@ impl ClockGate for ral::lpi2c::RegisterBlock {
             ral::lpi2c::LPI2C2 => set_clock_gate(CCGR_BASE.add(2), &[4], value),
             ral::lpi2c::LPI2C3 => set_clock_gate(CCGR_BASE.add(2), &[5], value),
             ral::lpi2c::LPI2C4 => set_clock_gate(CCGR_BASE.add(6), &[12], value),
-            _ => unreachable!(),
-        }
-    }
-}
-
-impl ClockGate for ral::pit::RegisterBlock {
-    unsafe fn clock_gate(&self, activity: ClockActivity) {
-        match &*self as *const _ {
-            ral::pit::PIT => set_clock_gate(CCGR_BASE.add(1), &[6], activity as u8),
             _ => unreachable!(),
         }
     }
@@ -97,25 +47,5 @@ impl ClockGate for ral::lpuart::RegisterBlock {
             ral::lpuart::LPUART8 => set_clock_gate(CCGR_BASE.add(6), &[7], value),
             _ => unreachable!(),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::set_clock_gate;
-
-    #[test]
-    fn test_set_clock_gate() {
-        let mut reg = 0;
-
-        unsafe {
-            set_clock_gate(&mut reg, &[3, 7], 0b11);
-        }
-        assert_eq!(reg, (0b11 << 14) | (0b11 << 6));
-
-        unsafe {
-            set_clock_gate(&mut reg, &[3], 0b1);
-        }
-        assert_eq!(reg, (0b11 << 14) | (0b01 << 6));
     }
 }
