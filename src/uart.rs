@@ -17,7 +17,7 @@ use core::fmt;
 ///
 /// ```no_run
 /// use imxrt_async_hal as hal;
-/// use hal::{ccm, dma, iomuxc, UART, instance};
+/// use hal::{ccm::{self, ClockActivity}, dma, iomuxc, UART, instance};
 /// use hal::ral::{
 ///     ccm::CCM, lpuart::LPUART2,
 ///     dma0::DMA0, dmamux::DMAMUX,
@@ -27,10 +27,11 @@ use core::fmt;
 /// let pads = IOMUXC::take().map(iomuxc::new).unwrap();
 ///
 /// let mut ccm = CCM::take().map(ccm::CCM::new).unwrap();
+/// let mut dma = DMA0::take().unwrap();
+/// ccm.handle.clock_gate_dma(&mut dma, ClockActivity::On);
 /// let mut channels = dma::channels(
-///     DMA0::take().unwrap(),
+///     dma,
 ///     DMAMUX::take().unwrap(),
-///     &mut ccm.handle
 /// );
 /// let uart2 = LPUART2::take().and_then(instance::uart).unwrap();
 /// let mut uart = UART::new(

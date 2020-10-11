@@ -44,9 +44,17 @@ fn main() -> ! {
     let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
     let pins = teensy4_pins::t40::into_pins(pads);
     let mut p13 = hal::gpio::GPIO::new(pins.p13).output();
-    let mut ccm = hal::ral::ccm::CCM::take().map(hal::ccm::CCM::new).unwrap();
+    let hal::ccm::CCM {
+        mut handle,
+        perclock,
+        ..
+    } = hal::ral::ccm::CCM::take().map(hal::ccm::CCM::new).unwrap();
+    let mut perclock = perclock.enable(&mut handle);
     let mut blink_timer = hal::ral::gpt::GPT1::take()
-        .map(|inst| hal::GPT::new(inst, &mut ccm.handle))
+        .map(|mut inst| {
+            perclock.clock_gate_gpt(&mut inst, hal::ccm::ClockActivity::On);
+            hal::GPT::new(inst, &perclock)
+        })
         .unwrap();
     let ones = async {
         loop {

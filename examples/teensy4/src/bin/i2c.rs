@@ -55,13 +55,21 @@ fn main() -> ! {
     iomuxc::configure(&mut pins.p17, PINCONFIG);
 
     let mut led = GPIO::new(pins.p13).output();
-    let mut ccm = CCM::take().map(ccm::CCM::new).unwrap();
+    let ccm::CCM {
+        mut handle,
+        perclock,
+        ..
+    } = CCM::take().map(ccm::CCM::new).unwrap();
+    let mut perclock = perclock.enable(&mut handle);
     let mut timer = GPT1::take()
-        .map(|inst| GPT::new(inst, &mut ccm.handle))
+        .map(|mut inst| {
+            perclock.clock_gate_gpt(&mut inst, ccm::ClockActivity::On);
+            GPT::new(inst, &perclock)
+        })
         .unwrap();
 
     let i2c3 = LPI2C3::take().and_then(hal::instance::i2c).unwrap();
-    let mut i2c = I2C::new(i2c3, pins.p16, pins.p17, &mut ccm.handle);
+    let mut i2c = I2C::new(i2c3, pins.p16, pins.p17, &mut handle);
     i2c.set_clock_speed(CLOCK_SPEED).unwrap();
 
     let task = async {

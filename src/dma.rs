@@ -314,28 +314,25 @@ pub enum Error {
 ///
 /// ```no_run
 /// use imxrt_async_hal as hal;
-/// use hal::{ccm::CCM, dma};
+/// use hal::{ccm::{CCM, ClockActivity}, dma};
 /// use hal::ral::{dma0, dmamux, ccm};
 ///
 /// fn prepare_peripheral(channel: dma::Channel) { /* ... */ }
 ///
 /// let mut ccm = ccm::CCM::take().map(CCM::new).unwrap();
+/// let mut dma = dma0::DMA0::take().unwrap();
+/// ccm.handle.clock_gate_dma(&mut dma, ClockActivity::On);
 /// let mut channels = dma::channels(
-///     dma0::DMA0::take().unwrap(),
+///     dma,
 ///     dmamux::DMAMUX::take().unwrap(),
-///     &mut ccm.handle,
 /// );
 ///
 /// prepare_peripheral(channels[7].take().unwrap());
 /// ```
 pub fn channels(
-    mut dma: ral::dma0::Instance,
+    dma: ral::dma0::Instance,
     mux: ral::dmamux::Instance,
-    ccm: &mut crate::ccm::Handle,
 ) -> [Option<Channel>; MAX_DMA_CHANNELS] {
-    use crate::ccm::{ClockActivity, ClockGate};
-    dma.gate(ccm, ClockActivity::On);
-
     drop(dma);
     drop(mux);
 

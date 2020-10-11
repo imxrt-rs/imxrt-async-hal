@@ -58,7 +58,7 @@ pub struct Pins<SDO, SDI, SCK, PCS0> {
 ///
 /// ```no_run
 /// use imxrt_async_hal as hal;
-/// use hal::{ccm, dma, instance, iomuxc, SPI, SPIPins};
+/// use hal::{ccm::{self, ClockActivity}, dma, instance, iomuxc, SPI, SPIPins};
 /// use hal::ral::{
 ///     ccm::CCM, dma0::DMA0, dmamux::DMAMUX,
 ///     iomuxc::IOMUXC, lpspi::LPSPI4,
@@ -67,10 +67,11 @@ pub struct Pins<SDO, SDI, SCK, PCS0> {
 /// let pads = IOMUXC::take().map(iomuxc::new).unwrap();
 ///
 /// let mut ccm = CCM::take().map(ccm::CCM::new).unwrap();
+/// let mut dma = DMA0::take().unwrap();
+/// ccm.handle.clock_gate_dma(&mut dma, ClockActivity::On);
 /// let mut channels = dma::channels(
-///     DMA0::take().unwrap(),
+///     dma,
 ///     DMAMUX::take().unwrap(),
-///     &mut ccm.handle
 /// );
 ///
 /// let spi_pins = SPIPins {

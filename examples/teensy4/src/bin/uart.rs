@@ -28,13 +28,25 @@ fn main() -> ! {
     let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
     let pins = teensy4_pins::t40::into_pins(pads);
     let mut led = hal::gpio::GPIO::new(pins.p13).output();
-    let gpt = hal::ral::gpt::GPT2::take().unwrap();
-    let mut ccm = hal::ral::ccm::CCM::take().map(hal::ccm::CCM::new).unwrap();
-    let mut timer = hal::GPT::new(gpt, &mut ccm.handle);
+    let mut gpt = hal::ral::gpt::GPT2::take().unwrap();
+
+    let hal::ccm::CCM {
+        mut handle,
+        perclock,
+        ..
+    } = hal::ral::ccm::CCM::take().map(hal::ccm::CCM::new).unwrap();
+    let mut perclock = perclock.enable(&mut handle);
+    perclock.clock_gate_gpt(&mut gpt, hal::ccm::ClockActivity::On);
+
+    let mut timer = hal::GPT::new(gpt, &perclock);
     let mut channels = hal::dma::channels(
-        hal::ral::dma0::DMA0::take().unwrap(),
+        hal::ral::dma0::DMA0::take()
+            .map(|mut dma| {
+                handle.clock_gate_dma(&mut dma, hal::ccm::ClockActivity::On);
+                dma
+            })
+            .unwrap(),
         hal::ral::dmamux::DMAMUX::take().unwrap(),
-        &mut ccm.handle,
     );
 
     let uart2 = hal::ral::lpuart::LPUART2::take()
@@ -45,7 +57,7 @@ fn main() -> ! {
         pins.p14,
         pins.p15,
         channels[7].take().unwrap(),
-        &mut ccm.handle,
+        &mut handle,
     );
     uart.set_baud(BAUD).unwrap();
 

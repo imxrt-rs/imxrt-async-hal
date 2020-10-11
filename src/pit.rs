@@ -8,7 +8,7 @@ use core::{
     time::Duration,
 };
 
-const CLOCK_HZ: u32 = crate::ccm::PERIODIC_CLOCK_FREQUENCY_HZ;
+const CLOCK_HZ: u32 = crate::ccm::Enabled::<crate::ccm::PerClock>::frequency();
 const CLOCK_PERIOD_US: u32 = 1_000_000u32 / CLOCK_HZ;
 const _STATIC_ASSERT: [u32; 1] = [0; (CLOCK_PERIOD_US == 1) as usize];
 const CLOCK_PERIOD: Duration = Duration::from_micros(CLOCK_PERIOD_US as u64);
@@ -27,10 +27,15 @@ const CLOCK_PERIOD: Duration = Duration::from_micros(CLOCK_PERIOD_US as u64);
 /// ```no_run
 /// use imxrt_async_hal as hal;
 /// use hal::ral::{ccm, pit};
-/// use hal::{ccm::CCM, PIT};
+/// use hal::{ccm::{CCM, ClockActivity}, PIT};
 ///
 /// let mut ccm = ccm::CCM::take().map(CCM::new).unwrap();
-/// let (_, _, _, mut pit) = pit::PIT::take().map(|pit| PIT::new(pit, &mut ccm.handle)).unwrap();
+/// let mut perclock = ccm.perclock.enable(&mut ccm.handle);
+/// let (_, _, _, mut pit) = pit::PIT::take().map(|mut pit| {
+///     perclock.clock_gate_pit(&mut pit, ClockActivity::On);
+///     PIT::new(pit, &perclock)
+/// }).unwrap();
+///
 /// # async {
 /// pit.delay_us(100).await;
 /// # };
@@ -40,11 +45,9 @@ pub struct PeriodicTimer(register::ChannelInstance);
 impl PeriodicTimer {
     /// Acquire four PIT channels from the RAL's PIT instance
     pub fn new(
-        mut pit: ral::pit::Instance,
-        ccm: &mut crate::ccm::Handle,
+        pit: ral::pit::Instance,
+        _: &crate::ccm::Enabled<crate::ccm::PerClock>,
     ) -> (PeriodicTimer, PeriodicTimer, PeriodicTimer, PeriodicTimer) {
-        crate::ccm::enable_periodic_clock(ccm, &mut pit);
-
         ral::write_reg!(ral::pit, pit, MCR, MDIS: MDIS_0);
         unsafe {
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::PIT);

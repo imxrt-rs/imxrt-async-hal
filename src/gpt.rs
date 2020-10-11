@@ -19,10 +19,14 @@ use core::{
 /// ```no_run
 /// use imxrt_async_hal as hal;
 /// use hal::ral::{ccm, gpt};
-/// use hal::{ccm::CCM, GPT};
+/// use hal::{ccm::{CCM, ClockActivity}, GPT};
 ///
 /// let mut ccm = ccm::CCM::take().map(CCM::new).unwrap();
-/// let mut gpt = gpt::GPT1::take().map(|gpt| GPT::new(gpt, &mut ccm.handle)).unwrap();
+/// let mut perclock = ccm.perclock.enable(&mut ccm.handle);
+/// let mut gpt = gpt::GPT1::take().map(|mut gpt| {
+///     perclock.clock_gate_gpt(&mut gpt, ClockActivity::On);
+///     GPT::new(gpt, &perclock)
+/// }).unwrap();
 ///
 /// # async {
 /// gpt.delay_us(250_000u32).await;
@@ -42,16 +46,14 @@ pub struct GeneralPurposeTimer(ral::gpt::Instance);
 const DIVIDER: u32 = 5;
 
 /// GPT effective frequency
-const CLOCK_HZ: u32 = crate::ccm::PERIODIC_CLOCK_FREQUENCY_HZ / DIVIDER;
+const CLOCK_HZ: u32 = crate::ccm::Enabled::<crate::ccm::PerClock>::frequency() / DIVIDER;
 const CLOCK_PERIOD_US: u32 = 1_000_000u32 / CLOCK_HZ;
 const _STATIC_ASSERT: [u32; 1] = [0; (CLOCK_PERIOD_US == 5) as usize];
 const CLOCK_PERIOD: Duration = Duration::from_micros(CLOCK_PERIOD_US as u64);
 
 impl GeneralPurposeTimer {
     /// Create a new `GPT` from a RAL GPT instance
-    pub fn new(mut gpt: ral::gpt::Instance, ccm: &mut crate::ccm::Handle) -> Self {
-        crate::ccm::enable_periodic_clock(ccm, &mut gpt);
-
+    pub fn new(gpt: ral::gpt::Instance, _: &crate::ccm::Enabled<crate::ccm::PerClock>) -> Self {
         let irq = match &*gpt as *const _ {
             ral::gpt::GPT1 => ral::interrupt::GPT1,
             ral::gpt::GPT2 => ral::interrupt::GPT2,

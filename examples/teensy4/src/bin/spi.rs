@@ -29,13 +29,24 @@ fn main() -> ! {
     let mut hardware_flag = hal::gpio::GPIO::new(pins.p14).output();
     hardware_flag.clear();
 
-    let mut ccm = hal::ral::ccm::CCM::take().map(hal::ccm::CCM::new).unwrap();
-    let gpt = hal::ral::gpt::GPT2::take().unwrap();
-    let mut timer = hal::GPT::new(gpt, &mut ccm.handle);
+    let hal::ccm::CCM {
+        mut handle,
+        perclock,
+        ..
+    } = hal::ral::ccm::CCM::take().map(hal::ccm::CCM::new).unwrap();
+    let mut gpt = hal::ral::gpt::GPT2::take().unwrap();
+    let mut perclock = perclock.enable(&mut handle);
+    perclock.clock_gate_gpt(&mut gpt, hal::ccm::ClockActivity::On);
+
+    let mut timer = hal::GPT::new(gpt, &perclock);
     let mut channels = hal::dma::channels(
-        hal::ral::dma0::DMA0::take().unwrap(),
+        hal::ral::dma0::DMA0::take()
+            .map(|mut dma| {
+                handle.clock_gate_dma(&mut dma, hal::ccm::ClockActivity::On);
+                dma
+            })
+            .unwrap(),
         hal::ral::dmamux::DMAMUX::take().unwrap(),
-        &mut ccm.handle,
     );
 
     let spi4 = hal::ral::lpspi::LPSPI4::take()
@@ -51,7 +62,7 @@ fn main() -> ! {
         pins,
         spi4,
         (channels[8].take().unwrap(), channels[9].take().unwrap()),
-        &mut ccm.handle,
+        &mut handle,
     );
 
     spi.set_clock_speed(SPI_CLOCK_HZ).unwrap();
