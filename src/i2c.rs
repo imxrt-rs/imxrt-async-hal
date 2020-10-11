@@ -69,9 +69,11 @@ use crate::{
 /// iomuxc::configure(&mut pads.ad_b1.p06, PINCONFIG);
 ///
 /// let mut ccm = CCM::take().map(ccm::CCM::new).unwrap();
+/// let mut i2c_clock = ccm.i2c_clock.enable(&mut ccm.handle);
+/// let mut i2c3 = LPI2C3::take().and_then(hal::instance::i2c).unwrap();
+/// i2c_clock.clock_gate(&mut i2c3, ccm::ClockActivity::On);
 ///
-/// let i2c3 = LPI2C3::take().and_then(hal::instance::i2c).unwrap();
-/// let mut i2c = I2C::new(i2c3, pads.ad_b1.p07, pads.ad_b1.p06, &mut ccm.handle);
+/// let mut i2c = I2C::new(i2c3, pads.ad_b1.p07, pads.ad_b1.p06, &i2c_clock);
 /// i2c.set_clock_speed(I2CClockSpeed::KHz400).unwrap();
 ///
 /// # async {
@@ -101,9 +103,8 @@ where
         i2c: crate::instance::I2C<M>,
         mut scl: SCL,
         mut sda: SDA,
-        ccm: &mut crate::ccm::Handle,
+        _: &crate::ccm::I2CClock,
     ) -> Self {
-        clock::enable(ccm);
         iomuxc::i2c::prepare(&mut scl);
         iomuxc::i2c::prepare(&mut sda);
 
@@ -312,3 +313,37 @@ fn check_busy(i2c: &Instance) -> Result<(), Error> {
         Ok(())
     }
 }
+
+/// ```no_run
+/// use imxrt_async_hal as hal;
+/// use hal::ral::{ccm::CCM, lpi2c::LPI2C2};
+///
+/// let hal::ccm::CCM {
+///     mut handle,
+///     i2c_clock,
+///     ..
+/// } = CCM::take().map(hal::ccm::CCM::new).unwrap();
+/// let mut i2c_clock = i2c_clock.enable(&mut handle);
+/// let mut i2c2 = LPI2C2::take().unwrap();
+/// i2c_clock.clock_gate(&mut i2c2, hal::ccm::ClockActivity::On);
+/// ```
+#[cfg(doctest)]
+struct ClockingWeakRalInstance;
+
+/// ```no_run
+/// use imxrt_async_hal as hal;
+/// use hal::ral::{ccm::CCM, lpi2c::LPI2C2};
+///
+/// let hal::ccm::CCM {
+///     mut handle,
+///     i2c_clock,
+///     ..
+/// } = CCM::take().map(hal::ccm::CCM::new).unwrap();
+/// let mut i2c_clock = i2c_clock.enable(&mut handle);
+/// let mut i2c2: hal::instance::I2C<hal::iomuxc::consts::U2> = LPI2C2::take()
+///     .and_then(hal::instance::i2c)
+///     .unwrap();
+/// i2c_clock.clock_gate(&mut i2c2, hal::ccm::ClockActivity::On);
+/// ```
+#[cfg(doctest)]
+struct ClockingStrongHalInstance;

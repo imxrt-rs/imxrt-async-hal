@@ -12,11 +12,12 @@
 //! let mut ccm = ral::ccm::CCM::take().map(CCM::new).unwrap();
 //! ```
 
-mod gates;
+mod i2c;
 mod perclock;
 mod spi;
 mod uart;
 
+pub use i2c::{clock_gate as clock_gate_i2c, enable as enable_i2c};
 pub use perclock::{clock_gate_gpt, clock_gate_pit, enable as enable_perclock};
 pub use spi::{clock_gate as clock_gate_spi, enable as enable_spi};
 pub use uart::{clock_gate as clock_gate_uart, enable as enable_uart};
@@ -60,6 +61,8 @@ pub struct CCM {
     pub uart_clock: Disabled<UARTClock>,
     /// The SPI clock
     pub spi_clock: Disabled<SPIClock>,
+    /// The I2C clock
+    pub i2c_clock: Disabled<I2CClock>,
 }
 
 impl CCM {
@@ -70,6 +73,7 @@ impl CCM {
             perclock: Disabled(PerClock(())),
             uart_clock: Disabled(UARTClock(())),
             spi_clock: Disabled(SPIClock(())),
+            i2c_clock: Disabled(I2CClock(())),
         }
     }
 }
@@ -119,6 +123,9 @@ pub struct UARTClock(());
 
 /// The SPI clock
 pub struct SPIClock(());
+
+/// The I2C clock
+pub struct I2CClock(());
 
 /// Starting address of the clock control gate registers
 const CCGR_BASE: *mut u32 = 0x400F_C068 as *mut u32;
