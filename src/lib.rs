@@ -24,6 +24,7 @@ macro_rules! interrupts {
 //
 // Modules
 //
+pub mod ccm;
 pub mod dma;
 pub mod gpio;
 mod gpt;
@@ -52,12 +53,12 @@ const PERIODIC_CLOCK_FREQUENCY_HZ: u32 = OSCILLATOR_FREQUENCY_HZ / PERIODIC_CLOC
 const PERIODIC_CLOCK_DIVIDER: u32 = 24;
 
 /// Enable the periodic clock root
-fn enable_periodic_clock_root(ccm: &ral::ccm::Instance) {
+fn enable_periodic_clock_root(ccm: &crate::ccm::Handle) {
     static ONCE: once::Once = once::new();
     ONCE.call(|| {
         ral::modify_reg!(
             ral::ccm,
-            ccm,
+            ccm.0,
             CSCMR1,
             PERCLK_CLK_SEL: PERCLK_CLK_SEL_1,
             PERCLK_PODF: PERIODIC_CLOCK_DIVIDER - 1

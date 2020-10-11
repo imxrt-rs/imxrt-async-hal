@@ -27,10 +27,10 @@ const CLOCK_PERIOD: Duration = Duration::from_micros(CLOCK_PERIOD_US as u64);
 /// ```no_run
 /// use imxrt_async_hal as hal;
 /// use hal::ral::{ccm, pit};
-/// use hal::PIT;
+/// use hal::{ccm::CCM, PIT};
 ///
-/// let mut ccm = ccm::CCM::take().unwrap();
-/// let (_, _, _, mut pit) = pit::PIT::take().map(|pit| PIT::new(pit, &mut ccm)).unwrap();
+/// let mut ccm = ccm::CCM::take().map(CCM::new).unwrap();
+/// let (_, _, _, mut pit) = pit::PIT::take().map(|pit| PIT::new(pit, &mut ccm.handle)).unwrap();
 /// # async {
 /// pit.delay_us(100).await;
 /// # };
@@ -41,10 +41,10 @@ impl PeriodicTimer {
     /// Acquire four PIT channels from the RAL's PIT instance
     pub fn new(
         pit: ral::pit::Instance,
-        ccm: &mut ral::ccm::Instance,
+        ccm: &mut crate::ccm::Handle,
     ) -> (PeriodicTimer, PeriodicTimer, PeriodicTimer, PeriodicTimer) {
         crate::enable_periodic_clock_root(ccm);
-        ral::modify_reg!(ral::ccm, ccm, CCGR1, CG6: 0x3);
+        ral::modify_reg!(ral::ccm, ccm.0, CCGR1, CG6: 0x3);
         ral::write_reg!(ral::pit, pit, MCR, MDIS: MDIS_0);
         unsafe {
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::PIT);

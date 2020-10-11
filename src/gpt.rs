@@ -19,10 +19,10 @@ use core::{
 /// ```no_run
 /// use imxrt_async_hal as hal;
 /// use hal::ral::{ccm, gpt};
-/// use hal::GPT;
+/// use hal::{ccm::CCM, GPT};
 ///
-/// let mut ccm = ccm::CCM::take().unwrap();
-/// let mut gpt = gpt::GPT1::take().map(|gpt| GPT::new(gpt, &mut ccm)).unwrap();
+/// let mut ccm = ccm::CCM::take().map(CCM::new).unwrap();
+/// let mut gpt = gpt::GPT1::take().map(|gpt| GPT::new(gpt, &mut ccm.handle)).unwrap();
 ///
 /// # async {
 /// gpt.delay_us(250_000u32).await;
@@ -49,15 +49,15 @@ const CLOCK_PERIOD: Duration = Duration::from_micros(CLOCK_PERIOD_US as u64);
 
 impl GeneralPurposeTimer {
     /// Create a new `GPT` from a RAL GPT instance
-    pub fn new(gpt: ral::gpt::Instance, ccm: &mut ral::ccm::Instance) -> Self {
+    pub fn new(gpt: ral::gpt::Instance, ccm: &mut crate::ccm::Handle) -> Self {
         crate::enable_periodic_clock_root(ccm);
         let irq = match &*gpt as *const _ {
             ral::gpt::GPT1 => {
-                ral::modify_reg!(ral::ccm, ccm, CCGR1, CG10: 0x3, CG11: 0x3);
+                ral::modify_reg!(ral::ccm, ccm.0, CCGR1, CG10: 0x3, CG11: 0x3);
                 ral::interrupt::GPT1
             }
             ral::gpt::GPT2 => {
-                ral::modify_reg!(ral::ccm, ccm, CCGR0, CG12: 0x3, CG13: 0x3);
+                ral::modify_reg!(ral::ccm, ccm.0, CCGR0, CG12: 0x3, CG13: 0x3);
                 ral::interrupt::GPT2
             }
             _ => unreachable!("There are only two GPTs"),

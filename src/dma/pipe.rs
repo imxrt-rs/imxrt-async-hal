@@ -27,19 +27,19 @@
 //!
 //! ```no_run
 //! use imxrt_async_hal as hal;
-//! use hal::dma;
+//! use hal::{ccm::CCM, dma};
 //! use hal::ral::{ccm, dma0, dmamux, gpt::GPT1};
 //!
-//! let mut ccm = ccm::CCM::take().unwrap();
+//! let mut ccm = ccm::CCM::take().map(CCM::new).unwrap();
 //!
 //! let mut gpt = GPT1::take()
-//!     .map(|inst| hal::GPT::new(inst, &mut ccm))
+//!     .map(|inst| hal::GPT::new(inst, &mut ccm.handle))
 //!     .unwrap();
 //!
 //! let mut channels = dma::channels(
 //!     dma0::DMA0::take().unwrap(),
 //!     dmamux::DMAMUX::take().unwrap(),
-//!     &mut ccm,
+//!     &mut ccm.handle,
 //! );
 //!
 //! let (mut tx, mut rx) = dma::pipe::new(channels[13].take().unwrap());
@@ -129,14 +129,14 @@ impl<E> Receiver<E> {
 /// [module-level documentation](index.html).
 /// ```no_run
 /// use imxrt_async_hal as hal;
-/// use hal::dma;
+/// use hal::{ccm::CCM, dma};
 /// use hal::ral::{dma0, dmamux, ccm};
 ///
-/// let mut ccm = ccm::CCM::take().unwrap();
+/// let mut ccm = ccm::CCM::take().map(CCM::new).unwrap();
 /// let mut channels = dma::channels(
 ///     dma0::DMA0::take().unwrap(),
 ///     dmamux::DMAMUX::take().unwrap(),
-///     &mut ccm,
+///     &mut ccm.handle,
 /// );
 /// let (mut tx, mut rx) = dma::pipe::new(channels[29].take().unwrap());
 /// # async {

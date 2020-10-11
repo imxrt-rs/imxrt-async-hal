@@ -58,7 +58,7 @@ pub struct Pins<SDO, SDI, SCK, PCS0> {
 ///
 /// ```no_run
 /// use imxrt_async_hal as hal;
-/// use hal::{dma, instance, iomuxc, SPI, SPIPins};
+/// use hal::{ccm, dma, instance, iomuxc, SPI, SPIPins};
 /// use hal::ral::{
 ///     ccm::CCM, dma0::DMA0, dmamux::DMAMUX,
 ///     iomuxc::IOMUXC, lpspi::LPSPI4,
@@ -66,11 +66,11 @@ pub struct Pins<SDO, SDI, SCK, PCS0> {
 ///
 /// let pads = IOMUXC::take().map(iomuxc::new).unwrap();
 ///
-/// let mut ccm = CCM::take().unwrap();
+/// let mut ccm = CCM::take().map(ccm::CCM::new).unwrap();
 /// let mut channels = dma::channels(
 ///     DMA0::take().unwrap(),
 ///     DMAMUX::take().unwrap(),
-///     &mut ccm
+///     &mut ccm.handle
 /// );
 ///
 /// let spi_pins = SPIPins {
@@ -84,7 +84,7 @@ pub struct Pins<SDO, SDI, SCK, PCS0> {
 ///     spi_pins,
 ///     spi4,
 ///     (channels[8].take().unwrap(), channels[9].take().unwrap()),
-///     &mut ccm,
+///     &mut ccm.handle,
 /// );
 ///
 /// spi.set_clock_speed(1_000_000).unwrap();
@@ -118,7 +118,7 @@ where
         mut pins: Pins<SDO, SDI, SCK, PCS0>,
         spi: instance::SPI<M>,
         channels: (dma::Channel, dma::Channel),
-        ccm: &mut ral::ccm::Instance,
+        ccm: &mut crate::ccm::Handle,
     ) -> Self {
         enable_clocks(ccm);
 
@@ -319,13 +319,13 @@ fn set_clock_speed(spi: &ral::lpspi::Instance, hz: u32) {
     );
 }
 
-fn enable_clocks(ccm: &mut ral::ccm::Instance) {
+fn enable_clocks(ccm: &mut crate::ccm::Handle) {
     static ONCE: crate::once::Once = crate::once::new();
     ONCE.call(|| {
         // First, disable clocks
         ral::modify_reg!(
             ral::ccm,
-            ccm,
+            ccm.0,
             CCGR1,
             CG0: 0,
             CG1: 0,
@@ -336,7 +336,7 @@ fn enable_clocks(ccm: &mut ral::ccm::Instance) {
         // Select clock, and commit prescalar
         ral::modify_reg!(
             ral::ccm,
-            ccm,
+            ccm.0,
             CBCMR,
             LPSPI_PODF: CLOCK_DIVIDER - 1,
             LPSPI_CLK_SEL: LPSPI_CLK_SEL_2 // PLL2
@@ -345,7 +345,7 @@ fn enable_clocks(ccm: &mut ral::ccm::Instance) {
         // Enable clocks
         ral::modify_reg!(
             ral::ccm,
-            ccm,
+            ccm.0,
             CCGR1,
             CG0: 0b11,
             CG1: 0b11,

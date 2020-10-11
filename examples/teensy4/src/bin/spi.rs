@@ -29,13 +29,13 @@ fn main() -> ! {
     let mut hardware_flag = hal::gpio::GPIO::new(pins.p14).output();
     hardware_flag.clear();
 
-    let mut ccm = hal::ral::ccm::CCM::take().unwrap();
+    let mut ccm = hal::ral::ccm::CCM::take().map(hal::ccm::CCM::new).unwrap();
     let gpt = hal::ral::gpt::GPT2::take().unwrap();
-    let mut timer = hal::GPT::new(gpt, &mut ccm);
+    let mut timer = hal::GPT::new(gpt, &mut ccm.handle);
     let mut channels = hal::dma::channels(
         hal::ral::dma0::DMA0::take().unwrap(),
         hal::ral::dmamux::DMAMUX::take().unwrap(),
-        &mut ccm,
+        &mut ccm.handle,
     );
 
     let spi4 = hal::ral::lpspi::LPSPI4::take()
@@ -51,7 +51,7 @@ fn main() -> ! {
         pins,
         spi4,
         (channels[8].take().unwrap(), channels[9].take().unwrap()),
-        &mut ccm,
+        &mut ccm.handle,
     );
 
     spi.set_clock_speed(SPI_CLOCK_HZ).unwrap();

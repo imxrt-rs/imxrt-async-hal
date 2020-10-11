@@ -56,7 +56,7 @@ use crate::{
 /// ```no_run
 /// use imxrt_async_hal as hal;
 /// use hal::{
-///     iomuxc, I2C, I2CClockSpeed,
+///     ccm, iomuxc, I2C, I2CClockSpeed,
 ///     ral::{ccm::CCM, iomuxc::IOMUXC, lpi2c::LPI2C3},
 /// };
 /// # const PINCONFIG: iomuxc::Config = iomuxc::Config::zero();
@@ -68,10 +68,10 @@ use crate::{
 /// iomuxc::configure(&mut pads.ad_b1.p07, PINCONFIG);
 /// iomuxc::configure(&mut pads.ad_b1.p06, PINCONFIG);
 ///
-/// let mut ccm = CCM::take().unwrap();
+/// let mut ccm = CCM::take().map(ccm::CCM::new).unwrap();
 ///
 /// let i2c3 = LPI2C3::take().and_then(hal::instance::i2c).unwrap();
-/// let mut i2c = I2C::new(i2c3, pads.ad_b1.p07, pads.ad_b1.p06, &mut ccm);
+/// let mut i2c = I2C::new(i2c3, pads.ad_b1.p07, pads.ad_b1.p06, &mut ccm.handle);
 /// i2c.set_clock_speed(I2CClockSpeed::KHz400).unwrap();
 ///
 /// # async {
@@ -101,7 +101,7 @@ where
         i2c: crate::instance::I2C<M>,
         mut scl: SCL,
         mut sda: SDA,
-        ccm: &mut ral::ccm::Instance,
+        ccm: &mut crate::ccm::Handle,
     ) -> Self {
         clock::enable(ccm);
         iomuxc::i2c::prepare(&mut scl);

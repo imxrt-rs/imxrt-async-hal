@@ -314,16 +314,16 @@ pub enum Error {
 ///
 /// ```no_run
 /// use imxrt_async_hal as hal;
-/// use hal::dma;
+/// use hal::{ccm::CCM, dma};
 /// use hal::ral::{dma0, dmamux, ccm};
 ///
 /// fn prepare_peripheral(channel: dma::Channel) { /* ... */ }
 ///
-/// let mut ccm = ccm::CCM::take().unwrap();
+/// let mut ccm = ccm::CCM::take().map(CCM::new).unwrap();
 /// let mut channels = dma::channels(
 ///     dma0::DMA0::take().unwrap(),
 ///     dmamux::DMAMUX::take().unwrap(),
-///     &mut ccm,
+///     &mut ccm.handle,
 /// );
 ///
 /// prepare_peripheral(channels[7].take().unwrap());
@@ -331,7 +331,7 @@ pub enum Error {
 pub fn channels(
     dma: ral::dma0::Instance,
     mux: ral::dmamux::Instance,
-    ccm: &mut ral::ccm::Instance,
+    ccm: &mut crate::ccm::Handle,
 ) -> [Option<Channel>; MAX_DMA_CHANNELS] {
     drop(dma);
     drop(mux);
@@ -342,7 +342,7 @@ pub fn channels(
         None, None,
     ];
 
-    ral::modify_reg!(ral::ccm, ccm, CCGR5, CG3: 0x03);
+    ral::modify_reg!(ral::ccm, ccm.0, CCGR5, CG3: 0x03);
     for (idx, channel) in channels.iter_mut().enumerate() {
         let c = unsafe { Channel::new(idx) };
         c.tcd().reset();

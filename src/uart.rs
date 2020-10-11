@@ -17,7 +17,7 @@ use core::fmt;
 ///
 /// ```no_run
 /// use imxrt_async_hal as hal;
-/// use hal::{dma, iomuxc, UART, instance};
+/// use hal::{ccm, dma, iomuxc, UART, instance};
 /// use hal::ral::{
 ///     ccm::CCM, lpuart::LPUART2,
 ///     dma0::DMA0, dmamux::DMAMUX,
@@ -26,11 +26,11 @@ use core::fmt;
 ///
 /// let pads = IOMUXC::take().map(iomuxc::new).unwrap();
 ///
-/// let mut ccm = CCM::take().unwrap();
+/// let mut ccm = CCM::take().map(ccm::CCM::new).unwrap();
 /// let mut channels = dma::channels(
 ///     DMA0::take().unwrap(),
 ///     DMAMUX::take().unwrap(),
-///     &mut ccm
+///     &mut ccm.handle
 /// );
 /// let uart2 = LPUART2::take().and_then(instance::uart).unwrap();
 /// let mut uart = UART::new(
@@ -38,7 +38,7 @@ use core::fmt;
 ///     pads.ad_b1.p02, // TX
 ///     pads.ad_b1.p03, // RX
 ///     channels[7].take().unwrap(),
-///     &mut ccm
+///     &mut ccm.handle
 /// );
 ///
 /// uart.set_baud(9600).unwrap();
@@ -78,7 +78,7 @@ where
         mut tx: TX,
         mut rx: RX,
         channel: dma::Channel,
-        ccm: &mut ral::ccm::Instance,
+        ccm: &mut crate::ccm::Handle,
     ) -> UART<TX, RX> {
         enable_clocks(ccm);
 
@@ -155,41 +155,41 @@ impl<TX, RX> UART<TX, RX> {
 
 const UART_CLOCK: u32 = crate::OSCILLATOR_FREQUENCY_HZ;
 
-fn enable_clocks(ccm: &mut ral::ccm::Instance) {
+fn enable_clocks(ccm: &mut crate::ccm::Handle) {
     static ONCE: crate::once::Once = crate::once::new();
     ONCE.call(|| {
         // -----------------------------------------
         // Disable clocks before modifying selection
         ral::modify_reg!(
             ral::ccm,
-            ccm,
+            ccm.0,
             CCGR5,
             CG12: 0,    // UART1
             CG13: 0     // UART7
         );
         ral::modify_reg!(
             ral::ccm,
-            ccm,
+            ccm.0,
             CCGR0,
             CG14: 0,    // UART2
             CG6: 0      // UART3
         );
         ral::modify_reg!(
             ral::ccm,
-            ccm,
+            ccm.0,
             CCGR1,
             CG12: 0     // UART4
         );
         ral::modify_reg!(
             ral::ccm,
-            ccm,
+            ccm.0,
             CCGR3,
             CG1: 0,     // UART5
             CG3: 0      // UART6
         );
         ral::modify_reg!(
             ral::ccm,
-            ccm,
+            ccm.0,
             CCGR6,
             CG7: 0      // UART8
         );
@@ -199,7 +199,7 @@ fn enable_clocks(ccm: &mut ral::ccm::Instance) {
         // Select clocks & prescalar
         ral::modify_reg!(
             ral::ccm,
-            ccm,
+            ccm.0,
             CSCDR1,
             UART_CLK_SEL: UART_CLK_SEL_1, // Oscillator
             UART_CLK_PODF: DIVIDE_1
@@ -210,34 +210,34 @@ fn enable_clocks(ccm: &mut ral::ccm::Instance) {
         // Enable clocks
         ral::modify_reg!(
             ral::ccm,
-            ccm,
+            ccm.0,
             CCGR5,
             CG12: 0b11,    // UART1
             CG13: 0b11     // UART7
         );
         ral::modify_reg!(
             ral::ccm,
-            ccm,
+            ccm.0,
             CCGR0,
             CG14: 0b11,    // UART2
             CG6: 0b11      // UART3
         );
         ral::modify_reg!(
             ral::ccm,
-            ccm,
+            ccm.0,
             CCGR1,
             CG12: 0b11     // UART4
         );
         ral::modify_reg!(
             ral::ccm,
-            ccm,
+            ccm.0,
             CCGR3,
             CG1: 0b11,     // UART5
             CG3: 0b11      // UART6
         );
         ral::modify_reg!(
             ral::ccm,
-            ccm,
+            ccm.0,
             CCGR6,
             CG7: 0b11      // UART8
         );

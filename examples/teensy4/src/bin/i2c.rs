@@ -22,6 +22,7 @@ extern crate panic_halt;
 extern crate t4_startup;
 
 use hal::{
+    ccm,
     gpio::GPIO,
     iomuxc,
     ral::{ccm::CCM, gpt::GPT1, iomuxc::IOMUXC, lpi2c::LPI2C3},
@@ -54,11 +55,13 @@ fn main() -> ! {
     iomuxc::configure(&mut pins.p17, PINCONFIG);
 
     let mut led = GPIO::new(pins.p13).output();
-    let mut ccm = CCM::take().unwrap();
-    let mut timer = GPT1::take().map(|inst| GPT::new(inst, &mut ccm)).unwrap();
+    let mut ccm = CCM::take().map(ccm::CCM::new).unwrap();
+    let mut timer = GPT1::take()
+        .map(|inst| GPT::new(inst, &mut ccm.handle))
+        .unwrap();
 
     let i2c3 = LPI2C3::take().and_then(hal::instance::i2c).unwrap();
-    let mut i2c = I2C::new(i2c3, pins.p16, pins.p17, &mut ccm);
+    let mut i2c = I2C::new(i2c3, pins.p16, pins.p17, &mut ccm.handle);
     i2c.set_clock_speed(CLOCK_SPEED).unwrap();
 
     let task = async {

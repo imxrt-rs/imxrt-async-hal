@@ -11,23 +11,23 @@ const I2C_CLOCK_HZ: u32 = crate::OSCILLATOR_FREQUENCY_HZ / I2C_CLOCK_DIVIDER;
 const I2C_CLOCK_DIVIDER: u32 = 3;
 
 /// Enable the clocks for all I2C peripherals
-pub fn enable(ccm: &mut ral::ccm::Instance) {
+pub fn enable(ccm: &mut crate::ccm::Handle) {
     static ONCE: crate::once::Once = crate::once::new();
     ONCE.call(|| {
         // First, disable clocks
-        ral::modify_reg!(ral::ccm, ccm, CCGR2, CG3: 0, CG4: 0, CG5: 0);
-        ral::modify_reg!(ral::ccm, ccm, CCGR6, CG12: 0);
+        ral::modify_reg!(ral::ccm, ccm.0, CCGR2, CG3: 0, CG4: 0, CG5: 0);
+        ral::modify_reg!(ral::ccm, ccm.0, CCGR6, CG12: 0);
         // Select clock, and commit prescalar
         ral::modify_reg!(
             ral::ccm,
-            ccm,
+            ccm.0,
             CSCDR2,
             LPI2C_CLK_PODF: (I2C_CLOCK_DIVIDER.saturating_sub(1)),
             LPI2C_CLK_SEL: LPI2C_CLK_SEL_1 // 24MHz XTAL oscillator
         );
         // Enable clocks
-        ral::modify_reg!(ral::ccm, ccm, CCGR2, CG3: 0b11, CG4: 0b11, CG5: 0b11);
-        ral::modify_reg!(ral::ccm, ccm, CCGR6, CG12: 0b11);
+        ral::modify_reg!(ral::ccm, ccm.0, CCGR2, CG3: 0b11, CG4: 0b11, CG5: 0b11);
+        ral::modify_reg!(ral::ccm, ccm.0, CCGR6, CG12: 0b11);
     });
 }
 
