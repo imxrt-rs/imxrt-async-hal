@@ -24,12 +24,13 @@ use crate::ral;
 pub struct Handle(pub(crate) ral::ccm::Instance);
 
 impl Handle {
+    /// Set the clock gate activity for the DMA controller
     pub fn clock_gate_dma(
         &mut self,
         dma: &mut crate::ral::dma0::Instance,
         activity: ClockActivity,
     ) {
-        dma.clock_gate(&mut Enabled(()), activity);
+        unsafe { dma.clock_gate(activity) };
     }
 }
 
@@ -41,7 +42,7 @@ pub struct CCM {
     /// `Handle` is used throughout the HAL
     pub handle: Handle,
     /// The periodic clock handle
-    pub perclock: PerClock,
+    pub perclock: Disabled<PerClock>,
 }
 
 impl CCM {
@@ -49,7 +50,7 @@ impl CCM {
     pub const fn new(ccm: ral::ccm::Instance) -> Self {
         CCM {
             handle: Handle(ccm),
-            perclock: PerClock(()),
+            perclock: Disabled(PerClock(())),
         }
     }
 }
@@ -69,17 +70,24 @@ pub enum ClockActivity {
 }
 
 /// Describes a type that can have its clock gated by the CCM
-trait ClockGate<Clock = ()> {
+pub trait ClockGate {
     /// Gate the clock based, setting the value to the clock activity
-    fn clock_gate(&mut self, handle: &mut Enabled<Clock>, activity: ClockActivity);
+    ///
+    /// # Safety
+    ///
+    /// `clock_gate` modifies global state that may be mutably aliased elsewhere.
+    /// Consider using the safer CCM APIs to specify your clock gate activity.
+    unsafe fn clock_gate(&self, activity: ClockActivity);
 }
 
 /// Crystal oscillator frequency
 // TODO should be private
 pub(crate) const OSCILLATOR_FREQUENCY_HZ: u32 = 24_000_000;
 
-/// An enabled clock of type `Clock`
-pub struct Enabled<Clock>(Clock);
+/// A disabled clock of type `Clock`
+///
+/// Call `enable` on your instance to enable the clock.
+pub struct Disabled<Clock>(Clock);
 
 /// The periodic clock root
 ///

@@ -8,7 +8,7 @@ use core::{
     time::Duration,
 };
 
-const CLOCK_HZ: u32 = crate::ccm::Enabled::<crate::ccm::PerClock>::frequency();
+const CLOCK_HZ: u32 = crate::ccm::PerClock::frequency();
 const CLOCK_PERIOD_US: u32 = 1_000_000u32 / CLOCK_HZ;
 const _STATIC_ASSERT: [u32; 1] = [0; (CLOCK_PERIOD_US == 1) as usize];
 const CLOCK_PERIOD: Duration = Duration::from_micros(CLOCK_PERIOD_US as u64);
@@ -46,7 +46,7 @@ impl PeriodicTimer {
     /// Acquire four PIT channels from the RAL's PIT instance
     pub fn new(
         pit: ral::pit::Instance,
-        _: &crate::ccm::Enabled<crate::ccm::PerClock>,
+        _: &crate::ccm::PerClock,
     ) -> (PeriodicTimer, PeriodicTimer, PeriodicTimer, PeriodicTimer) {
         ral::write_reg!(ral::pit, pit, MCR, MDIS: MDIS_0);
         unsafe {

@@ -3,7 +3,7 @@
 //! Intentionally not using the `instance` API so as to make this
 //! module more portable across projects
 
-use super::{ClockActivity, ClockGate, Enabled};
+use super::{ClockActivity, ClockGate};
 use crate::ral;
 use core::ptr;
 
@@ -28,75 +28,73 @@ unsafe fn set_clock_gate(ccgr: *mut u32, gates: &[usize], value: u8) {
     ptr::write_volatile(ccgr, register);
 }
 
-impl ClockGate for ral::dma0::Instance {
-    fn clock_gate(&mut self, _: &mut Enabled<()>, activity: ClockActivity) {
-        unsafe { set_clock_gate(CCGR_BASE.add(5), &[3], activity as u8) };
+impl ClockGate for ral::dma0::RegisterBlock {
+    unsafe fn clock_gate(&self, activity: ClockActivity) {
+        set_clock_gate(CCGR_BASE.add(5), &[3], activity as u8);
     }
 }
 
-impl ClockGate<super::PerClock> for ral::gpt::Instance {
-    fn clock_gate(&mut self, _: &mut Enabled<super::PerClock>, activity: ClockActivity) {
+impl ClockGate for ral::gpt::RegisterBlock {
+    unsafe fn clock_gate(&self, activity: ClockActivity) {
         let value = activity as u8;
-        match &**self as *const _ {
-            ral::gpt::GPT1 => unsafe {
+        match &*self as *const _ {
+            ral::gpt::GPT1 => {
                 set_clock_gate(CCGR_BASE.add(1), &[10, 11], value);
-            },
-            ral::gpt::GPT2 => unsafe { set_clock_gate(CCGR_BASE.add(0), &[12, 13], value) },
+            }
+            ral::gpt::GPT2 => set_clock_gate(CCGR_BASE.add(0), &[12, 13], value),
             _ => unreachable!(),
         }
     }
 }
 
-impl ClockGate for ral::lpi2c::Instance {
-    fn clock_gate(&mut self, _: &mut Enabled<()>, activity: ClockActivity) {
+impl ClockGate for ral::lpi2c::RegisterBlock {
+    unsafe fn clock_gate(&self, activity: ClockActivity) {
         let value = activity as u8;
-        match &**self as *const _ {
-            ral::lpi2c::LPI2C1 => unsafe { set_clock_gate(CCGR_BASE.add(2), &[3], value) },
-            ral::lpi2c::LPI2C2 => unsafe { set_clock_gate(CCGR_BASE.add(2), &[4], value) },
-            ral::lpi2c::LPI2C3 => unsafe { set_clock_gate(CCGR_BASE.add(2), &[5], value) },
-            ral::lpi2c::LPI2C4 => unsafe { set_clock_gate(CCGR_BASE.add(6), &[12], value) },
+        match &*self as *const _ {
+            ral::lpi2c::LPI2C1 => set_clock_gate(CCGR_BASE.add(2), &[3], value),
+            ral::lpi2c::LPI2C2 => set_clock_gate(CCGR_BASE.add(2), &[4], value),
+            ral::lpi2c::LPI2C3 => set_clock_gate(CCGR_BASE.add(2), &[5], value),
+            ral::lpi2c::LPI2C4 => set_clock_gate(CCGR_BASE.add(6), &[12], value),
             _ => unreachable!(),
         }
     }
 }
 
-impl ClockGate<super::PerClock> for ral::pit::Instance {
-    fn clock_gate(&mut self, _: &mut Enabled<super::PerClock>, activity: ClockActivity) {
-        match &**self as *const _ {
-            ral::pit::PIT => unsafe { set_clock_gate(CCGR_BASE.add(1), &[6], activity as u8) },
+impl ClockGate for ral::pit::RegisterBlock {
+    unsafe fn clock_gate(&self, activity: ClockActivity) {
+        match &*self as *const _ {
+            ral::pit::PIT => set_clock_gate(CCGR_BASE.add(1), &[6], activity as u8),
             _ => unreachable!(),
         }
     }
 }
 
-impl ClockGate for ral::lpspi::Instance {
-    fn clock_gate(&mut self, _: &mut Enabled<()>, activity: ClockActivity) {
-        unsafe {
-            let ccgr = CCGR_BASE.add(1);
-            let gate = match &**self as *const _ {
-                ral::lpspi::LPSPI1 => 0,
-                ral::lpspi::LPSPI2 => 1,
-                ral::lpspi::LPSPI3 => 2,
-                ral::lpspi::LPSPI4 => 3,
-                _ => unreachable!(),
-            };
-            set_clock_gate(ccgr, &[gate], activity as u8);
-        }
+impl ClockGate for ral::lpspi::RegisterBlock {
+    unsafe fn clock_gate(&self, activity: ClockActivity) {
+        let ccgr = CCGR_BASE.add(1);
+        let gate = match &*self as *const _ {
+            ral::lpspi::LPSPI1 => 0,
+            ral::lpspi::LPSPI2 => 1,
+            ral::lpspi::LPSPI3 => 2,
+            ral::lpspi::LPSPI4 => 3,
+            _ => unreachable!(),
+        };
+        set_clock_gate(ccgr, &[gate], activity as u8);
     }
 }
 
-impl ClockGate for ral::lpuart::Instance {
-    fn clock_gate(&mut self, _: &mut Enabled<()>, activity: ClockActivity) {
+impl ClockGate for ral::lpuart::RegisterBlock {
+    unsafe fn clock_gate(&self, activity: ClockActivity) {
         let value = activity as u8;
-        match &**self as *const _ {
-            ral::lpuart::LPUART1 => unsafe { set_clock_gate(CCGR_BASE.add(5), &[12], value) },
-            ral::lpuart::LPUART2 => unsafe { set_clock_gate(CCGR_BASE.add(0), &[14], value) },
-            ral::lpuart::LPUART3 => unsafe { set_clock_gate(CCGR_BASE.add(0), &[6], value) },
-            ral::lpuart::LPUART4 => unsafe { set_clock_gate(CCGR_BASE.add(1), &[12], value) },
-            ral::lpuart::LPUART5 => unsafe { set_clock_gate(CCGR_BASE.add(3), &[1], value) },
-            ral::lpuart::LPUART6 => unsafe { set_clock_gate(CCGR_BASE.add(3), &[3], value) },
-            ral::lpuart::LPUART7 => unsafe { set_clock_gate(CCGR_BASE.add(5), &[13], value) },
-            ral::lpuart::LPUART8 => unsafe { set_clock_gate(CCGR_BASE.add(6), &[7], value) },
+        match &*self as *const _ {
+            ral::lpuart::LPUART1 => set_clock_gate(CCGR_BASE.add(5), &[12], value),
+            ral::lpuart::LPUART2 => set_clock_gate(CCGR_BASE.add(0), &[14], value),
+            ral::lpuart::LPUART3 => set_clock_gate(CCGR_BASE.add(0), &[6], value),
+            ral::lpuart::LPUART4 => set_clock_gate(CCGR_BASE.add(1), &[12], value),
+            ral::lpuart::LPUART5 => set_clock_gate(CCGR_BASE.add(3), &[1], value),
+            ral::lpuart::LPUART6 => set_clock_gate(CCGR_BASE.add(3), &[3], value),
+            ral::lpuart::LPUART7 => set_clock_gate(CCGR_BASE.add(5), &[13], value),
+            ral::lpuart::LPUART8 => set_clock_gate(CCGR_BASE.add(6), &[7], value),
             _ => unreachable!(),
         }
     }

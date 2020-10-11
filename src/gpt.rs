@@ -46,14 +46,14 @@ pub struct GeneralPurposeTimer(ral::gpt::Instance);
 const DIVIDER: u32 = 5;
 
 /// GPT effective frequency
-const CLOCK_HZ: u32 = crate::ccm::Enabled::<crate::ccm::PerClock>::frequency() / DIVIDER;
+const CLOCK_HZ: u32 = crate::ccm::PerClock::frequency() / DIVIDER;
 const CLOCK_PERIOD_US: u32 = 1_000_000u32 / CLOCK_HZ;
 const _STATIC_ASSERT: [u32; 1] = [0; (CLOCK_PERIOD_US == 5) as usize];
 const CLOCK_PERIOD: Duration = Duration::from_micros(CLOCK_PERIOD_US as u64);
 
 impl GeneralPurposeTimer {
     /// Create a new `GPT` from a RAL GPT instance
-    pub fn new(gpt: ral::gpt::Instance, _: &crate::ccm::Enabled<crate::ccm::PerClock>) -> Self {
+    pub fn new(gpt: ral::gpt::Instance, _: &crate::ccm::PerClock) -> Self {
         let irq = match &*gpt as *const _ {
             ral::gpt::GPT1 => ral::interrupt::GPT1,
             ral::gpt::GPT2 => ral::interrupt::GPT2,
