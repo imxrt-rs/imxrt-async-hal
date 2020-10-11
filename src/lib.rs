@@ -24,6 +24,24 @@
 //!
 //! - `"imxrt106x"` for i.MX RT 1060 variants
 //!
+//! Each peripheral has it's own feature flag, which is enabled by default. However, you may
+//! want to disable some peripherals because
+//!
+//! - you have your own async implementation you'd like to use, or
+//! - you have your own interrupt-driven implementation, and the interrupt handler that this
+//!   crate registers causes a duplicate definition
+//!
+//! To select peripherals, disable the crate's default features. Then, select one or more of
+//! the peripheral features:
+//!
+//! - `"gpio"`
+//! - `"gpt"`
+//! - `"i2c"`
+//! - `"pipe"`
+//! - `"pit"`
+//! - `"spi"`
+//! - `"uart"`
+//!
 //! When you're developing a binary for your embedded system, you should specify the `"rt"`
 //! feature flag. Otherwise, when developing libraries against the crate, you may skip the
 //! `"rt"` flag.

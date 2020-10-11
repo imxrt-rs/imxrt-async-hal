@@ -113,6 +113,7 @@ where
     }
 }
 
+#[cfg(feature = "uart")]
 impl Inst for ral::lpuart::Instance {
     fn inst(&self) -> usize {
         match &**self as *const _ {
@@ -129,17 +130,22 @@ impl Inst for ral::lpuart::Instance {
     }
 }
 
+#[cfg(feature = "uart")]
 impl private::Sealed for ral::lpuart::Instance {}
 
 /// Alias for an `Instance` around a `ral::lpuart::Instance`
 ///
 /// See [`uart`](fn.uart.html) to acquire a `UART` instance.
+#[cfg(feature = "uart")]
+#[cfg_attr(docsrs, doc(cfg(feature = "uart")))]
 pub type UART<M> = Instance<ral::lpuart::Instance, M>;
 
 /// Specify a `UART` instance
 ///
 /// Returns `Some(...)` if `M` matches the `lpuart::Instance` identifier.
 /// Otherwise, returns `None`.
+#[cfg(feature = "uart")]
+#[cfg_attr(docsrs, doc(cfg(feature = "uart")))]
 pub fn uart<M>(uart: ral::lpuart::Instance) -> Option<UART<M>>
 where
     M: consts::Unsigned,
@@ -147,6 +153,7 @@ where
     instance(uart)
 }
 
+#[cfg(feature = "spi")]
 impl Inst for ral::lpspi::Instance {
     fn inst(&self) -> usize {
         match &**self as *const _ {
@@ -159,17 +166,22 @@ impl Inst for ral::lpspi::Instance {
     }
 }
 
+#[cfg(feature = "spi")]
 impl private::Sealed for ral::lpspi::Instance {}
 
 /// Alias for an `Instance` around a `ral::lpspi::Instance`
 ///
 /// See [`spi`](fn.spi.html) to acquire a `SPI` instance.
+#[cfg(feature = "spi")]
+#[cfg_attr(docsrs, doc(cfg(feature = "spi")))]
 pub type SPI<M> = Instance<ral::lpspi::Instance, M>;
 
 /// Specify a `SPI` instance
 ///
 /// Returns `Some(...)` if `M` matches the `lpspi::Instance` identifier.
 /// Otherwise, returns `None`.
+#[cfg(feature = "spi")]
+#[cfg_attr(docsrs, doc(cfg(feature = "spi")))]
 pub fn spi<M>(spi: ral::lpspi::Instance) -> Option<SPI<M>>
 where
     M: consts::Unsigned,
@@ -177,6 +189,7 @@ where
     instance(spi)
 }
 
+#[cfg(feature = "i2c")]
 impl Inst for ral::lpi2c::Instance {
     fn inst(&self) -> usize {
         match &**self as *const _ {
@@ -189,17 +202,22 @@ impl Inst for ral::lpi2c::Instance {
     }
 }
 
+#[cfg(feature = "i2c")]
 impl private::Sealed for ral::lpi2c::Instance {}
 
 /// Alias for an `Instance` around a `ral::lpi2c::Instance`
 ///
 /// See [`i2c`](fn.i2c.html) to acquire an `I2C` instance.
+#[cfg(feature = "i2c")]
+#[cfg_attr(docsrs, doc(cfg(feature = "i2c")))]
 pub type I2C<M> = Instance<ral::lpi2c::Instance, M>;
 
 /// Specify an `I2C` instance
 ///
 /// Returns `Some(...)` if `M` matches the `lpi2c::Instance` identifier.
 /// Otherwise, returns `None`.
+#[cfg(feature = "i2c")]
+#[cfg_attr(docsrs, doc(cfg(feature = "i2c")))]
 pub fn i2c<M>(i2c: ral::lpi2c::Instance) -> Option<I2C<M>>
 where
     M: consts::Unsigned,

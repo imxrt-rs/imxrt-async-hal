@@ -11,7 +11,6 @@ const I2C_CLOCK_HZ: u32 = crate::ccm::OSCILLATOR_FREQUENCY_HZ / I2C_CLOCK_DIVIDE
 /// I2C peripheral clock divider
 const I2C_CLOCK_DIVIDER: u32 = 3;
 
-#[cfg(feature = "i2c")]
 #[cfg_attr(docsrs, doc(cfg(feature = "i2c")))]
 impl Disabled<I2CClock> {
     /// Enable the I2C clocks
@@ -21,7 +20,6 @@ impl Disabled<I2CClock> {
     }
 }
 
-#[cfg(feature = "i2c")]
 #[cfg_attr(docsrs, doc(cfg(feature = "i2c")))]
 impl I2CClock {
     /// Set the clock gate activity for the I2C instance
@@ -41,7 +39,6 @@ impl I2CClock {
 ///
 /// This could be called anywhere, by anyone who uses the globally-accessible I2C memory.
 /// Consider using the safer `I2CClock::clock_gate` API.
-#[cfg(feature = "i2c")]
 #[cfg_attr(docsrs, doc(cfg(feature = "i2c")))]
 pub unsafe fn clock_gate(i2c: *const ral::lpi2c::RegisterBlock, activity: ClockActivity) {
     let value = activity as u8;
@@ -61,7 +58,6 @@ pub unsafe fn clock_gate(i2c: *const ral::lpi2c::RegisterBlock, activity: ClockA
 /// This modifies easily-accessible global state. Consider using `I2CClock::enable`
 /// for a safery API.
 #[inline(always)]
-#[cfg(feature = "i2c")]
 #[cfg_attr(docsrs, doc(cfg(feature = "i2c")))]
 pub unsafe fn enable(ccm: *const ral::ccm::RegisterBlock) {
     // Select clock, and commit prescalar

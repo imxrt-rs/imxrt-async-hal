@@ -3,7 +3,6 @@
 use super::{set_clock_gate, ClockActivity, Disabled, Handle, UARTClock, CCGR_BASE};
 use crate::ral;
 
-#[cfg(feature = "uart")]
 #[cfg_attr(docsrs, doc(cfg(feature = "uart")))]
 impl Disabled<UARTClock> {
     /// Enable the UART clocks
@@ -13,8 +12,6 @@ impl Disabled<UARTClock> {
     }
 }
 
-#[cfg(feature = "uart")]
-#[cfg_attr(docsrs, doc(cfg(feature = "uart")))]
 impl UARTClock {
     /// Set the clock gate activity for the UART instance
     pub fn clock_gate(&mut self, uart: &mut ral::lpuart::Instance, activity: ClockActivity) {
@@ -33,7 +30,6 @@ impl UARTClock {
 ///
 /// This could be called anywhere, by anyone who uses the globally-accessible UART memory.
 /// Consider using the safer `UARTClock::clock_gate` API.
-#[cfg(feature = "uart")]
 #[cfg_attr(docsrs, doc(cfg(feature = "uart")))]
 pub unsafe fn clock_gate(uart: *const ral::lpuart::RegisterBlock, activity: ClockActivity) {
     let value = activity as u8;
@@ -57,7 +53,6 @@ pub unsafe fn clock_gate(uart: *const ral::lpuart::RegisterBlock, activity: Cloc
 /// This modifies easily-accessible global state. Consider using `UartClock::enable`
 /// for a safery API.
 #[inline(always)]
-#[cfg(feature = "uart")]
 #[cfg_attr(docsrs, doc(cfg(feature = "uart")))]
 pub unsafe fn enable(ccm: *const ral::ccm::RegisterBlock) {
     ral::modify_reg!(
