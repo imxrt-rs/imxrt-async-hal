@@ -33,6 +33,7 @@ fn main() -> ! {
     let hal::ccm::CCM {
         mut handle,
         perclock,
+        uart_clock,
         ..
     } = hal::ral::ccm::CCM::take().map(hal::ccm::CCM::new).unwrap();
     let mut perclock = perclock.enable(&mut handle);
@@ -49,7 +50,12 @@ fn main() -> ! {
         hal::ral::dmamux::DMAMUX::take().unwrap(),
     );
 
+    let mut uart_clock = uart_clock.enable(&mut handle);
     let uart2 = hal::ral::lpuart::LPUART2::take()
+        .map(|mut inst| {
+            uart_clock.clock_gate(&mut inst, hal::ccm::ClockActivity::On);
+            inst
+        })
         .and_then(hal::instance::uart)
         .unwrap();
     let mut uart = hal::UART::new(
@@ -57,7 +63,7 @@ fn main() -> ! {
         pins.p14,
         pins.p15,
         channels[7].take().unwrap(),
-        &mut handle,
+        &uart_clock,
     );
     uart.set_baud(BAUD).unwrap();
 

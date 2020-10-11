@@ -32,20 +32,3 @@ impl ClockGate for ral::lpspi::RegisterBlock {
         set_clock_gate(ccgr, &[gate], activity as u8);
     }
 }
-
-impl ClockGate for ral::lpuart::RegisterBlock {
-    unsafe fn clock_gate(&self, activity: ClockActivity) {
-        let value = activity as u8;
-        match &*self as *const _ {
-            ral::lpuart::LPUART1 => set_clock_gate(CCGR_BASE.add(5), &[12], value),
-            ral::lpuart::LPUART2 => set_clock_gate(CCGR_BASE.add(0), &[14], value),
-            ral::lpuart::LPUART3 => set_clock_gate(CCGR_BASE.add(0), &[6], value),
-            ral::lpuart::LPUART4 => set_clock_gate(CCGR_BASE.add(1), &[12], value),
-            ral::lpuart::LPUART5 => set_clock_gate(CCGR_BASE.add(3), &[1], value),
-            ral::lpuart::LPUART6 => set_clock_gate(CCGR_BASE.add(3), &[3], value),
-            ral::lpuart::LPUART7 => set_clock_gate(CCGR_BASE.add(5), &[13], value),
-            ral::lpuart::LPUART8 => set_clock_gate(CCGR_BASE.add(6), &[7], value),
-            _ => unreachable!(),
-        }
-    }
-}

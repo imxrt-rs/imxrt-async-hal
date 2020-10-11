@@ -85,6 +85,19 @@ impl<I, M> Instance<I, M> {
     }
 }
 
+impl<I, M> core::ops::Deref for Instance<I, M> {
+    type Target = I;
+    fn deref(&self) -> &Self::Target {
+        &self.inst
+    }
+}
+
+impl<I, M> core::ops::DerefMut for Instance<I, M> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inst
+    }
+}
+
 fn instance<I, M>(inst: I) -> Option<Instance<I, M>>
 where
     I: Inst,

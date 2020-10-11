@@ -14,6 +14,9 @@
 
 mod gates;
 mod perclock;
+mod uart;
+
+pub use uart::enable as uart_enable;
 
 use crate::ral;
 
@@ -50,6 +53,8 @@ pub struct CCM {
     pub handle: Handle,
     /// The periodic clock handle
     pub perclock: Disabled<PerClock>,
+    /// The UART clock
+    pub uart_clock: Disabled<UARTClock>,
 }
 
 impl CCM {
@@ -58,6 +63,7 @@ impl CCM {
         CCM {
             handle: Handle(ccm),
             perclock: Disabled(PerClock(())),
+            uart_clock: Disabled(UARTClock(())),
         }
     }
 }
@@ -101,6 +107,9 @@ pub struct Disabled<Clock>(Clock);
 /// `PerClock` is the input clock for GPT and PIT. It runs at
 /// 1MHz.
 pub struct PerClock(());
+
+/// The UART clock
+pub struct UARTClock(());
 
 /// Starting address of the clock control gate registers
 const CCGR_BASE: *mut u32 = 0x400F_C068 as *mut u32;
