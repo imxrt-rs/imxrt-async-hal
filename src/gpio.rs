@@ -41,7 +41,7 @@
 //! use imxrt_async_hal as hal;
 //! use hal::gpio::{GPIO, Sensitivity};
 //!
-//! # fn block_on<F: core::future::Future<Output = ()>>(f: F) {};
+//! # fn block_on<F: core::future::Future<Output = ()>>(f: F) {}
 //! # let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
 //! let mut led = GPIO::new(pads.b0.p03).output();
 //! let mut input_pin = GPIO::new(pads.b0.p02);

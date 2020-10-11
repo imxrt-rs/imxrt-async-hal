@@ -17,10 +17,8 @@ extern crate panic_halt;
 #[cfg(target_arch = "arm")]
 extern crate t4_startup;
 
-use imxrt_async_hal as hal;
-
 use futures::future;
-
+use imxrt_async_hal as hal;
 const BAUD: u32 = 115_200;
 
 #[cortex_m_rt::entry]

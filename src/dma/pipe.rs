@@ -64,7 +64,7 @@
 //!     }
 //! };
 //!
-//! # fn block_on<F: core::future::Future>(f: F) {};
+//! # fn block_on<F: core::future::Future>(f: F) {}
 //! block_on(futures::future::join(sender, receiver));
 //! ```
 

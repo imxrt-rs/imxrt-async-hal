@@ -9,7 +9,42 @@
 //! use imxrt_async_hal as hal;
 //! use hal::{ccm::CCM, ral};
 //!
-//! let mut ccm = ral::ccm::CCM::take().map(CCM::new).unwrap();
+//! let CCM{
+//!     mut handle,
+//!     // All clocks below are disabled;
+//!     // call enable() to enable them
+//!     perclock,
+//!     spi_clock,
+//!     uart_clock,
+//!     i2c_clock,
+//!     ..
+//! } = ral::ccm::CCM::take().map(CCM::new).unwrap();
+//!
+//! // Enable the periodic clock root for GPTs and PITs
+//! let mut perclock = perclock.enable(&mut handle);
+//! ```
+//!
+//! As shown above, all clocks start in a disabled state. Each clock supports
+//! an `enable` method for enabling the clock root. Once you have an `enabled`
+//! clock, you can use it to control clock gates for your peripheral:
+//!
+//! ```no_run
+//! # use imxrt_async_hal as hal;
+//! use hal::{
+//!     ral::gpt::GPT2, // the RAL GPT2 instance
+//!     GPT,            // the async GPT driver
+//! };
+//! # use hal::{
+//! #     ral::ccm::CCM, // the RAL CCM instance
+//! #     ccm,           // the async CCM API
+//! # };
+//!
+//! let mut gpt2 = GPT2::take().unwrap();
+//! # let ccm::CCM{ mut handle, perclock, .. } = CCM::take().map(ccm::CCM::new).unwrap();
+//! # let mut perclock = perclock.enable(&mut handle);
+//! // Turn on the clocks for the GPT2 timer
+//! perclock.clock_gate_gpt(&mut gpt2, ccm::ClockActivity::On);
+//! let mut gpt = GPT::new(gpt2, &perclock);
 //! ```
 
 mod i2c;
@@ -48,7 +83,10 @@ pub unsafe fn clock_gate_dma(_: *const ral::dma0::RegisterBlock, activity: Clock
     set_clock_gate(CCGR_BASE.add(5), &[3], activity as u8);
 }
 
-/// The CCM components
+/// The root clocks and CCM handle
+///
+/// All root clocks are disabled. Call `enable`, and supply the
+/// `handle`, to enable them.
 #[non_exhaustive]
 pub struct CCM {
     /// The handle to the CCM register block
@@ -56,12 +94,20 @@ pub struct CCM {
     /// `Handle` is used throughout the HAL
     pub handle: Handle,
     /// The periodic clock handle
+    ///
+    /// `perclock` is used for timers, including [`GPT`](../struct.GPT.html) and [`PIT`](../struct.PIT.html).
     pub perclock: Disabled<PerClock>,
     /// The UART clock
+    ///
+    /// `uart_clock` is for [`UART`](../struct.UART.html) peripherals.
     pub uart_clock: Disabled<UARTClock>,
     /// The SPI clock
+    ///
+    /// `spi_clock` is for [`SPI`](../struct.SPI.html) peripherals.
     pub spi_clock: Disabled<SPIClock>,
     /// The I2C clock
+    ///
+    /// `i2c_clock` is for [`I2C`](../struct.I2C.html) peripherals.
     pub i2c_clock: Disabled<I2CClock>,
 }
 
@@ -92,20 +138,8 @@ pub enum ClockActivity {
     On = 0b11,
 }
 
-/// Describes a type that can have its clock gated by the CCM
-pub trait ClockGate {
-    /// Gate the clock based, setting the value to the clock activity
-    ///
-    /// # Safety
-    ///
-    /// `clock_gate` modifies global state that may be mutably aliased elsewhere.
-    /// Consider using the safer CCM APIs to specify your clock gate activity.
-    unsafe fn clock_gate(&self, activity: ClockActivity);
-}
-
 /// Crystal oscillator frequency
-// TODO should be private
-pub(crate) const OSCILLATOR_FREQUENCY_HZ: u32 = 24_000_000;
+const OSCILLATOR_FREQUENCY_HZ: u32 = 24_000_000;
 
 /// A disabled clock of type `Clock`
 ///
@@ -118,14 +152,66 @@ pub struct Disabled<Clock>(Clock);
 /// 1MHz.
 pub struct PerClock(());
 
+impl PerClock {
+    /// Assume that the clock is enabled, and acquire the enabled clock
+    ///
+    /// # Safety
+    ///
+    /// This may create an alias to memory that is mutably owned by another instance.
+    /// Users should only `assume_enabled` when configuring clocks through another
+    /// API.
+    pub unsafe fn assume_enabled() -> Self {
+        Self(())
+    }
+}
+
 /// The UART clock
 pub struct UARTClock(());
+
+impl UARTClock {
+    /// Assume that the clock is enabled, and acquire the enabled clock
+    ///
+    /// # Safety
+    ///
+    /// This may create an alias to memory that is mutably owned by another instance.
+    /// Users should only `assume_enabled` when configuring clocks through another
+    /// API.
+    pub unsafe fn assume_enabled() -> Self {
+        Self(())
+    }
+}
 
 /// The SPI clock
 pub struct SPIClock(());
 
+impl SPIClock {
+    /// Assume that the clock is enabled, and acquire the enabled clock
+    ///
+    /// # Safety
+    ///
+    /// This may create an alias to memory that is mutably owned by another instance.
+    /// Users should only `assume_enabled` when configuring clocks through another
+    /// API.
+    pub unsafe fn assume_enabled() -> Self {
+        Self(())
+    }
+}
+
 /// The I2C clock
 pub struct I2CClock(());
+
+impl I2CClock {
+    /// Assume that the clock is enabled, and acquire the enabled clock
+    ///
+    /// # Safety
+    ///
+    /// This may create an alias to memory that is mutably owned by another instance.
+    /// Users should only `assume_enabled` when configuring clocks through another
+    /// API.
+    pub unsafe fn assume_enabled() -> Self {
+        Self(())
+    }
+}
 
 /// Starting address of the clock control gate registers
 const CCGR_BASE: *mut u32 = 0x400F_C068 as *mut u32;
