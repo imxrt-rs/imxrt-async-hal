@@ -45,7 +45,7 @@ pub struct Pins<SDO, SDI, SCK, PCS0> {
 /// The SPI serial clock speed after construction is unspecified. Use [`set_clock_speed`](#method.set_clock_speed)
 /// to choose your SPI serial clock speed.
 ///
-/// The RAL instances are available in `ral::lpspi`.
+/// The RAL instances are available in `ral::lpspi`. Use [`SPIClock`](ccm/struct.SPIClock.html) to enable clock gates.
 ///
 /// # Example
 ///

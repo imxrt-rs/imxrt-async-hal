@@ -6,7 +6,7 @@
 //!
 //! The crate registers and manages the interrupt handlers necessary for
 //! waking the executor. The implementation registers interrupt handlers statically,
-//! using the [`cortex-m-rt`] interfaces. This means that your end system should also
+//! using the [`cortex-m-rt`] interfaces. This means that your final program should also
 //! depend on `cortex-m-rt`, or at least be `cortex-m-rt` compatible.
 //!
 //! [`cortex-m-rt`]: https://crates.io/crates/cortex-m-rt

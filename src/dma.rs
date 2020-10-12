@@ -310,6 +310,9 @@ pub enum Error {
 /// The return is 32 channels, all having a value of `Some(channel)`. The index in the array describes
 /// the channel number.
 ///
+/// You should enable the clock gates before calling `channels`. See
+/// [`ccm::Handle::clock_gate_dma`](../ccm/struct.Handle.html#method.clock_gate_dma) for more information.
+///
 /// # Example
 ///
 /// Acquire all of the DMA channels, and move channel 7 to another function:

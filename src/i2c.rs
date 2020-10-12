@@ -28,7 +28,8 @@ use crate::{
 /// The I2C clock speed is unspecified out of construction. Use [`set_clock_speed`](#method.set_clock_speed)
 /// to select a valid I2C clock speed.
 ///
-/// The RAL instances are available in `ral::lpi2c`.
+/// The RAL instances are available in `ral::lpi2c`. Use [`I2CClock`](ccm/struct.I2CClock.html) to
+/// enable clock gates.
 ///
 /// # Pin configuration
 ///
