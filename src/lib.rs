@@ -1,11 +1,11 @@
-//! Asynchronous i.MX RT peripherals for embedded systems
+//! Embedded, async Rust on i.MX RT processors
 //!
 //! `imxrt-async-hal` brings async Rust support to NXP's i.MX RT processor family.
 //! The crate includes peripherals and timers. Peripheral I/O blocks on `await`, and
 //! timer delays can be `await`ed.
 //!
-//! The crate registers and manages the interrupt handlers necessary for
-//! waking the executor. The implementation registers interrupt handlers statically,
+//! The crate registers the interrupt handlers. When an interrupt fires, it
+//! wakes the executor. The implementation registers interrupt handlers statically,
 //! using the [`cortex-m-rt`] interfaces. This means that your final program should also
 //! depend on `cortex-m-rt`, or at least be `cortex-m-rt` compatible.
 //!
@@ -15,9 +15,22 @@
 //! need to select your own Cortex-M-compatible executor. The executor should be thread safe,
 //! prepared to handle wakes from interrupt handlers.
 //!
-//! # Feature Flags
+//! # Dependencies
 //!
-//! You're required to specify a feature flag that describes your i.MX RT chip variant.
+//! - A Rust installation; recommended installation using rustup. We support the
+//!   latest, stable Rust toolchain.
+//!
+//! - The `thumbv7em-none-eabihf` Rust target, which may be installed using
+//!   `rustup`: `rustup target add thumbv7em-none-eabihf`
+//!
+//!   The target is only necessary when building for an embedded system. The
+//!   main crate should build and test on your host.
+//!
+//! - An embedded system with a compatible i.MX RT processor.
+//!
+//! # Feature flags
+//!
+//! You're **required** to specify a feature flag that describes your i.MX RT chip variant.
 //! You may only select one chip feature.
 //!
 //! The current implementation supports
@@ -106,23 +119,31 @@
 //!
 //! /* #[cortex_m_rt::entry], or your entry decorator */
 //! fn main() /* -> ! */ { // Never return may be required by your runtime's entry decorator
+//!     // Acquire all handles to the processor pads
 //!     let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
+//!     // Turn pad B0_03 into an output
 //!     let mut led = hal::gpio::GPIO::new(pads.b0.p03).output();
+//!     // We'll use GPT2 as the timer for blinking the LED
 //!     let mut gpt = hal::ral::gpt::GPT2::take().unwrap();
 //!
+//!     // Acquire the clocks that we'll need to enable...
 //!     let hal::ccm::CCM {
 //!         mut handle,
 //!         perclock,
 //!         uart_clock,
 //!         ..
 //!     } = hal::ral::ccm::CCM::take().map(hal::ccm::CCM::new).unwrap();
+//!
+//!     // Enable the periodic clock for the GPT
 //!     let mut perclock = perclock.enable(&mut handle);
 //!     perclock.clock_gate_gpt(&mut gpt, hal::ccm::ClockActivity::On);
-//!
 //!     let mut timer = hal::GPT::new(gpt, &perclock);
+//!
+//!     // Acquire DMA channels, which are used to coordinate UART transfers
 //!     let mut channels = hal::dma::channels(
 //!         hal::ral::dma0::DMA0::take()
 //!             .map(|mut dma| {
+//!                 // Enable the DMA clock gate
 //!                 handle.clock_gate_dma(&mut dma, hal::ccm::ClockActivity::On);
 //!                 dma
 //!             })
@@ -130,6 +151,7 @@
 //!         hal::ral::dmamux::DMAMUX::take().unwrap(),
 //!     );
 //!
+//!     // Enable the UART root clock, and prepare the UART2 driver
 //!     let mut uart_clock = uart_clock.enable(&mut handle);
 //!     let uart2 = hal::ral::lpuart::LPUART2::take()
 //!         .map(|mut inst| {
@@ -138,13 +160,15 @@
 //!         })
 //!         .and_then(hal::instance::uart)
 //!         .unwrap();
+//!     // Initialize the UART driver
 //!     let mut uart = hal::UART::new(
 //!         uart2,
-//!         pads.ad_b1.p02, // TX
-//!         pads.ad_b1.p03, // RX
-//!         channels[7].take().unwrap(),
+//!         pads.ad_b1.p02, // TX pad
+//!         pads.ad_b1.p03, // RX pad
+//!         channels[7].take().unwrap(), // Using DMA channel 7
 //!         &uart_clock,
 //!     );
+//!     // Set your baud rate
 //!     uart.set_baud(BAUD).unwrap();
 //!
 //!     let blinking_loop = async {
@@ -171,8 +195,8 @@
 //!
 //! Licensed under either of
 //!
-//! - [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
-//! - [MIT License](http://opensource.org/licenses/MIT)
+//! - [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0) ([LICENSE-APACHE](./LICENSE-APACHE))
+//! - [MIT License](http://opensource.org/licenses/MIT) ([LICENSE-MIT](./LICENSE-MIT))
 //!
 //! at your option.
 //!

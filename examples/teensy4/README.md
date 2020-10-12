@@ -12,12 +12,6 @@ project documentation for more details.
 
 You'll also need
 
-- The `thumbv7em-none-eabihf` Rust target, which may be installed using `rustup`:
-
-    ```bash
-    $ rustup target add thumbv7em-none-eabihf
-    ```
-
 - A capable `objcopy` for transforming Rust binaries into hex files. The
 documentation and tooling in the guide uses the LLVM `objcopy` provided by
 [`cargo binutils`]. Install [`cargo binutils`] if you want to precisely follow
