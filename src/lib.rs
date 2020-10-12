@@ -264,24 +264,6 @@ mod once {
     }
 }
 
-/// The ARM clock frequency
-///
-/// See [`set_arm_clock`](fn.set_arm_clock.html) to specify the ARM clock speed
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ARMClock {
-    hz: u32,
-}
-
-/// The IPG clock frequency
-///
-/// See [`set_arm_clock`](fn.set_arm_clock.html) to specify the IPG clock speed.
-/// Since the IPG clock speed is based on the ARM clock, the same function prepares
-/// both clocks.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct IPGClock {
-    hz: u32,
-}
-
 /// Pad multiplexing and configuration
 ///
 /// The `iomuxc` module is a re-export of the [`imxrt-iomuxc`] crate. It combines

@@ -51,6 +51,7 @@
 mod i2c;
 #[cfg(any(feature = "gpt", feature = "pit"))]
 mod perclock;
+mod pll1;
 #[cfg(feature = "spi")]
 mod spi;
 #[cfg(feature = "uart")]
@@ -109,6 +110,8 @@ pub struct CCM {
     ///
     /// `Handle` is used throughout the HAL
     pub handle: Handle,
+    /// PLL1, which controls the ARM clock
+    pub pll1: PLL1,
     /// The periodic clock handle
     ///
     /// `perclock` is used for timers, including [`GPT`](../struct.GPT.html) and [`PIT`](../struct.PIT.html).
@@ -140,6 +143,7 @@ impl CCM {
     pub const fn new(ccm: ral::ccm::Instance) -> Self {
         CCM {
             handle: Handle(ccm),
+            pll1: PLL1(()),
             #[cfg(any(feature = "gpt", feature = "pit"))]
             perclock: Disabled(PerClock(())),
             #[cfg(feature = "uart")]
@@ -256,6 +260,68 @@ impl I2CClock {
     pub unsafe fn assume_enabled() -> Self {
         Self(())
     }
+}
+
+/// PLL1, which controls the ARM and IPG clocks
+///
+/// This clock is enabled by default. Use [`set_arm_clock`](#method.set_arm_clock)
+/// to specify the ARM clock frequency.
+pub struct PLL1(());
+
+impl PLL1 {
+    /// Consume the PLL1 and set the ARM clock speed, returning the ARM and IPG clock frequencies
+    ///
+    /// # Safety
+    ///
+    /// This is safe to call as long as you're not depending on any register state from
+    ///
+    /// - CCM_ANALOG
+    /// - DCDC
+    ///
+    /// This function may modify any register in those two additional register blocks, in addition to
+    /// the CCM memory encapsulated in `Handle`.
+    ///
+    /// # Example
+    ///
+    /// Set the ARM clock to 600MHz:
+    ///
+    /// ```no_run
+    /// use imxrt_async_hal as hal;
+    /// use hal::{ral::ccm::CCM, ccm};
+    /// let ccm::CCM { mut handle, pll1, .. } = CCM::take().map(ccm::CCM::new).unwrap();
+    ///
+    /// unsafe {
+    ///     pll1.set_arm_clock(600_000_000, &mut handle);
+    /// }
+    /// ```
+    pub unsafe fn set_arm_clock(self, clock_hz: u32, ccm: &mut Handle) -> (ARMClock, IPGClock) {
+        let (arm, ipg) = pll1::set_arm_clock(
+            clock_hz,
+            &*ccm.0,
+            ral::ccm_analog::CCM_ANALOG,
+            ral::dcdc::DCDC,
+        );
+        (ARMClock { hz: arm }, IPGClock { hz: ipg })
+    }
+}
+
+/// The ARM clock frequency
+///
+/// See [`PLL1`](struct.PLL1.html) to set the ARM clock and acquire this frequency.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ARMClock {
+    hz: u32,
+}
+
+/// The IPG clock frequency
+///
+/// /// See [`PLL1`](struct.PLL1.html) to set the IPG clock and acquire this frequency.
+///
+/// Since the IPG clock speed is based on the ARM clock, the same function prepares
+/// both clocks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct IPGClock {
+    hz: u32,
 }
 
 /// Starting address of the clock control gate registers
