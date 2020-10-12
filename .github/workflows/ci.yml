@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, staging, trying ]
+  pull_request: []
+
+jobs:
+
+  format:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: rustup component add rustfmt
+    - name: Check library formatting
+      uses: actions-rs/cargo@v1
+      with:
+          command: fmt
+          args: --verbose --all -- --check
+    - name: Check examples/teensy4 formatting
+      uses: actions-rs/cargo@v1
+      with:
+          command: fmt
+          args: --manifest-path examples/teensy4/Cargo.toml --verbose --all -- --check
+  
+  clippy:
+    strategy:
+      matrix:
+        chip: [ imxrt106x ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+            toolchain: stable
+            components: clippy
+            target: thumbv7em-none-eabihf
+            override: true
+            profile: minimal
+      - uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --verbose --features rt --features ${{ matrix.chip }} --target thumbv7em-none-eabihf -- -D warnings
+          name: Lint the library
+
+  test:
+    strategy:
+      matrix:
+        chip: [ imxrt106x ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run unit and documentation tests
+        run: cargo test --features ${{ matrix.chip }}
+
+  teensy4:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+            toolchain: stable
+            components: clippy
+            target: thumbv7em-none-eabihf
+            override: true
+            profile: minimal
+      - uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --manifest-path examples/teensy4/Cargo.toml --verbose --target thumbv7em-none-eabihf -- -D warnings
+          name: Lint the teensy4 examples
