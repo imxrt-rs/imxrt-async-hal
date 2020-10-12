@@ -53,6 +53,17 @@ jobs:
       - name: Run unit and documentation tests
         run: cargo test --features ${{ matrix.chip }}
 
+  features:
+    strategy:
+      matrix:
+        chip: [ imxrt106x ]
+        peripheral: [ gpio, gpt, i2c, pipe, pit, spi, uart ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run `cargo check` for chip ${{ matrix.chip }}, peripheral ${{ matrix.peripheral }}
+        run: cargo check --no-default-features --features ${{ matrix.chip }} --features ${{ matrix.peripheral }}
+
   teensy4:
     runs-on: ubuntu-latest
     steps:
