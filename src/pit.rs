@@ -20,8 +20,6 @@ const CLOCK_PERIOD: Duration = Duration::from_micros(CLOCK_PERIOD_US as u64);
 /// A single hardware PIT instance has four PIT channels. Use [`new`](#method.new) to acquire these four
 /// channels.
 ///
-/// Use [`PerClock`](ccm/struct.PerClock.html) to enable clock gates.
-///
 /// # Example
 ///
 /// Delay for 100us using PIT channel 3.

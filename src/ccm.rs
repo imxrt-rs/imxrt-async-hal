@@ -11,8 +11,6 @@
 //!
 //! let CCM{
 //!     mut handle,
-//!     // All clocks below are disabled;
-//!     // call enable() to enable them
 //!     perclock,
 //!     spi_clock,
 //!     uart_clock,
@@ -24,7 +22,7 @@
 //! let mut perclock = perclock.enable(&mut handle);
 //! ```
 //!
-//! As shown above, all clocks start in a disabled state. Each clock supports
+//! Many clocks start in a disabled state. Each clock supports
 //! an `enable` method for enabling the clock root. Once you have an `enabled`
 //! clock, you can use it to control clock gates for your peripheral:
 //!
@@ -80,6 +78,9 @@ pub struct Handle(pub(crate) ral::ccm::Instance);
 
 impl Handle {
     /// Set the clock gate activity for the DMA controller
+    ///
+    /// You should set the clock gate before creating DMA channels. Otherwise, the DMA
+    /// peripheral may not work.
     #[cfg(dma)]
     #[cfg_attr(docsrs, doc(cfg(dma)))]
     pub fn clock_gate_dma(&mut self, dma: &mut ral::dma0::Instance, activity: ClockActivity) {
@@ -102,7 +103,7 @@ pub unsafe fn clock_gate_dma(_: *const ral::dma0::RegisterBlock, activity: Clock
 
 /// The root clocks and CCM handle
 ///
-/// All root clocks are disabled. Call `enable`, and supply the
+/// Most root clocks are disabled. Call `enable`, and supply the
 /// `handle`, to enable them.
 #[non_exhaustive]
 pub struct CCM {

@@ -1,19 +1,19 @@
-//! Embedded, async Rust on i.MX RT processors
+//! Embedded, async Rust for i.MX RT processors
 //!
-//! `imxrt-async-hal` brings async Rust support to NXP's i.MX RT processor family.
+//! `imxrt-async-hal` brings async Rust support to NXP's i.MX RT processors.
 //! The crate includes peripherals and timers. Peripheral I/O blocks on `await`, and
 //! timer delays can be `await`ed.
 //!
-//! The crate registers the interrupt handlers. When an interrupt fires, it
+//! The crate registers interrupt handlers to support async execution. When an interrupt fires, it
 //! wakes the executor. The implementation registers interrupt handlers statically,
 //! using the [`cortex-m-rt`] interfaces. This means that your final program should also
 //! depend on `cortex-m-rt`, or at least be `cortex-m-rt` compatible.
 //!
 //! [`cortex-m-rt`]: https://crates.io/crates/cortex-m-rt
 //!
-//! The crate does not include an executor, or any API for driving the futures. You will
-//! need to select your own Cortex-M-compatible executor. The executor should be thread safe,
-//! prepared to handle wakes from interrupt handlers.
+//! The crate does not include an executor, or any API for driving futures. You will
+//! need to select your own executor that supports a Cortex-M system.
+//! The executor should be thread safe, prepared to handle wakes from interrupt handlers.
 //!
 //! # Dependencies
 //!
@@ -58,47 +58,6 @@
 //! When you're developing a binary for your embedded system, you should specify the `"rt"`
 //! feature flag. Otherwise, when developing libraries against the crate, you may skip the
 //! `"rt"` flag.
-//!
-//! # Core APIs
-//!
-//! The `imxrt-async-hal` relies on some core APIs to prepare peripherals. This section briefly
-//! describes the RAL, IOMUX, and CCM APIs, which are used throughout the crate's interface. In summary,
-//!
-//! - Acquire your peripheral instances through `ral`
-//! - Acquire your peripheral pads through the [`iomuxc`](iomuxc/index.html)
-//! - Enable your clocks and clock gates through [`ccm`](ccm/index.html)
-//!
-//! The RAL is described below. See the documentation of the other modules for more details.
-//!
-//! ## RAL
-//!
-//! Peripheral selection depends on the [`imxrt-ral`] crate. The RAL is re-exported in the `ral` module.
-//! The API provide the lowest-level access for configuring peripherals.
-//!
-//! [`imxrt-ral`]: https://docs.rs/imxrt-ral/latest/imxrt_ral/
-//!
-//! All peripherals in this crate require a corresponding RAL instance. Those instances may be
-//! wrapped in a strongly-typed [`instance`](instance/index.html) to identify the instance ID at compile
-//! time. Unless you're performing more advanced peripheral configuration, or not using one of these async APIs,
-//! you should simply use `take()` to acquire the peripheral, then pass it into a `imxrt-async-hal` API.
-//!
-//! ```no_run
-//! use imxrt_async_hal as hal;
-//! use hal::{
-//!     ral::gpt::GPT2, // the RAL GPT2 instance
-//!     GPT,            // the async GPT driver
-//! };
-//! # use hal::{
-//! #     ral::ccm::CCM, // the RAL CCM instance
-//! #     ccm,           // the async CCM API
-//! # };
-//!
-//! let mut gpt2 = GPT2::take().unwrap();
-//! # let ccm::CCM{ mut handle, perclock, .. } = CCM::take().map(ccm::CCM::new).unwrap();
-//! # let mut perclock = perclock.enable(&mut handle);
-//! # perclock.clock_gate_gpt(&mut gpt2, ccm::ClockActivity::On);
-//! let mut gpt = GPT::new(gpt2, &perclock);
-//! ```
 //!
 //! # Example
 //!

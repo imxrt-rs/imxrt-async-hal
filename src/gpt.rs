@@ -12,8 +12,6 @@ use core::{
 /// The timer ticks every **5us (200KHz)**. This may affect very precise timing.
 /// For a more precise timer, see [`PIT`](struct.PIT.html).
 ///
-/// Use [`PerClock`](ccm/struct.PerClock.html) to enable clock gates.
-///
 /// # Example
 ///
 /// Use GPT1 to block for 250ms.

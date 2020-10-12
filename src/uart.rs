@@ -9,8 +9,7 @@ use core::fmt;
 /// After constructing a `UART`, the baud rate is unspecified. Use [`set_baud`](#method.set_baud)
 /// to configure your serial device.
 ///
-/// The RAL instances are available in `ral::lpuart`. Use [`UARTClock`](ccm/struct.UARTClock.html) to
-/// enable clock gates.
+/// The RAL instances are available in `ral::lpuart`.
 ///
 /// # Example
 ///
