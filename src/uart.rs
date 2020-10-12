@@ -17,7 +17,7 @@ use core::fmt;
 ///
 /// ```no_run
 /// use imxrt_async_hal as hal;
-/// use hal::{ccm::{self, ClockActivity}, dma, iomuxc, UART, instance};
+/// use hal::{ccm::{self, ClockGate}, dma, iomuxc, UART, instance};
 /// use hal::ral::{
 ///     ccm::CCM, lpuart::LPUART2,
 ///     dma0::DMA0, dmamux::DMAMUX,
@@ -28,7 +28,7 @@ use core::fmt;
 ///
 /// let mut ccm = CCM::take().map(ccm::CCM::new).unwrap();
 /// let mut dma = DMA0::take().unwrap();
-/// ccm.handle.clock_gate_dma(&mut dma, ClockActivity::On);
+/// ccm.handle.clock_gate_dma(&mut dma, ClockGate::On);
 /// let mut channels = dma::channels(
 ///     dma,
 ///     DMAMUX::take().unwrap(),
@@ -36,7 +36,7 @@ use core::fmt;
 /// let mut uart2 = LPUART2::take().and_then(instance::uart).unwrap();
 ///
 /// let mut uart_clock = ccm.uart_clock.enable(&mut ccm.handle);
-/// uart_clock.clock_gate(&mut uart2, ClockActivity::On);
+/// uart_clock.clock_gate(&mut uart2, ClockGate::On);
 ///
 /// let mut uart = UART::new(
 ///     uart2,
@@ -306,7 +306,7 @@ impl dma::Source<u8> for ral::lpuart::Instance {
 /// } = CCM::take().map(hal::ccm::CCM::new).unwrap();
 /// let mut uart_clock = uart_clock.enable(&mut handle);
 /// let mut uart2 = LPUART2::take().unwrap();
-/// uart_clock.clock_gate(&mut uart2, hal::ccm::ClockActivity::On);
+/// uart_clock.clock_gate(&mut uart2, hal::ccm::ClockGate::On);
 /// ```
 #[cfg(doctest)]
 struct ClockingWeakRalInstance;
@@ -324,7 +324,7 @@ struct ClockingWeakRalInstance;
 /// let mut uart2: hal::instance::UART<hal::iomuxc::consts::U2> = LPUART2::take()
 ///     .and_then(hal::instance::uart)
 ///     .unwrap();
-/// uart_clock.clock_gate(&mut uart2, hal::ccm::ClockActivity::On);
+/// uart_clock.clock_gate(&mut uart2, hal::ccm::ClockGate::On);
 /// ```
 #[cfg(doctest)]
 struct ClockingStrongHalInstance;

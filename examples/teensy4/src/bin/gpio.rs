@@ -52,7 +52,7 @@ fn main() -> ! {
     let mut perclock = perclock.enable(&mut handle);
     let mut blink_timer = hal::ral::gpt::GPT1::take()
         .map(|mut inst| {
-            perclock.clock_gate_gpt(&mut inst, hal::ccm::ClockActivity::On);
+            perclock.clock_gate_gpt(&mut inst, hal::ccm::ClockGate::On);
             hal::GPT::new(inst, &perclock)
         })
         .unwrap();

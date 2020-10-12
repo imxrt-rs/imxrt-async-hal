@@ -21,7 +21,7 @@ fn main() -> ! {
     let mut perclock = ccm.perclock.enable(&mut ccm.handle);
 
     let mut gpt = hal::ral::gpt::GPT1::take().unwrap();
-    perclock.clock_gate_gpt(&mut gpt, hal::ccm::ClockActivity::On);
+    perclock.clock_gate_gpt(&mut gpt, hal::ccm::ClockGate::On);
 
     let mut blink_timer = hal::GPT::new(gpt, &perclock);
     let blink_loop = async {

@@ -27,20 +27,20 @@
 //!
 //! ```no_run
 //! use imxrt_async_hal as hal;
-//! use hal::{ccm::{CCM, ClockActivity}, dma};
+//! use hal::{ccm::{CCM, ClockGate}, dma};
 //! use hal::ral::{ccm, dma0, dmamux, gpt::GPT1};
 //!
 //! let mut ccm = ccm::CCM::take().map(CCM::new).unwrap();
 //! let mut perclock = ccm.perclock.enable(&mut ccm.handle);
 //! let mut gpt = GPT1::take()
 //!     .map(|mut inst| {
-//!         perclock.clock_gate_gpt(&mut inst, ClockActivity::On);
+//!         perclock.clock_gate_gpt(&mut inst, ClockGate::On);
 //!         hal::GPT::new(inst, &mut perclock)
 //!     })
 //!     .unwrap();
 //!
 //! let mut dma = dma0::DMA0::take().unwrap();
-//! ccm.handle.clock_gate_dma(&mut dma, ClockActivity::On);
+//! ccm.handle.clock_gate_dma(&mut dma, ClockGate::On);
 //!
 //! let mut channels = dma::channels(
 //!     dma,
@@ -134,12 +134,12 @@ impl<E> Receiver<E> {
 /// [module-level documentation](index.html).
 /// ```no_run
 /// use imxrt_async_hal as hal;
-/// use hal::{ccm::{CCM, ClockActivity}, dma};
+/// use hal::{ccm::{CCM, ClockGate}, dma};
 /// use hal::ral::{dma0, dmamux, ccm};
 ///
 /// let mut ccm = ccm::CCM::take().map(CCM::new).unwrap();
 /// let mut dma = dma0::DMA0::take().unwrap();
-/// ccm.handle.clock_gate_dma(&mut dma, ClockActivity::On);
+/// ccm.handle.clock_gate_dma(&mut dma, ClockGate::On);
 /// let mut channels = dma::channels(
 ///     dma,
 ///     dmamux::DMAMUX::take().unwrap(),

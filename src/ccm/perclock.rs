@@ -1,6 +1,6 @@
 //! Periodic clock implementations
 
-use super::{set_clock_gate, ClockActivity, Disabled, Handle, PerClock, CCGR_BASE};
+use super::{set_clock_gate, ClockGate, Disabled, Handle, PerClock, CCGR_BASE};
 use crate::ral;
 
 const PERIODIC_CLOCK_FREQUENCY_HZ: u32 = super::OSCILLATOR_FREQUENCY_HZ / PERIODIC_CLOCK_DIVIDER;
@@ -8,13 +8,13 @@ const PERIODIC_CLOCK_DIVIDER: u32 = 24;
 
 #[cfg_attr(docsrs, doc(cfg(any(feature = "gpt", feature = "pit"))))]
 impl PerClock {
-    /// Set the clock activity for the GPT
-    pub fn clock_gate_gpt(&mut self, gpt: &mut crate::ral::gpt::Instance, activity: ClockActivity) {
-        unsafe { clock_gate_gpt(&**gpt, activity) };
+    /// Set the clock gate for the GPT
+    pub fn clock_gate_gpt(&mut self, gpt: &mut crate::ral::gpt::Instance, gate: ClockGate) {
+        unsafe { clock_gate_gpt(&**gpt, gate) };
     }
-    /// Set the clock activity for the PIT
-    pub fn clock_gate_pit(&mut self, pit: &mut crate::ral::pit::Instance, activity: ClockActivity) {
-        unsafe { clock_gate_pit(&**pit, activity) };
+    /// Set the clock gate for the PIT
+    pub fn clock_gate_pit(&mut self, pit: &mut crate::ral::pit::Instance, gate: ClockGate) {
+        unsafe { clock_gate_pit(&**pit, gate) };
     }
     /// Returns the periodic clock frequency (Hz)
     pub const fn frequency() -> u32 {
@@ -33,7 +33,7 @@ impl Disabled<PerClock> {
     }
 }
 
-/// Set the GPT clock gate activity
+/// Set the GPT clock gate
 ///
 /// # Safety
 ///
@@ -41,8 +41,8 @@ impl Disabled<PerClock> {
 /// available. Consider using [`PerClock::clock_gate_gpt`](struct.PerClock.html#method.clock_gate_gpt)
 /// for a safer interface.
 #[cfg_attr(docsrs, doc(cfg(feature = "gpt")))]
-pub unsafe fn clock_gate_gpt(gpt: *const ral::gpt::RegisterBlock, activity: ClockActivity) {
-    let value = activity as u8;
+pub unsafe fn clock_gate_gpt(gpt: *const ral::gpt::RegisterBlock, gate: ClockGate) {
+    let value = gate as u8;
     match gpt {
         ral::gpt::GPT1 => set_clock_gate(CCGR_BASE.add(1), &[10, 11], value),
         ral::gpt::GPT2 => set_clock_gate(CCGR_BASE.add(0), &[12, 13], value),
@@ -50,7 +50,7 @@ pub unsafe fn clock_gate_gpt(gpt: *const ral::gpt::RegisterBlock, activity: Cloc
     }
 }
 
-/// Set the PIT clock gate activity
+/// Set the PIT clock gate
 ///
 /// # Safety
 ///
@@ -58,9 +58,9 @@ pub unsafe fn clock_gate_gpt(gpt: *const ral::gpt::RegisterBlock, activity: Cloc
 /// available. Consider using [`PerClock::clock_gate_pit`](struct.PerClock.html#method.clock_gate_pit)
 /// for a safer interface.
 #[cfg_attr(docsrs, doc(cfg(feature = "pit")))]
-pub unsafe fn clock_gate_pit(pit: *const ral::pit::RegisterBlock, activity: ClockActivity) {
+pub unsafe fn clock_gate_pit(pit: *const ral::pit::RegisterBlock, gate: ClockGate) {
     match pit {
-        ral::pit::PIT => set_clock_gate(CCGR_BASE.add(1), &[6], activity as u8),
+        ral::pit::PIT => set_clock_gate(CCGR_BASE.add(1), &[6], gate as u8),
         _ => unreachable!(),
     }
 }

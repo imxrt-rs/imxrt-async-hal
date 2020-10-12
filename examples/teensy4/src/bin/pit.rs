@@ -20,7 +20,7 @@ fn main() -> ! {
     let mut perclock = ccm.perclock.enable(&mut ccm.handle);
 
     let mut pit = hal::ral::pit::PIT::take().unwrap();
-    perclock.clock_gate_pit(&mut pit, hal::ccm::ClockActivity::On);
+    perclock.clock_gate_pit(&mut pit, hal::ccm::ClockGate::On);
 
     let (mut pit0, _, _, _) = hal::PIT::new(pit, &perclock);
     let blink_loop = async {

@@ -1,6 +1,6 @@
 //! I2C clock control
 
-use super::{set_clock_gate, ClockActivity, Disabled, Handle, I2CClock, CCGR_BASE};
+use super::{set_clock_gate, ClockGate, Disabled, Handle, I2CClock, CCGR_BASE};
 use crate::ral;
 
 /// I2C peripheral clock frequency
@@ -22,9 +22,9 @@ impl Disabled<I2CClock> {
 
 #[cfg_attr(docsrs, doc(cfg(feature = "i2c")))]
 impl I2CClock {
-    /// Set the clock gate activity for the I2C instance
-    pub fn clock_gate(&mut self, i2c: &mut ral::lpi2c::Instance, activity: ClockActivity) {
-        unsafe { clock_gate(&**i2c, activity) }
+    /// Set the clock gate gate for the I2C instance
+    pub fn clock_gate(&mut self, i2c: &mut ral::lpi2c::Instance, gate: ClockGate) {
+        unsafe { clock_gate(&**i2c, gate) }
     }
 
     /// Returns the I2C clock frequency (Hz)
@@ -33,15 +33,15 @@ impl I2CClock {
     }
 }
 
-/// Set the clock gate activity for a I2C peripheral
+/// Set the clock gate gate for a I2C peripheral
 ///
 /// # Safety
 ///
 /// This could be called anywhere, by anyone who uses the globally-accessible I2C memory.
 /// Consider using the safer `I2CClock::clock_gate` API.
 #[cfg_attr(docsrs, doc(cfg(feature = "i2c")))]
-pub unsafe fn clock_gate(i2c: *const ral::lpi2c::RegisterBlock, activity: ClockActivity) {
-    let value = activity as u8;
+pub unsafe fn clock_gate(i2c: *const ral::lpi2c::RegisterBlock, gate: ClockGate) {
+    let value = gate as u8;
     match i2c {
         ral::lpi2c::LPI2C1 => set_clock_gate(CCGR_BASE.add(2), &[3], value),
         ral::lpi2c::LPI2C2 => set_clock_gate(CCGR_BASE.add(2), &[4], value),

@@ -27,12 +27,12 @@ const CLOCK_PERIOD: Duration = Duration::from_micros(CLOCK_PERIOD_US as u64);
 /// ```no_run
 /// use imxrt_async_hal as hal;
 /// use hal::ral::{ccm, pit};
-/// use hal::{ccm::{CCM, ClockActivity}, PIT};
+/// use hal::{ccm::{CCM, ClockGate}, PIT};
 ///
 /// let mut ccm = ccm::CCM::take().map(CCM::new).unwrap();
 /// let mut perclock = ccm.perclock.enable(&mut ccm.handle);
 /// let (_, _, _, mut pit) = pit::PIT::take().map(|mut pit| {
-///     perclock.clock_gate_pit(&mut pit, ClockActivity::On);
+///     perclock.clock_gate_pit(&mut pit, ClockGate::On);
 ///     PIT::new(pit, &perclock)
 /// }).unwrap();
 ///

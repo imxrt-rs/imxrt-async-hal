@@ -41,7 +41,7 @@
 //! # let ccm::CCM{ mut handle, perclock, .. } = CCM::take().map(ccm::CCM::new).unwrap();
 //! # let mut perclock = perclock.enable(&mut handle);
 //! // Turn on the clocks for the GPT2 timer
-//! perclock.clock_gate_gpt(&mut gpt2, ccm::ClockActivity::On);
+//! perclock.clock_gate_gpt(&mut gpt2, ccm::ClockGate::On);
 //! let mut gpt = GPT::new(gpt2, &perclock);
 //! ```
 
@@ -77,18 +77,18 @@ use crate::ral;
 pub struct Handle(pub(crate) ral::ccm::Instance);
 
 impl Handle {
-    /// Set the clock gate activity for the DMA controller
+    /// Set the clock gate for the DMA controller
     ///
     /// You should set the clock gate before creating DMA channels. Otherwise, the DMA
     /// peripheral may not work.
     #[cfg(dma)]
     #[cfg_attr(docsrs, doc(cfg(dma)))]
-    pub fn clock_gate_dma(&mut self, dma: &mut ral::dma0::Instance, activity: ClockActivity) {
-        unsafe { clock_gate_dma(&**dma, activity) };
+    pub fn clock_gate_dma(&mut self, dma: &mut ral::dma0::Instance, gate: ClockGate) {
+        unsafe { clock_gate_dma(&**dma, gate) };
     }
 }
 
-/// Set the clock activity for the DMA controller
+/// Set the clock gate for the DMA controller
 ///
 /// # Safety
 ///
@@ -97,8 +97,8 @@ impl Handle {
 /// which supports a safer interface.
 #[cfg(dma)]
 #[cfg_attr(docsrs, doc(cfg(dma)))]
-pub unsafe fn clock_gate_dma(_: *const ral::dma0::RegisterBlock, activity: ClockActivity) {
-    set_clock_gate(CCGR_BASE.add(5), &[3], activity as u8);
+pub unsafe fn clock_gate_dma(_: *const ral::dma0::RegisterBlock, gate: ClockGate) {
+    set_clock_gate(CCGR_BASE.add(5), &[3], gate as u8);
 }
 
 /// The root clocks and CCM handle
@@ -160,7 +160,7 @@ impl CCM {
 /// Describes a clock gate setting
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
-pub enum ClockActivity {
+pub enum ClockGate {
     /// Clock is off during all modes
     ///
     /// Stop enter hardware handshake is disabled.

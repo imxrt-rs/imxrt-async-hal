@@ -1,6 +1,6 @@
 //! UART clock control
 
-use super::{set_clock_gate, ClockActivity, Disabled, Handle, UARTClock, CCGR_BASE};
+use super::{set_clock_gate, ClockGate, Disabled, Handle, UARTClock, CCGR_BASE};
 use crate::ral;
 
 #[cfg_attr(docsrs, doc(cfg(feature = "uart")))]
@@ -13,9 +13,9 @@ impl Disabled<UARTClock> {
 }
 
 impl UARTClock {
-    /// Set the clock gate activity for the UART instance
-    pub fn clock_gate(&mut self, uart: &mut ral::lpuart::Instance, activity: ClockActivity) {
-        unsafe { clock_gate(&**uart, activity) }
+    /// Set the clock gate for the UART instance
+    pub fn clock_gate(&mut self, uart: &mut ral::lpuart::Instance, gate: ClockGate) {
+        unsafe { clock_gate(&**uart, gate) }
     }
 
     /// Returns the UART clock frequency (Hz)
@@ -24,15 +24,15 @@ impl UARTClock {
     }
 }
 
-/// Set the clock gate activity for a UART peripheral
+/// Set the clock gate for a UART peripheral
 ///
 /// # Safety
 ///
 /// This could be called anywhere, by anyone who uses the globally-accessible UART memory.
 /// Consider using the safer `UARTClock::clock_gate` API.
 #[cfg_attr(docsrs, doc(cfg(feature = "uart")))]
-pub unsafe fn clock_gate(uart: *const ral::lpuart::RegisterBlock, activity: ClockActivity) {
-    let value = activity as u8;
+pub unsafe fn clock_gate(uart: *const ral::lpuart::RegisterBlock, gate: ClockGate) {
+    let value = gate as u8;
     match uart {
         ral::lpuart::LPUART1 => set_clock_gate(CCGR_BASE.add(5), &[12], value),
         ral::lpuart::LPUART2 => set_clock_gate(CCGR_BASE.add(0), &[14], value),

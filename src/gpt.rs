@@ -19,12 +19,12 @@ use core::{
 /// ```no_run
 /// use imxrt_async_hal as hal;
 /// use hal::ral::{ccm, gpt};
-/// use hal::{ccm::{CCM, ClockActivity}, GPT};
+/// use hal::{ccm::{CCM, ClockGate}, GPT};
 ///
 /// let mut ccm = ccm::CCM::take().map(CCM::new).unwrap();
 /// let mut perclock = ccm.perclock.enable(&mut ccm.handle);
 /// let mut gpt = gpt::GPT1::take().map(|mut gpt| {
-///     perclock.clock_gate_gpt(&mut gpt, ClockActivity::On);
+///     perclock.clock_gate_gpt(&mut gpt, ClockGate::On);
 ///     GPT::new(gpt, &perclock)
 /// }).unwrap();
 ///

@@ -1,6 +1,6 @@
 //! SPI clock control
 
-use super::{set_clock_gate, ClockActivity, Disabled, Handle, SPIClock, CCGR_BASE};
+use super::{set_clock_gate, ClockGate, Disabled, Handle, SPIClock, CCGR_BASE};
 use crate::ral;
 
 const CLOCK_DIVIDER: u32 = 5;
@@ -18,9 +18,9 @@ impl Disabled<SPIClock> {
 
 #[cfg_attr(docsrs, doc(cfg(feature = "spi")))]
 impl SPIClock {
-    /// Set the clock gate activity for the SPI instance
-    pub fn clock_gate(&mut self, spi: &mut ral::lpspi::Instance, activity: ClockActivity) {
-        unsafe { clock_gate(&**spi, activity) }
+    /// Set the clock gate for the SPI instance
+    pub fn clock_gate(&mut self, spi: &mut ral::lpspi::Instance, gate: ClockGate) {
+        unsafe { clock_gate(&**spi, gate) }
     }
 
     /// Returns the SPI clock frequency (Hz)
@@ -29,14 +29,14 @@ impl SPIClock {
     }
 }
 
-/// Set the clock gate activity for a SPI peripheral
+/// Set the clock gate for a SPI peripheral
 ///
 /// # Safety
 ///
 /// This could be called anywhere, by anyone who uses the globally-accessible SPI memory.
 /// Consider using the safer `SPIClock::clock_gate` API.
 #[cfg_attr(docsrs, doc(cfg(feature = "spi")))]
-pub unsafe fn clock_gate(spi: *const ral::lpspi::RegisterBlock, activity: ClockActivity) {
+pub unsafe fn clock_gate(spi: *const ral::lpspi::RegisterBlock, value: ClockGate) {
     let ccgr = CCGR_BASE.add(1);
     let gate = match spi {
         ral::lpspi::LPSPI1 => 0,
@@ -45,7 +45,7 @@ pub unsafe fn clock_gate(spi: *const ral::lpspi::RegisterBlock, activity: ClockA
         ral::lpspi::LPSPI4 => 3,
         _ => unreachable!(),
     };
-    set_clock_gate(ccgr, &[gate], activity as u8);
+    set_clock_gate(ccgr, &[gate], value as u8);
 }
 
 /// Enable the SPI clock root
