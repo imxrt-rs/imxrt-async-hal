@@ -213,7 +213,7 @@
 /// `interrupts!` may only be used once per module. It should only include
 /// function definitions. The function names should reflect the IRQ name as
 /// provided by the RAL's `interrupt` macro.
-#[cfg(any(dma, feature = "gpio", feature = "i2c"))]
+#[cfg(any(dma, feature = "gpio", feature = "gpt", feature = "i2c", feature = "pit"))]
 macro_rules! interrupts {
     ($($isr:item)*) => {
         #[cfg(all(target_arch = "arm", feature = "rt"))]
