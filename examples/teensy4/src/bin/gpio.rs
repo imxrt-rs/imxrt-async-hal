@@ -34,7 +34,7 @@ where
     Q: hal::iomuxc::gpio::Pin,
 {
     loop {
-        input.wait_for(gpio::Sensitivity::FallingEdge).await;
+        input.wait_for(gpio::Trigger::FallingEdge).await;
         output.toggle();
     }
 }

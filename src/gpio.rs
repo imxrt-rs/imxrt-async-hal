@@ -1,17 +1,17 @@
 //! GPIOs
 //!
 //! [`GPIO`s](struct.GPIO.html) can be in either input or output states. GPIO inputs can
-//! read the high / low status of physical pins. Based on a [`Sensitivity`](enum.Sensitivity.html)
+//! read the high / low status of physical pins. Based on a [`Trigger`](enum.Trigger.html)
 //! selection, GPIO inputs can wait for transitions on the input pin.
 //!
 //! ```no_run
 //! use imxrt_async_hal as hal;
-//! use hal::gpio::{GPIO, Sensitivity};
+//! use hal::gpio::{GPIO, Trigger};
 //!
 //! # async {
 //! let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
 //! let mut input = GPIO::new(pads.b0.p03);
-//! input.wait_for(Sensitivity::FallingEdge).await;
+//! input.wait_for(Trigger::FallingEdge).await;
 //! // Transitioned from high to low!
 //! assert!(!input.is_set());
 //! # };
@@ -39,7 +39,7 @@
 //!
 //! ```no_run
 //! use imxrt_async_hal as hal;
-//! use hal::gpio::{GPIO, Sensitivity};
+//! use hal::gpio::{GPIO, Trigger};
 //!
 //! # fn block_on<F: core::future::Future<Output = ()>>(f: F) {}
 //! # let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
@@ -48,7 +48,7 @@
 //!
 //! let blinking_loop = async {
 //!     loop {
-//!         input_pin.wait_for(Sensitivity::FallingEdge).await;
+//!         input_pin.wait_for(Trigger::FallingEdge).await;
 //!         led.toggle();
 //!     }
 //! };
@@ -190,8 +190,8 @@ where
         unsafe { ral::read_reg!(ral::gpio, self.register_block(), PSR) & self.offset() != 0 }
     }
 
-    fn set_sensitivity(&mut self, sensitivity: Sensitivity) {
-        if Sensitivity::EitherEdge == sensitivity {
+    fn set_trigger(&mut self, trigger: Trigger) {
+        if Trigger::EitherEdge == trigger {
             unsafe {
                 ral::modify_reg!(ral::gpio, self.register_block(), EDGE_SEL, |edge_sel| {
                     edge_sel | self.offset()
@@ -203,12 +203,12 @@ where
                     edge_sel & !self.offset()
                 });
             }
-            let icr = match sensitivity {
-                Sensitivity::Low => 0,
-                Sensitivity::High => 1,
-                Sensitivity::RisingEdge => 2,
-                Sensitivity::FallingEdge => 3,
-                _ => unreachable!("Sensitivity::EitherEdge handled above"),
+            let icr = match trigger {
+                Trigger::Low => 0,
+                Trigger::High => 1,
+                Trigger::RisingEdge => 2,
+                Trigger::FallingEdge => 3,
+                _ => unreachable!("Trigger::EitherEdge handled above"),
             };
             let icr_offset = self.icr_offset();
             let icr_modify = |reg| reg & !(0b11 << icr_offset) | (icr << icr_offset);
@@ -224,21 +224,21 @@ where
         }
     }
 
-    /// Sets the sensitivity for the input GPIO, and await for the input event.
+    /// Sets the trigger for the input GPIO, and await for the input event.
     ///
     /// ```no_run
     /// use imxrt_async_hal as hal;
-    /// use hal::gpio::{GPIO, Sensitivity};
+    /// use hal::gpio::{GPIO, Trigger};
     ///
     /// let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
     /// let mut input_pin = GPIO::new(pads.ad_b1.p02);
     /// // ...
     /// # async {
-    /// input_pin.wait_for(Sensitivity::RisingEdge).await;
+    /// input_pin.wait_for(Trigger::RisingEdge).await;
     /// # };
     /// ```
-    pub async fn wait_for(&mut self, sensitivity: Sensitivity) {
-        InputSensitive::new(self, sensitivity).await
+    pub async fn wait_for(&mut self, trigger: Trigger) {
+        Interrupt::new(self, trigger).await
     }
 }
 
@@ -287,12 +287,12 @@ where
     }
 }
 
-/// Interrupt sensitivity selection
+/// Input interrupt triggers
 ///
 /// See [`GPIO::wait_for`](#method.wait_for) for more information.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(docsrs, doc(cfg(feature = "gpio")))]
-pub enum Sensitivity {
+pub enum Trigger {
     /// Interrupt when GPIO is low
     Low,
     /// Interrupt when GPIO is high
@@ -305,26 +305,26 @@ pub enum Sensitivity {
     EitherEdge,
 }
 
-/// A future that awaits the input sensitivity selection
-struct InputSensitive<'t, P> {
+/// A future that awaits the input trigger selection
+struct Interrupt<'t, P> {
     gpio: &'t mut GPIO<P, Input>,
     waker: Option<Waker>,
     is_ready: bool,
-    sensitivity: Sensitivity,
+    trigger: Trigger,
 }
 
-impl<'t, P> InputSensitive<'t, P> {
-    fn new(gpio: &'t mut GPIO<P, Input>, sensitivity: Sensitivity) -> Self {
-        InputSensitive {
+impl<'t, P> Interrupt<'t, P> {
+    fn new(gpio: &'t mut GPIO<P, Input>, trigger: Trigger) -> Self {
+        Interrupt {
             gpio,
             waker: None,
             is_ready: true,
-            sensitivity,
+            trigger,
         }
     }
 }
 
-impl<'t, P> Future for InputSensitive<'t, P>
+impl<'t, P> Future for Interrupt<'t, P>
 where
     P: Pin,
 {
@@ -333,7 +333,7 @@ where
         let this = self.get_mut();
         if this.is_ready {
             this.is_ready = false;
-            this.gpio.set_sensitivity(this.sensitivity);
+            this.gpio.set_trigger(this.trigger);
             this.waker = Some(cx.waker().clone());
             unsafe {
                 WAKERS[this.gpio.module().saturating_sub(1)][<P as Pin>::Offset::USIZE] =
