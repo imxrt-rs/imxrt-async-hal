@@ -7,6 +7,9 @@ on:
 
 jobs:
 
+  # Ensure Rust code formatting is consistent across all source code
+  #
+  # This checks the main library, and all examples.
   format:
     runs-on: ubuntu-latest
     steps:
@@ -15,44 +18,52 @@ jobs:
     - name: Check library formatting
       uses: actions-rs/cargo@v1
       with:
-          command: fmt
-          args: --verbose --all -- --check
+        command: fmt
+        args: --verbose --all -- --check
     - name: Check examples/teensy4 formatting
       uses: actions-rs/cargo@v1
       with:
-          command: fmt
-          args: --manifest-path examples/teensy4/Cargo.toml --verbose --all -- --check
+        command: fmt
+        args: --manifest-path examples/teensy4/Cargo.toml --verbose --all -- --check
   
+  # For each chip, build and lint the main library,
   clippy:
     strategy:
       matrix:
         chip: [ imxrt106x ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-            toolchain: stable
-            components: clippy
-            target: thumbv7em-none-eabihf
-            override: true
-            profile: minimal
-      - uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --verbose --features rt --features ${{ matrix.chip }} --target thumbv7em-none-eabihf -- -D warnings
-          name: Lint the library
+    - uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        components: clippy
+        target: thumbv7em-none-eabihf
+        override: true
+        profile: minimal
+    - uses: actions-rs/clippy-check@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        args: --verbose --features rt --features ${{ matrix.chip }} --target thumbv7em-none-eabihf -- -D warnings
+        name: Lint the library
 
+  # Run unit and documentation tests for a chip
   test:
     strategy:
       matrix:
         chip: [ imxrt106x ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Run unit and documentation tests
-        run: cargo test --features ${{ matrix.chip }}
+    - uses: actions/checkout@v2
+    - name: Run unit and documentation tests
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --verbose --features ${{ matrix.chip }}
 
+  # Ensure that features can be individually selected
+  #
+  # TODO deny warnings
   features:
     strategy:
       matrix:
@@ -60,23 +71,27 @@ jobs:
         peripheral: [ gpio, gpt, i2c, pipe, pit, spi, uart ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Run `cargo check` for chip ${{ matrix.chip }}, peripheral ${{ matrix.peripheral }}
-        run: cargo check --no-default-features --features ${{ matrix.chip }} --features ${{ matrix.peripheral }}
+    - uses: actions/checkout@v2
+    - name: Run `cargo check` for chip ${{ matrix.chip }}, peripheral ${{ matrix.peripheral }}
+      uses: actions-rs/cargo@v1
+      with:
+        command: check
+        args: --verbose --no-default-features --features ${{ matrix.chip }} --features ${{ matrix.peripheral }}
 
+  # Build & lint the teensy4 examples
   teensy4:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-            toolchain: stable
-            components: clippy
-            target: thumbv7em-none-eabihf
-            override: true
-            profile: minimal
-      - uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --manifest-path examples/teensy4/Cargo.toml --verbose --target thumbv7em-none-eabihf -- -D warnings
-          name: Lint the teensy4 examples
+    - uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        components: clippy
+        target: thumbv7em-none-eabihf
+        override: true
+        profile: minimal
+    - uses: actions-rs/clippy-check@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        args: --manifest-path examples/teensy4/Cargo.toml --verbose --target thumbv7em-none-eabihf -- -D warnings
+        name: Lint the teensy4 examples
