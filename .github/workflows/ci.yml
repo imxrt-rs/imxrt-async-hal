@@ -79,7 +79,7 @@ jobs:
         args: --verbose --no-default-features --features ${{ matrix.chip }} --features ${{ matrix.peripheral }}
 
   # Build & lint the teensy4 examples
-  teensy4:
+  teensy4-clippy:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -95,3 +95,25 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         args: --manifest-path examples/teensy4/Cargo.toml --verbose --target thumbv7em-none-eabihf -- -D warnings
         name: Lint the teensy4 examples
+
+  # Ensure that the Teensy 4 examples build across all hosts
+  teensy4-xplat:
+    strategy:
+      matrix:
+        host: [ macos-latest, ubuntu-latest, windows-latest ]
+    runs-on: ${{ matrix.host }}
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with:
+          profile: minimal
+          toolchain: stable
+          target: thumbv7em-none-eabihf
+          override: true
+    - name: Build examples/teensy4 for ${{ matrix.os }}
+      uses: actions-rs/cargo@v1
+      env:
+        RUSTFLAGS: -C link-arg=-Tt4link.x
+      with:
+        command: build
+        args: --manifest-path examples/teensy4/Cargo.toml --verbose --target thumbv7em-none-eabihf
