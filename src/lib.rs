@@ -173,11 +173,13 @@
 /// function definitions. The function names should reflect the IRQ name as
 /// provided by the RAL's `interrupt` macro.
 #[cfg(any(
-    dma,
     feature = "gpio",
     feature = "gpt",
     feature = "i2c",
-    feature = "pit"
+    feature = "pit",
+    feature = "pipe",
+    feature = "spi",
+    feature = "uart",
 ))]
 macro_rules! interrupts {
     ($($isr:item)*) => {
@@ -196,8 +198,11 @@ macro_rules! interrupts {
 // Modules
 //
 pub mod ccm;
-#[cfg(dma)]
-#[cfg_attr(docsrs, doc(cfg(dma)))]
+#[cfg(any(feature = "pipe", feature = "spi", feature = "uart"))]
+#[cfg_attr(
+    docsrs,
+    doc(cfg(any(feature = "pipe", feature = "spi", feature = "uart")))
+)]
 pub mod dma;
 #[cfg(feature = "gpio")]
 #[cfg_attr(docsrs, doc(cfg(feature = "gpio")))]

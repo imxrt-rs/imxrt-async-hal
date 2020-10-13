@@ -81,8 +81,11 @@ impl Handle {
     ///
     /// You should set the clock gate before creating DMA channels. Otherwise, the DMA
     /// peripheral may not work.
-    #[cfg(dma)]
-    #[cfg_attr(docsrs, doc(cfg(dma)))]
+    #[cfg(any(feature = "pipe", feature = "spi", feature = "uart"))]
+    #[cfg_attr(
+        docsrs,
+        doc(cfg(any(feature = "pipe", feature = "spi", feature = "uart")))
+    )]
     pub fn clock_gate_dma(&mut self, dma: &mut ral::dma0::Instance, gate: ClockGate) {
         unsafe { clock_gate_dma(&**dma, gate) };
     }
@@ -95,8 +98,11 @@ impl Handle {
 /// This could be called by anyone who can access the DMA register block, which is always
 /// available. Consider using [`Handle::clock_gate_dma`](struct.Handle.html#method.clock_gate_dma)
 /// which supports a safer interface.
-#[cfg(dma)]
-#[cfg_attr(docsrs, doc(cfg(dma)))]
+#[cfg(any(feature = "pipe", feature = "spi", feature = "uart"))]
+#[cfg_attr(
+    docsrs,
+    doc(cfg(any(feature = "pipe", feature = "spi", feature = "uart")))
+)]
 pub unsafe fn clock_gate_dma(_: *const ral::dma0::RegisterBlock, gate: ClockGate) {
     set_clock_gate(CCGR_BASE.add(5), &[3], gate as u8);
 }
