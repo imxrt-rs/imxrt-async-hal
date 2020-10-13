@@ -369,52 +369,52 @@ unsafe fn on_interrupt(gpio: *const ral::gpio::RegisterBlock, mut module: usize)
 }
 
 interrupts! {
-    unsafe fn GPIO1_Combined_0_15() {
+    handler!{unsafe fn GPIO1_Combined_0_15() {
         on_interrupt(ral::gpio::GPIO1, 1);
-    }
+    }}
 
 
-    unsafe fn GPIO1_Combined_16_31() {
+    handler!{unsafe fn GPIO1_Combined_16_31() {
         on_interrupt(ral::gpio::GPIO1, 1);
-    }
+    }}
 
 
-    unsafe fn GPIO2_Combined_0_15() {
+    handler!{unsafe fn GPIO2_Combined_0_15() {
         on_interrupt(ral::gpio::GPIO2, 2);
-    }
+    }}
 
 
-    unsafe fn GPIO2_Combined_16_31() {
+    handler!{unsafe fn GPIO2_Combined_16_31() {
         on_interrupt(ral::gpio::GPIO2, 2);
-    }
+    }}
 
 
-    unsafe fn GPIO3_Combined_0_15() {
+    handler!{unsafe fn GPIO3_Combined_0_15() {
         on_interrupt(ral::gpio::GPIO3, 3);
-    }
+    }}
 
 
-    unsafe fn GPIO3_Combined_16_31() {
+    handler!{unsafe fn GPIO3_Combined_16_31() {
         on_interrupt(ral::gpio::GPIO3, 3);
-    }
+    }}
 
 
-    unsafe fn GPIO4_Combined_0_15() {
+    handler!{unsafe fn GPIO4_Combined_0_15() {
         on_interrupt(ral::gpio::GPIO4, 4);
-    }
+    }}
 
 
-    unsafe fn GPIO4_Combined_16_31() {
+    handler!{unsafe fn GPIO4_Combined_16_31() {
         on_interrupt(ral::gpio::GPIO4, 4);
-    }
+    }}
 
 
-    unsafe fn GPIO5_Combined_0_15() {
+    handler!{unsafe fn GPIO5_Combined_0_15() {
         on_interrupt(ral::gpio::GPIO5, 5);
-    }
+    }}
 
 
-    unsafe fn GPIO5_Combined_16_31() {
+    handler!{unsafe fn GPIO5_Combined_16_31() {
         on_interrupt(ral::gpio::GPIO5, 5);
-    }
+    }}
 }

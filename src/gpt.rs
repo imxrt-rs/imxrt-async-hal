@@ -219,14 +219,14 @@ fn on_interrupt(gpt: &ral::gpt::Instance, state: &mut State) {
 }
 
 interrupts! {
-    unsafe fn GPT1() {
+    handler!{unsafe fn GPT1() {
         let gpt = ral::gpt::GPT1::steal();
         on_interrupt(&gpt, state(&gpt));
-    }
+    }}
 
 
-    unsafe fn GPT2() {
+    handler!{unsafe fn GPT2() {
         let gpt = ral::gpt::GPT2::steal();
         on_interrupt(&gpt, state(&gpt));
-    }
+    }}
 }

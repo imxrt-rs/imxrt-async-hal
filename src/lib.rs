@@ -166,12 +166,11 @@
 #![no_std]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-/// Decorates one or more functions that will be statically registered
-/// in the interrupt table
+/// Decorates one or more functions that act as interrupt handlers.
 ///
 /// `interrupts!` may only be used once per module. It should only include
-/// function definitions. The function names should reflect the IRQ name as
-/// provided by the RAL's `interrupt` macro.
+/// functions wrapped by `handler!`. The function names should reflect the
+/// IRQ name as provided by the RAL's `interrupt` macro.
 #[cfg(any(
     feature = "gpio",
     feature = "gpt",
@@ -182,15 +181,33 @@
     feature = "uart",
 ))]
 macro_rules! interrupts {
-    ($($isr:item)*) => {
+    ($($handlers:item)*) => {
         #[cfg(all(target_arch = "arm", feature = "rt"))]
         use crate::ral::interrupt;
+        $($handlers)*
+    };
+}
 
-        $(
-            #[cfg_attr(all(target_arch = "arm", feature = "rt"), crate::rt::interrupt)]
-            #[cfg_attr(any(not(target_arch = "arm"), not(feature = "rt")), allow(unused, non_snake_case))]
-            $isr
-        )*
+/// Decorator helper for an interrupt handler
+#[cfg(any(
+    feature = "gpio",
+    feature = "gpt",
+    feature = "i2c",
+    feature = "pit",
+    feature = "pipe",
+    feature = "spi",
+    feature = "uart",
+))]
+macro_rules! handler {
+    (unsafe fn $isr_name:ident () $body:block) => {
+        #[cfg_attr(all(target_arch = "arm", feature = "rt"), crate::rt::interrupt)]
+        #[cfg_attr(any(not(target_arch = "arm"), not(feature = "rt")), allow(unused, non_snake_case))]
+        unsafe fn $isr_name() $body
+    };
+    (fn $isr_name:ident () $ body:block) => {
+        #[cfg_attr(all(target_arch = "arm", feature = "rt"), crate::rt::interrupt)]
+        #[cfg_attr(any(not(target_arch = "arm"), not(feature = "rt")), allow(unused, non_snake_case))]
+        fn $isr_name() $body
     };
 }
 

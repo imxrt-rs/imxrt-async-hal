@@ -147,7 +147,7 @@ impl<'a> Drop for Delay<'a> {
 }
 
 interrupts! {
-    unsafe fn PIT() {
+    handler!{unsafe fn PIT() {
         use register::ChannelInstance;
         const CHANNELS: [ChannelInstance; 4] = unsafe {
             [
@@ -170,7 +170,7 @@ interrupts! {
                     waker.wake();
                 }
             });
-    }
+    }}
 }
 
 /// The auto-generated RAL API is cumbersome. This is a macro-compatible API that makes it

@@ -239,22 +239,22 @@ fn waker(i2c: &Instance) -> &'static mut Option<Waker> {
 }
 
 interrupts! {
-    unsafe fn LPI2C1() {
+    handler!{unsafe fn LPI2C1() {
         on_interrupt(&ral::lpi2c::LPI2C1::steal());
-    }
+    }}
 
 
-    unsafe fn LPI2C2() {
+    handler!{unsafe fn LPI2C2() {
         on_interrupt(&ral::lpi2c::LPI2C2::steal());
-    }
+    }}
 
 
-    unsafe fn LPI2C3() {
+    handler!{unsafe fn LPI2C3() {
         on_interrupt(&ral::lpi2c::LPI2C3::steal());
-    }
+    }}
 
 
-    unsafe fn LPI2C4() {
+    handler!{unsafe fn LPI2C4() {
         on_interrupt(&ral::lpi2c::LPI2C4::steal());
-    }
+    }}
 }
