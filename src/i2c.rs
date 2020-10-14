@@ -124,7 +124,9 @@ where
         ONCE.call(|| unsafe {
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::LPI2C1);
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::LPI2C2);
+            #[cfg(feature = "imxrt106x")]
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::LPI2C3);
+            #[cfg(feature = "imxrt106x")]
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::LPI2C4);
         });
 

@@ -41,7 +41,9 @@ pub unsafe fn clock_gate(spi: *const ral::lpspi::RegisterBlock, value: ClockGate
     let gate = match spi {
         ral::lpspi::LPSPI1 => 0,
         ral::lpspi::LPSPI2 => 1,
+        #[cfg(feature = "imxrt106x")]
         ral::lpspi::LPSPI3 => 2,
+        #[cfg(feature = "imxrt106x")]
         ral::lpspi::LPSPI4 => 3,
         _ => unreachable!(),
     };

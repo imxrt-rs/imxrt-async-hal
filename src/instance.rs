@@ -163,7 +163,9 @@ impl Inst for ral::lpspi::Instance {
         match &**self as *const _ {
             ral::lpspi::LPSPI1 => 1,
             ral::lpspi::LPSPI2 => 2,
+            #[cfg(feature = "imxrt106x")]
             ral::lpspi::LPSPI3 => 3,
+            #[cfg(feature = "imxrt106x")]
             ral::lpspi::LPSPI4 => 4,
             _ => unreachable!(),
         }
@@ -199,7 +201,9 @@ impl Inst for ral::lpi2c::Instance {
         match &**self as *const _ {
             ral::lpi2c::LPI2C1 => 1,
             ral::lpi2c::LPI2C2 => 2,
+            #[cfg(feature = "imxrt106x")]
             ral::lpi2c::LPI2C3 => 3,
+            #[cfg(feature = "imxrt106x")]
             ral::lpi2c::LPI2C4 => 4,
             _ => unreachable!(),
         }

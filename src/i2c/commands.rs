@@ -248,12 +248,12 @@ interrupts! {
         on_interrupt(&ral::lpi2c::LPI2C2::steal());
     }}
 
-
+    #[cfg(feature = "imxrt106x")]
     handler!{unsafe fn LPI2C3() {
         on_interrupt(&ral::lpi2c::LPI2C3::steal());
     }}
 
-
+    #[cfg(feature = "imxrt106x")]
     handler!{unsafe fn LPI2C4() {
         on_interrupt(&ral::lpi2c::LPI2C4::steal());
     }}

@@ -328,7 +328,9 @@ fn source_signal(spi: &ral::lpspi::Instance) -> u32 {
     match &**spi as *const _ {
         ral::lpspi::LPSPI1 => 13,
         ral::lpspi::LPSPI2 => 77,
+        #[cfg(feature = "imxrt106x")]
         ral::lpspi::LPSPI3 => 15,
+        #[cfg(feature = "imxrt106x")]
         ral::lpspi::LPSPI4 => 79,
         _ => unreachable!(),
     }
@@ -342,7 +344,9 @@ fn destination_signal(spi: &ral::lpspi::Instance) -> u32 {
     match &**spi as *const _ {
         ral::lpspi::LPSPI1 => 14,
         ral::lpspi::LPSPI2 => 78,
+        #[cfg(feature = "imxrt106x")]
         ral::lpspi::LPSPI3 => 16,
+        #[cfg(feature = "imxrt106x")]
         ral::lpspi::LPSPI4 => 80,
         _ => unreachable!(),
     }

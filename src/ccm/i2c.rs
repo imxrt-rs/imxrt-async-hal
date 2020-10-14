@@ -45,7 +45,9 @@ pub unsafe fn clock_gate(i2c: *const ral::lpi2c::RegisterBlock, gate: ClockGate)
     match i2c {
         ral::lpi2c::LPI2C1 => set_clock_gate(CCGR_BASE.add(2), &[3], value),
         ral::lpi2c::LPI2C2 => set_clock_gate(CCGR_BASE.add(2), &[4], value),
+        #[cfg(feature = "imxrt106x")]
         ral::lpi2c::LPI2C3 => set_clock_gate(CCGR_BASE.add(2), &[5], value),
+        #[cfg(feature = "imxrt106x")]
         ral::lpi2c::LPI2C4 => set_clock_gate(CCGR_BASE.add(6), &[12], value),
         _ => unreachable!(),
     }
