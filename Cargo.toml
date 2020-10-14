@@ -47,5 +47,5 @@ imxrt106x = ["imxrt-iomuxc/imxrt106x", "imxrt-ral/imxrt1062"]
 opt-level = 0
 
 [package.metadata.docs.rs]
-all-features = true
+features = ["imxrt106x"]
 rustdoc-args = ["--cfg", "docsrs"]

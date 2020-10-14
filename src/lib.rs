@@ -15,6 +15,10 @@
 //! need to select your own executor that supports a Cortex-M system.
 //! The executor should be thread safe, prepared to handle wakes from interrupt handlers.
 //!
+//! See the project's examples to try this project on your hardware. This crate has been
+//! primarily developed against the Teensy 4 (i.MX RT 1062). It compiles against other
+//! i.MX RT chip variants.
+//!
 //! # Dependencies
 //!
 //! - A Rust installation; recommended installation using rustup. We support the
@@ -31,33 +35,33 @@
 //! # Feature flags
 //!
 //! You're **required** to specify a feature flag that describes your i.MX RT chip variant.
-//! You may only select one chip feature.
+//! You may select only one chip feature.
 //!
-//! The current implementation supports
+//! The crate compiles for the following chips:
 //!
-//! - `"imxrt106x"` for i.MX RT 1060 variants
+//! - `"imxrt101x"` for i.MX RT **1010** variants
+//! - `"imxrt106x"` for i.MX RT **1060** variants
 //!
 //! Each peripheral has it's own feature flag, which is enabled by default. However, you may
 //! want to disable some peripherals because
 //!
-//! - you have your own async implementation you'd like to use, or
+//! - you have your own async driver you would like to use, or
 //! - you have your own interrupt-driven implementation, and the interrupt handler that this
 //!   crate registers causes a duplicate definition
 //!
 //! To select peripherals, disable the crate's default features. Then, select one or more of
-//! the peripheral features:
+//! the peripheral features from the table. The checkmarks indicate a chip's support for
+//! that peripheral.
 //!
-//! - `"gpio"`
-//! - `"gpt"`
-//! - `"i2c"`
-//! - `"pipe"`
-//! - `"pit"`
-//! - `"spi"`
-//! - `"uart"`
+//! | **Chip**  | `"gpio"` | `"gpt"` | `"i2c"` | `"pipe"` | `"pit"` | `"spi"` | `"uart"` |
+//! | --------- | -------- | ------- | ------- | -------- | ------- | ------- | -------- |
+//! | imxrt101x |    ✓     |    ✓    |    ✓    |    ✓     |    ✓    |    ✓    |     ✓    |
+//! | imxrt106x |    ✓     |    ✓    |    ✓    |    ✓     |    ✓    |    ✓    |     ✓    |
 //!
-//! When you're developing a binary for your embedded system, you should specify the `"rt"`
+//! When developing a binary for your embedded system, you should specify the `"rt"`
 //! feature flag. Otherwise, when developing libraries against the crate, you may skip the
 //! `"rt"` flag.
+//!  
 //!
 //! # Example
 //!
