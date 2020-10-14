@@ -15,7 +15,7 @@ const CLOCK_PERIOD: Duration = Duration::from_micros(CLOCK_PERIOD_US as u64);
 
 /// Periodic interrupt timer (PIT)
 ///
-/// The PIT timer channels are the most precise timers in the BSP. PIT timers tick every **1us (1MHz)**.
+/// The PIT timer channels are the most precise timers in the HAL. PIT timers tick every **1us (1MHz)**.
 ///
 /// A single hardware PIT instance has four PIT channels. Use [`new`](#method.new) to acquire these four
 /// channels.
