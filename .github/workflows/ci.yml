@@ -30,7 +30,7 @@ jobs:
   clippy:
     strategy:
       matrix:
-        chip: [ imxrt106x ]
+        chip: [ imxrt101x, imxrt106x ]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -51,6 +51,7 @@ jobs:
   test:
     strategy:
       matrix:
+        # Documentation tests currently assume an 106x chip
         chip: [ imxrt106x ]
     runs-on: ubuntu-latest
     steps:
@@ -67,7 +68,7 @@ jobs:
   features:
     strategy:
       matrix:
-        chip: [ imxrt106x ]
+        chip: [ imxrt101x, imxrt106x ]
         peripheral: [ gpio, gpt, i2c, pipe, pit, spi, uart ]
     runs-on: ubuntu-latest
     steps:
