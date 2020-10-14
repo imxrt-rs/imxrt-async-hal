@@ -13,7 +13,7 @@ Async peripherals for NXP iMX RT processors.
 
 [dependencies]
 cortex-m = "0.6"
-imxrt-iomuxc = "0.1"
+imxrt-iomuxc = { rev = "14aa29e", git = "https://github.com/imxrt-rs/imxrt-rs" }
 imxrt-ral = "0.4"
 
 [target.thumbv7em-none-eabihf.dependencies.cortex-m-rt]
@@ -37,6 +37,7 @@ default = ["gpio", "gpt", "i2c", "pipe", "pit", "spi", "uart"]
 # Runtime features
 rt = ["imxrt-ral/rt", "cortex-m-rt/device"]
 # Chip variant features
+imxrt101x = ["imxrt-iomuxc/imxrt101x", "imxrt-ral/imxrt1011"]
 imxrt106x = ["imxrt-iomuxc/imxrt106x", "imxrt-ral/imxrt1062"]
 
 
