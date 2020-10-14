@@ -279,6 +279,8 @@ impl I2CClock {
 #[cfg(feature = "imxrt106x")]
 #[cfg_attr(docsrs, doc(cfg(feature = "imxrt106x")))]
 pub struct PLL1(());
+// TODO PLL1 might be a thing on non 106x chips. Ian is just
+// hiding it completely for simplicity.
 
 #[cfg(feature = "imxrt106x")]
 impl PLL1 {
