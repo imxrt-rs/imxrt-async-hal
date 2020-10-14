@@ -1,6 +1,6 @@
 //! DMA interrupts and shared state
 
-use crate::dma::{Channel, Error};
+use crate::dma::{Channel, Error, CHANNEL_COUNT};
 use core::{
     future::Future,
     pin::Pin,
@@ -44,7 +44,7 @@ impl Shared {
     }
 }
 
-pub static mut SHARED_STATES: [[Shared; NUM_SHARED_STATES]; 32] = [
+pub static mut SHARED_STATES: [[Shared; NUM_SHARED_STATES]; CHANNEL_COUNT] = [
     [Shared::new(), Shared::new()],
     [Shared::new(), Shared::new()],
     [Shared::new(), Shared::new()],
@@ -61,21 +61,38 @@ pub static mut SHARED_STATES: [[Shared; NUM_SHARED_STATES]; 32] = [
     [Shared::new(), Shared::new()],
     [Shared::new(), Shared::new()],
     [Shared::new(), Shared::new()],
+    // First half is always valid
+    #[cfg(not(feature = "imxrt1011"))]
     [Shared::new(), Shared::new()],
+    #[cfg(not(feature = "imxrt1011"))]
     [Shared::new(), Shared::new()],
+    #[cfg(not(feature = "imxrt1011"))]
     [Shared::new(), Shared::new()],
+    #[cfg(not(feature = "imxrt1011"))]
     [Shared::new(), Shared::new()],
+    #[cfg(not(feature = "imxrt1011"))]
     [Shared::new(), Shared::new()],
+    #[cfg(not(feature = "imxrt1011"))]
     [Shared::new(), Shared::new()],
+    #[cfg(not(feature = "imxrt1011"))]
     [Shared::new(), Shared::new()],
+    #[cfg(not(feature = "imxrt1011"))]
     [Shared::new(), Shared::new()],
+    #[cfg(not(feature = "imxrt1011"))]
     [Shared::new(), Shared::new()],
+    #[cfg(not(feature = "imxrt1011"))]
     [Shared::new(), Shared::new()],
+    #[cfg(not(feature = "imxrt1011"))]
     [Shared::new(), Shared::new()],
+    #[cfg(not(feature = "imxrt1011"))]
     [Shared::new(), Shared::new()],
+    #[cfg(not(feature = "imxrt1011"))]
     [Shared::new(), Shared::new()],
+    #[cfg(not(feature = "imxrt1011"))]
     [Shared::new(), Shared::new()],
+    #[cfg(not(feature = "imxrt1011"))]
     [Shared::new(), Shared::new()],
+    #[cfg(not(feature = "imxrt1011"))]
     [Shared::new(), Shared::new()],
 ];
 
@@ -96,6 +113,7 @@ unsafe fn on_interrupt(idx: usize) {
     }
 }
 
+#[cfg(not(feature = "imxrt1011"))]
 interrupts! {
     handler!{unsafe fn DMA0_DMA16() {
         on_interrupt(0);
@@ -175,6 +193,73 @@ interrupts! {
     handler!{unsafe fn DMA15_DMA31() {
         on_interrupt(15);
         on_interrupt(31);
+    }}
+}
+
+#[cfg(feature = "imxrt1011")]
+interrupts! {
+    handler!{unsafe fn DMA0() {
+        on_interrupt(0);
+    }}
+
+    handler!{unsafe fn DMA1() {
+        on_interrupt(1);
+    }}
+
+    handler!{unsafe fn DMA2() {
+        on_interrupt(2);
+    }}
+
+    handler!{unsafe fn DMA3() {
+        on_interrupt(3);
+    }}
+
+    handler!{unsafe fn DMA4() {
+        on_interrupt(4);
+    }}
+
+    handler!{unsafe fn DMA5() {
+        on_interrupt(5);
+    }}
+
+    handler!{unsafe fn DMA6() {
+        on_interrupt(6);
+    }}
+
+    handler!{unsafe fn DMA7() {
+        on_interrupt(7);
+    }}
+
+    handler!{unsafe fn DMA8() {
+        on_interrupt(8);
+    }}
+
+    handler!{unsafe fn DMA9() {
+        on_interrupt(9);
+    }}
+
+    handler!{unsafe fn DMA10() {
+        on_interrupt(10);
+    }}
+
+    handler!{unsafe fn DMA11() {
+        on_interrupt(11);
+    }}
+
+    handler!{unsafe fn DMA12() {
+        on_interrupt(12);
+    }}
+
+    handler!{unsafe fn DMA13() {
+        on_interrupt(13);
+    }}
+
+    handler!{unsafe fn DMA14() {
+        on_interrupt(14);
+    }}
+
+    handler!{unsafe fn DMA15() {
+        on_interrupt(15);
     }}
 }
 
