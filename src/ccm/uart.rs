@@ -32,11 +32,21 @@ impl UARTClock {
 /// Consider using the safer `UARTClock::clock_gate` API.
 #[cfg_attr(docsrs, doc(cfg(feature = "uart")))]
 pub unsafe fn clock_gate(uart: *const ral::lpuart::RegisterBlock, gate: ClockGate) {
+    // Make sure that the match expression will never hit the unreachable!() case.
+    // The comments and conditional compiles show what we're currently considering in
+    // that match. If your chip isn't listed, it's not something we considered.
+    #[cfg(not(any(feature = "imxrt101x", feature = "imxrt106x")))]
+    compile_error!("Ensure that LPUART clock gates are correct");
+
     let value = gate as u8;
     match uart {
+        // imxrt101x, imxrt106x
         ral::lpuart::LPUART1 => set_clock_gate(CCGR_BASE.add(5), &[12], value),
+        // imxrt101x, imxrt106x
         ral::lpuart::LPUART2 => set_clock_gate(CCGR_BASE.add(0), &[14], value),
+        // imxrt101x, imxrt106x
         ral::lpuart::LPUART3 => set_clock_gate(CCGR_BASE.add(0), &[6], value),
+        // imxrt101x, imxrt106x
         ral::lpuart::LPUART4 => set_clock_gate(CCGR_BASE.add(1), &[12], value),
         #[cfg(feature = "imxrt106x")]
         ral::lpuart::LPUART5 => set_clock_gate(CCGR_BASE.add(3), &[1], value),

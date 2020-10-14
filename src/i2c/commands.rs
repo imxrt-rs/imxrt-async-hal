@@ -238,6 +238,8 @@ fn waker(i2c: &Instance) -> &'static mut Option<Waker> {
     unsafe { &mut WAKERS[i2c.inst().wrapping_sub(1)] }
 }
 
+#[cfg(not(any(feature = "imxrt101x", feature = "imxrt106x")))]
+compile_error!("Ensure that LPI2C interrupts are correctly defined");
 interrupts! {
     handler!{unsafe fn LPI2C1() {
         on_interrupt(&ral::lpi2c::LPI2C1::steal());

@@ -230,11 +230,21 @@ fn timings(effective_clock: u32, baud: u32) -> Result<Timings, Error> {
 
 impl dma::Destination<u8> for ral::lpuart::Instance {
     fn destination_signal(&self) -> u32 {
+        // Make sure that the match expression will never hit the unreachable!() case.
+        // The comments and conditional compiles show what we're currently considering in
+        // that match. If your chip isn't listed, it's not something we considered.
+        #[cfg(not(any(feature = "imxrt101x", feature = "imxrt106x")))]
+        compile_error!("Ensure that LPUART DMAMUX TX channels are correct");
+
         // See table 4-3 of the iMXRT1060 Reference Manual (Rev 2)
         match &**self as *const _ {
+            // imxrt101x, imxrt106x
             ral::lpuart::LPUART1 => 2,
+            // imxrt101x, imxrt106x
             ral::lpuart::LPUART2 => 66,
+            // imxrt101x, imxrt106x
             ral::lpuart::LPUART3 => 4,
+            // imxrt101x, imxrt106x
             ral::lpuart::LPUART4 => 68,
             #[cfg(feature = "imxrt106x")]
             ral::lpuart::LPUART5 => 6,
@@ -262,11 +272,21 @@ impl dma::Destination<u8> for ral::lpuart::Instance {
 
 impl dma::Source<u8> for ral::lpuart::Instance {
     fn source_signal(&self) -> u32 {
+        // Make sure that the match expression will never hit the unreachable!() case.
+        // The comments and conditional compiles show what we're currently considering in
+        // that match. If your chip isn't listed, it's not something we considered.
+        #[cfg(not(any(feature = "imxrt101x", feature = "imxrt106x")))]
+        compile_error!("Ensure that LPUART DMAMUX RX channels are correct");
+
         // See table 4-3 of the iMXRT1060 Reference Manual (Rev 2)
         match &**self as *const _ {
+            // imxrt101x, imxrt106x
             ral::lpuart::LPUART1 => 3,
+            // imxrt101x, imxrt106x
             ral::lpuart::LPUART2 => 67,
+            // imxrt101x, imxrt106x
             ral::lpuart::LPUART3 => 5,
+            // imxrt101x, imxrt106x
             ral::lpuart::LPUART4 => 69,
             #[cfg(feature = "imxrt106x")]
             ral::lpuart::LPUART5 => 7,

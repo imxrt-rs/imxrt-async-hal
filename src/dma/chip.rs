@@ -7,6 +7,8 @@
 //! - Availability of DMA channel grouping, group scheduling, and error indications. As
 //!   of this writing, DMA channel grouping and group scheduling is not implemented, so
 //!   we can ignore that for now. We vary the way we display `ErrorStatus` messages.
+//!
+//! This implementation (should) already support all i.MX RT chip variants.
 
 use super::ErrorStatus;
 use core::fmt::{self, Display};

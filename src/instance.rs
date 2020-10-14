@@ -116,10 +116,20 @@ where
 #[cfg(feature = "uart")]
 impl Inst for ral::lpuart::Instance {
     fn inst(&self) -> usize {
+        // Make sure that the match expression will never hit the unreachable!() case.
+        // The comments and conditional compiles show what we're currently considering in
+        // that match. If your chip isn't listed, it's not something we considered.
+        #[cfg(not(any(feature = "imxrt101x", feature = "imxrt106x")))]
+        compile_error!("Ensure that the LPUART instances are correct");
+
         match &**self as *const _ {
+            // imxrt101x, imxrt106x
             ral::lpuart::LPUART1 => 1,
+            // imxrt101x, imxrt106x
             ral::lpuart::LPUART2 => 2,
+            // imxrt101x, imxrt106x
             ral::lpuart::LPUART3 => 3,
+            // imxrt101x, imxrt106x
             ral::lpuart::LPUART4 => 4,
             #[cfg(feature = "imxrt106x")]
             ral::lpuart::LPUART5 => 5,
@@ -160,8 +170,16 @@ where
 #[cfg(feature = "spi")]
 impl Inst for ral::lpspi::Instance {
     fn inst(&self) -> usize {
+        // Make sure that the match expression will never hit the unreachable!() case.
+        // The comments and conditional compiles show what we're currently considering in
+        // that match. If your chip isn't listed, it's not something we considered.
+        #[cfg(not(any(feature = "imxrt101x", feature = "imxrt106x")))]
+        compile_error!("Ensure that the LPSPI instances are correct");
+
         match &**self as *const _ {
+            // imxrt101x, imxrt106x
             ral::lpspi::LPSPI1 => 1,
+            // imxrt101x, imxrt106x
             ral::lpspi::LPSPI2 => 2,
             #[cfg(feature = "imxrt106x")]
             ral::lpspi::LPSPI3 => 3,
@@ -198,8 +216,16 @@ where
 #[cfg(feature = "i2c")]
 impl Inst for ral::lpi2c::Instance {
     fn inst(&self) -> usize {
+        // Make sure that the match expression will never hit the unreachable!() case.
+        // The comments and conditional compiles show what we're currently considering in
+        // that match. If your chip isn't listed, it's not something we considered.
+        #[cfg(not(any(feature = "imxrt101x", feature = "imxrt106x")))]
+        compile_error!("Ensure that the LPI2C instances are correct");
+
         match &**self as *const _ {
+            // imxrt101x, imxrt106x
             ral::lpi2c::LPI2C1 => 1,
+            // imxrt101x, imxrt106x
             ral::lpi2c::LPI2C2 => 2,
             #[cfg(feature = "imxrt106x")]
             ral::lpi2c::LPI2C3 => 3,

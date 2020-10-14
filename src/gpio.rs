@@ -102,6 +102,12 @@ where
     P: Pin,
 {
     fn register_block(&self) -> *const RegisterBlock {
+        // The match expressions depend on the imxrt-iomuxc gpio::Pin
+        // associated constants. Study the imxrt-iomuxc APIs, and make sure
+        // that the unreachable!() arms are truly unreachable.
+        #[cfg(not(any(feature = "imxrt101x", feature = "imxrt106x")))]
+        compile_error!("Ensure that GPIO register access is correct");
+
         #[cfg(feature = "imxrt106x")]
         match self.module() {
             1 => gpio::GPIO1,
@@ -159,6 +165,9 @@ where
 
         static ONCE: crate::once::Once = crate::once::new();
         ONCE.call(|| unsafe {
+            #[cfg(not(any(feature = "imxrt101x", feature = "imxrt106x")))]
+            compile_error!("Ensure that GPIO interrupts are correctly unmasked");
+
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::GPIO1_Combined_0_15);
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::GPIO1_Combined_16_31);
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::GPIO2_Combined_0_15);
@@ -378,6 +387,9 @@ unsafe fn on_interrupt(gpio: *const ral::gpio::RegisterBlock, mut module: usize)
         .filter_map(|bit| (*WAKERS[module][bit]).take())
         .for_each(|waker| waker.wake());
 }
+
+#[cfg(not(any(feature = "imxrt101x", feature = "imxrt106x")))]
+compile_error!("Ensure that GPIO interrupt handlers are correctly defined");
 
 interrupts! {
     handler!{unsafe fn GPIO1_Combined_0_15() {

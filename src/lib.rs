@@ -170,6 +170,18 @@
 #![no_std]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
+// Developer note: you'll find compile_error!s like this scattered
+// throughout the implementation. The errors will point you towards
+// things that you need to consider when adding a new chip. Once
+// you've added support for that new chip, you should update the
+// comditional compile.
+#[cfg(not(any(feature = "imxrt101x", feature = "imxrt106x")))]
+compile_error!(concat!(
+    "You must select a chip feature flag! Available chips:\n",
+    "  - imxrt101x\n",
+    "  - imxrt106x\n"
+));
+
 /// Decorates one or more functions that act as interrupt handlers.
 ///
 /// `interrupts!` may only be used once per module. It should only include
@@ -297,6 +309,9 @@ mod once {
 ///
 /// [`imxrt-iomuxc`]: https://docs.rs/imxrt-iomuxc/0.1/imxrt_iomuxc/
 pub mod iomuxc {
+    #[cfg(not(any(feature = "imxrt101x", feature = "imxrt106x")))]
+    compile_error!("Ensure that your chip has imxrt-iomuxc support");
+
     pub mod pads {
         // The imxrt101x module has a group of pads that are named 'gpio'. It
         // conflicts with the gpio module exported in the prelude. We're wrapping

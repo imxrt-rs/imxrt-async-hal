@@ -37,9 +37,17 @@ impl SPIClock {
 /// Consider using the safer `SPIClock::clock_gate` API.
 #[cfg_attr(docsrs, doc(cfg(feature = "spi")))]
 pub unsafe fn clock_gate(spi: *const ral::lpspi::RegisterBlock, value: ClockGate) {
+    // Make sure that the match expression will never hit the unreachable!() case.
+    // The comments and conditional compiles show what we're currently considering in
+    // that match. If your chip isn't listed, it's not something we considered.
+    #[cfg(not(any(feature = "imxrt101x", feature = "imxrt106x")))]
+    compile_error!("Ensure that LPSPI clock gates are correct");
+
     let ccgr = CCGR_BASE.add(1);
     let gate = match spi {
+        // imxrt101x, imxrt106x
         ral::lpspi::LPSPI1 => 0,
+        // imxrt101x, imxrt106x
         ral::lpspi::LPSPI2 => 1,
         #[cfg(feature = "imxrt106x")]
         ral::lpspi::LPSPI3 => 2,
@@ -47,6 +55,7 @@ pub unsafe fn clock_gate(spi: *const ral::lpspi::RegisterBlock, value: ClockGate
         ral::lpspi::LPSPI4 => 3,
         _ => unreachable!(),
     };
+
     set_clock_gate(ccgr, &[gate], value as u8);
 }
 

@@ -1,5 +1,8 @@
 //! DMA interrupts and shared state
 
+// This module (should) already handle the DMA implementation
+// for all currently-implemented and future i.MX RT chips.
+
 use crate::dma::{Channel, Error, CHANNEL_COUNT};
 use core::{
     future::Future,
