@@ -62,37 +62,37 @@ pub static mut SHARED_STATES: [[Shared; NUM_SHARED_STATES]; CHANNEL_COUNT] = [
     [Shared::new(), Shared::new()],
     [Shared::new(), Shared::new()],
     // First half is always valid
-    #[cfg(not(feature = "imxrt1011"))]
+    #[cfg(not(feature = "imxrt101x"))]
     [Shared::new(), Shared::new()],
-    #[cfg(not(feature = "imxrt1011"))]
+    #[cfg(not(feature = "imxrt101x"))]
     [Shared::new(), Shared::new()],
-    #[cfg(not(feature = "imxrt1011"))]
+    #[cfg(not(feature = "imxrt101x"))]
     [Shared::new(), Shared::new()],
-    #[cfg(not(feature = "imxrt1011"))]
+    #[cfg(not(feature = "imxrt101x"))]
     [Shared::new(), Shared::new()],
-    #[cfg(not(feature = "imxrt1011"))]
+    #[cfg(not(feature = "imxrt101x"))]
     [Shared::new(), Shared::new()],
-    #[cfg(not(feature = "imxrt1011"))]
+    #[cfg(not(feature = "imxrt101x"))]
     [Shared::new(), Shared::new()],
-    #[cfg(not(feature = "imxrt1011"))]
+    #[cfg(not(feature = "imxrt101x"))]
     [Shared::new(), Shared::new()],
-    #[cfg(not(feature = "imxrt1011"))]
+    #[cfg(not(feature = "imxrt101x"))]
     [Shared::new(), Shared::new()],
-    #[cfg(not(feature = "imxrt1011"))]
+    #[cfg(not(feature = "imxrt101x"))]
     [Shared::new(), Shared::new()],
-    #[cfg(not(feature = "imxrt1011"))]
+    #[cfg(not(feature = "imxrt101x"))]
     [Shared::new(), Shared::new()],
-    #[cfg(not(feature = "imxrt1011"))]
+    #[cfg(not(feature = "imxrt101x"))]
     [Shared::new(), Shared::new()],
-    #[cfg(not(feature = "imxrt1011"))]
+    #[cfg(not(feature = "imxrt101x"))]
     [Shared::new(), Shared::new()],
-    #[cfg(not(feature = "imxrt1011"))]
+    #[cfg(not(feature = "imxrt101x"))]
     [Shared::new(), Shared::new()],
-    #[cfg(not(feature = "imxrt1011"))]
+    #[cfg(not(feature = "imxrt101x"))]
     [Shared::new(), Shared::new()],
-    #[cfg(not(feature = "imxrt1011"))]
+    #[cfg(not(feature = "imxrt101x"))]
     [Shared::new(), Shared::new()],
-    #[cfg(not(feature = "imxrt1011"))]
+    #[cfg(not(feature = "imxrt101x"))]
     [Shared::new(), Shared::new()],
 ];
 
@@ -113,7 +113,7 @@ unsafe fn on_interrupt(idx: usize) {
     }
 }
 
-#[cfg(not(feature = "imxrt1011"))]
+#[cfg(not(feature = "imxrt101x"))]
 interrupts! {
     handler!{unsafe fn DMA0_DMA16() {
         on_interrupt(0);
@@ -196,7 +196,7 @@ interrupts! {
     }}
 }
 
-#[cfg(feature = "imxrt1011")]
+#[cfg(feature = "imxrt101x")]
 interrupts! {
     handler!{unsafe fn DMA0() {
         on_interrupt(0);

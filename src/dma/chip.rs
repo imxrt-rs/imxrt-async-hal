@@ -16,11 +16,11 @@ use core::fmt::{self, Display};
 //
 
 /// The number of DMA channels
-#[cfg(feature = "imxrt1011")]
+#[cfg(feature = "imxrt101x")]
 pub const CHANNEL_COUNT: usize = 16;
 
 /// The number of DMA channels
-#[cfg(not(feature = "imxrt1011"))]
+#[cfg(not(feature = "imxrt101x"))]
 pub const CHANNEL_COUNT: usize = 32;
 
 /// Helper symbol to support DMA channel initialization
@@ -37,7 +37,7 @@ pub const DMA_CHANNEL_INIT: [Option<super::Channel>; 32] = [
 // different masks for error channel (ERRCHN)
 //
 
-#[cfg(feature = "imxrt1011")]
+#[cfg(feature = "imxrt101x")]
 impl Display for ErrorStatus {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f,
@@ -59,7 +59,7 @@ impl Display for ErrorStatus {
     }
 }
 
-#[cfg(not(feature = "imxrt1011"))]
+#[cfg(not(feature = "imxrt101x"))]
 impl Display for ErrorStatus {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f,
