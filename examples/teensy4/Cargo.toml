@@ -44,3 +44,6 @@ git = "https://github.com/mciantyre/teensy4-rs"
 # Helps with build times.
 [profile.release.build-override]
 opt-level = 0
+
+[patch.crates-io]
+imxrt-iomuxc = { rev = "14aa29e", git = "https://github.com/imxrt-rs/imxrt-rs" }

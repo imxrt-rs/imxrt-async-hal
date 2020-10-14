@@ -6,7 +6,7 @@ use crate::{dma, instance, iomuxc, ral};
 ///
 /// ```no_run
 /// use imxrt_async_hal as hal;
-/// use hal::iomuxc::b0::*;
+/// use hal::iomuxc::pads::b0::*;
 ///
 /// // SPI pins used in my application
 /// type SPIPins = hal::SPIPins<

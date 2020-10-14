@@ -293,9 +293,15 @@ mod once {
 ///
 /// [`imxrt-iomuxc`]: https://docs.rs/imxrt-iomuxc/0.1/imxrt_iomuxc/
 pub mod iomuxc {
-    #[cfg_attr(docsrs, doc(cfg(feature = "imxrt106x")))]
-    #[cfg(feature = "imxrt106x")]
-    pub use imxrt_iomuxc::imxrt106x::*;
+    pub mod pads {
+        // The imxrt101x module has a group of pads that are named 'gpio'. It
+        // conflicts with the gpio module exported in the prelude. We're wrapping
+        // the pads in a pads module to make the distinction clear.
+        #[cfg(feature = "imxrt101x")]
+        pub use imxrt_iomuxc::imxrt101x::*;
+        #[cfg(feature = "imxrt106x")]
+        pub use imxrt_iomuxc::imxrt106x::*;
+    }
     pub use imxrt_iomuxc::prelude::*;
 
     /// Turn the `IOMUXC` instance into pads
@@ -306,12 +312,12 @@ pub mod iomuxc {
     ///
     /// let pads = iomuxc::new(IOMUXC::take().unwrap());
     /// ```
-    #[cfg_attr(docsrs, doc(cfg(any(feature = "imxrt106x"))))]
-    #[cfg(any(feature = "imxrt106x"))]
-    pub fn new(_: crate::ral::iomuxc::Instance) -> Pads {
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "imxrt101x", feature = "imxrt106x"))))]
+    #[cfg(any(feature = "imxrt101x", feature = "imxrt106x"))]
+    pub fn new(_: crate::ral::iomuxc::Instance) -> pads::Pads {
         // Safety: ^--- there's a single instance. Either the user
         // used an `unsafe` method to steal it, or we own the only
         // instance.
-        unsafe { Pads::new() }
+        unsafe { pads::Pads::new() }
     }
 }
