@@ -102,18 +102,23 @@ where
     P: Pin,
 {
     fn register_block(&self) -> *const RegisterBlock {
-        const REGISTER_BLOCKS: [*const RegisterBlock; 9] = [
-            gpio::GPIO1,
-            gpio::GPIO2,
-            gpio::GPIO3,
-            gpio::GPIO4,
-            gpio::GPIO5,
-            gpio::GPIO6,
-            gpio::GPIO7,
-            gpio::GPIO8,
-            gpio::GPIO9,
-        ];
-        REGISTER_BLOCKS[self.module().saturating_sub(1)]
+        #[cfg(feature = "imxrt106x")]
+        match self.module() {
+            1 => gpio::GPIO1,
+            2 => gpio::GPIO2,
+            3 => gpio::GPIO3,
+            4 => gpio::GPIO4,
+            5 => gpio::GPIO5,
+            _ => unreachable!(),
+        }
+
+        #[cfg(feature = "imxrt101x")]
+        match self.module() {
+            1 => gpio::GPIO1,
+            2 => gpio::GPIO2,
+            5 => gpio::GPIO5,
+            _ => unreachable!(),
+        }
     }
 
     #[inline(always)]
@@ -157,12 +162,18 @@ where
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::GPIO1_Combined_0_15);
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::GPIO1_Combined_16_31);
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::GPIO2_Combined_0_15);
+            #[cfg(feature = "imxrt106x")]
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::GPIO2_Combined_16_31);
+            #[cfg(feature = "imxrt106x")]
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::GPIO3_Combined_0_15);
+            #[cfg(feature = "imxrt106x")]
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::GPIO3_Combined_16_31);
+            #[cfg(feature = "imxrt106x")]
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::GPIO4_Combined_0_15);
+            #[cfg(feature = "imxrt106x")]
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::GPIO4_Combined_16_31);
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::GPIO5_Combined_0_15);
+            #[cfg(feature = "imxrt106x")]
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::GPIO5_Combined_16_31);
         });
         Self {
@@ -383,27 +394,27 @@ interrupts! {
         on_interrupt(ral::gpio::GPIO2, 2);
     }}
 
-
+    #[cfg(feature = "imxrt106x")]
     handler!{unsafe fn GPIO2_Combined_16_31() {
         on_interrupt(ral::gpio::GPIO2, 2);
     }}
 
-
+    #[cfg(feature = "imxrt106x")]
     handler!{unsafe fn GPIO3_Combined_0_15() {
         on_interrupt(ral::gpio::GPIO3, 3);
     }}
 
-
+    #[cfg(feature = "imxrt106x")]
     handler!{unsafe fn GPIO3_Combined_16_31() {
         on_interrupt(ral::gpio::GPIO3, 3);
     }}
 
-
+    #[cfg(feature = "imxrt106x")]
     handler!{unsafe fn GPIO4_Combined_0_15() {
         on_interrupt(ral::gpio::GPIO4, 4);
     }}
 
-
+    #[cfg(feature = "imxrt106x")]
     handler!{unsafe fn GPIO4_Combined_16_31() {
         on_interrupt(ral::gpio::GPIO4, 4);
     }}
@@ -413,7 +424,7 @@ interrupts! {
         on_interrupt(ral::gpio::GPIO5, 5);
     }}
 
-
+    #[cfg(feature = "imxrt106x")]
     handler!{unsafe fn GPIO5_Combined_16_31() {
         on_interrupt(ral::gpio::GPIO5, 5);
     }}
