@@ -9,6 +9,7 @@
 //! This module lets us hit those ideals. At the same time, we can expose an
 //! interface that lets us use the RAL macros, where applicable.
 
+use super::chip::{CHANNEL_COUNT, DMA_ADDRESS, DMA_MULTIPLEXER_ADDRESS};
 use crate::ral::{RORegister, RWRegister};
 use core::ops::Index;
 
@@ -16,10 +17,11 @@ use core::ops::Index;
 #[repr(C)]
 pub(super) struct MultiplexerRegisters {
     /// Multiplexer configuration registers, one per channel
-    pub chcfg: [RWRegister<u32>; 32],
+    pub chcfg: [RWRegister<u32>; CHANNEL_COUNT],
 }
 
-pub(super) const MULTIPLEXER: Static<MultiplexerRegisters> = Static(0x400E_C000 as *const _);
+pub(super) const MULTIPLEXER: Static<MultiplexerRegisters> =
+    Static(DMA_MULTIPLEXER_ADDRESS as *const _);
 
 impl MultiplexerRegisters {
     pub const ENBL: u32 = 1 << 31;
@@ -72,10 +74,10 @@ pub(super) struct DMARegisters {
     pub DCHPRI: ChannelPriorityRegisters,
     _reserved8: [u32; 952],
     /// Transfer Control Descriptors
-    pub TCD: [TransferControlDescriptor; 32],
+    pub TCD: [TransferControlDescriptor; CHANNEL_COUNT],
 }
 
-pub(super) const DMA: Static<DMARegisters> = Static(0x400E_8000 as *const _);
+pub(super) const DMA: Static<DMARegisters> = Static(DMA_ADDRESS as *const _);
 
 /// Wrapper for channel priority registers
 ///
@@ -85,7 +87,7 @@ pub(super) const DMA: Static<DMARegisters> = Static(0x400E_8000 as *const _);
 /// the channel number to a reference to the priority
 /// register.
 #[repr(transparent)]
-pub(super) struct ChannelPriorityRegisters([RWRegister<u8>; 32]);
+pub(super) struct ChannelPriorityRegisters([RWRegister<u8>; CHANNEL_COUNT]);
 
 impl Index<usize> for ChannelPriorityRegisters {
     type Output = RWRegister<u8>;

@@ -13,6 +13,7 @@
 
 #![allow(non_snake_case)] // Compatibility with RAL
 
+mod chip;
 mod element;
 mod interrupt;
 mod peripheral;
@@ -25,14 +26,13 @@ use element::Element;
 pub(crate) use peripheral::{receive, receive_raw, transfer, transfer_raw, Destination, Source};
 
 use crate::ral;
+pub use chip::CHANNEL_COUNT;
 use core::{
-    fmt::{self, Debug, Display},
+    fmt::{self, Debug},
     mem,
 };
 pub use register::tcd::BandwidthControl;
 use register::{DMARegisters, MultiplexerRegisters, Static, DMA, MULTIPLEXER};
-
-const MAX_DMA_CHANNELS: usize = 32;
 
 /// A DMA channel
 ///
@@ -41,7 +41,7 @@ const MAX_DMA_CHANNELS: usize = 32;
 ///
 /// Use [`channels`](fn.channels.html) to acquire all of the DMA channels.
 pub struct Channel {
-    /// Our channel number, expected to be between 0 to 31
+    /// Our channel number, expected to be between 0 to (CHANNEL_COUNT - 1)
     index: usize,
     /// Reference to the DMA registers
     registers: Static<DMARegisters>,
@@ -62,7 +62,7 @@ impl Channel {
 
     /// Returns the DMA channel number
     ///
-    /// Channels are unique and numbered within the half-open range `[0, 32)`.
+    /// Channels are unique and numbered within the half-open range `[0, CHANNEL_COUNT)`.
     pub fn channel(&self) -> usize {
         self.index
     }
@@ -305,17 +305,17 @@ pub enum Error {
     Cancelled,
 }
 
-/// Acquire all of the DMA channels
+/// Initialize and acquire the DMA channels
 ///
-/// The return is 32 channels, all having a value of `Some(channel)`. The index in the array describes
-/// the channel number.
+/// The return is 32 channels. However, **only the first [`CHANNEL_COUNT`](constant.CHANNEL_COUNT.html) channels
+/// are initialized to `Some(channel)`. The rest are `None`**.
 ///
 /// You should enable the clock gates before calling `channels`. See
 /// [`ccm::Handle::clock_gate_dma`](../ccm/struct.Handle.html#method.clock_gate_dma) for more information.
 ///
 /// # Example
 ///
-/// Acquire all of the DMA channels, and move channel 7 to another function:
+/// Initialize and acquire the DMA channels, and move channel 7 to another function:
 ///
 /// ```no_run
 /// use imxrt_async_hal as hal;
@@ -334,20 +334,13 @@ pub enum Error {
 ///
 /// prepare_peripheral(channels[7].take().unwrap());
 /// ```
-pub fn channels(
-    dma: ral::dma0::Instance,
-    mux: ral::dmamux::Instance,
-) -> [Option<Channel>; MAX_DMA_CHANNELS] {
+pub fn channels(dma: ral::dma0::Instance, mux: ral::dmamux::Instance) -> [Option<Channel>; 32] {
     drop(dma);
     drop(mux);
 
-    let mut channels = [
-        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
-        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
-        None, None,
-    ];
+    let mut channels = chip::DMA_CHANNEL_INIT;
 
-    for (idx, channel) in channels.iter_mut().enumerate() {
+    for (idx, channel) in channels.iter_mut().take(CHANNEL_COUNT).enumerate() {
         let c = unsafe { Channel::new(idx) };
         c.tcd().reset();
         *channel = Some(c);
@@ -397,27 +390,6 @@ impl ErrorStatus {
 impl Debug for ErrorStatus {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "DMA_ES({:#010X})", self.es)
-    }
-}
-
-impl Display for ErrorStatus {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f,
-            "DMA_ES: VLD {vld} ECX {ecx} GPE {gpe} CPE {cpe} ERRCHN {errchn} SAE {sae} SOE {soe} DAE {dae} DOE {doe} NCE {nce} SGE {sge} SBE {sbe} DBE {dbe}",
-            vld = (self.es >> 31) & 0x1,
-            ecx = (self.es >> 16) & 0x1,
-            gpe = (self.es >> 15) & 0x1,
-            cpe = (self.es >> 14) & 0x1,
-            errchn = (self.es >> 8) & 0x1F,
-            sae = (self.es >> 7) & 0x1,
-            soe = (self.es >> 6) & 0x1,
-            dae = (self.es >> 5) & 0x1,
-            doe = (self.es >> 4) & 0x1,
-            nce = (self.es >> 3) & 0x1,
-            sge = (self.es >> 2) & 0x1,
-            sbe = (self.es >> 1) & 0x1,
-            dbe = self.es & 0x1
-        )
     }
 }
 
