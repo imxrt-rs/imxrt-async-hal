@@ -346,6 +346,7 @@ pub fn channels(dma: ral::dma0::Instance, mux: ral::dmamux::Instance) -> [Option
         *channel = Some(c);
     }
 
+    #[cfg(not(feature = "imxrt101x"))]
     unsafe {
         cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::DMA0_DMA16);
         cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::DMA1_DMA17);
@@ -363,6 +364,25 @@ pub fn channels(dma: ral::dma0::Instance, mux: ral::dmamux::Instance) -> [Option
         cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::DMA13_DMA29);
         cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::DMA14_DMA30);
         cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::DMA15_DMA31);
+    };
+    #[cfg(feature = "imxrt101x")]
+    unsafe {
+        cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::DMA0);
+        cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::DMA1);
+        cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::DMA2);
+        cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::DMA3);
+        cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::DMA4);
+        cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::DMA5);
+        cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::DMA6);
+        cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::DMA7);
+        cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::DMA8);
+        cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::DMA9);
+        cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::DMA10);
+        cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::DMA11);
+        cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::DMA12);
+        cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::DMA13);
+        cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::DMA14);
+        cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::DMA15);
     };
 
     channels

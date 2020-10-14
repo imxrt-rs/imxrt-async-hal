@@ -236,9 +236,13 @@ impl dma::Destination<u8> for ral::lpuart::Instance {
             ral::lpuart::LPUART2 => 66,
             ral::lpuart::LPUART3 => 4,
             ral::lpuart::LPUART4 => 68,
+            #[cfg(feature = "imxrt106x")]
             ral::lpuart::LPUART5 => 6,
+            #[cfg(feature = "imxrt106x")]
             ral::lpuart::LPUART6 => 70,
+            #[cfg(feature = "imxrt106x")]
             ral::lpuart::LPUART7 => 8,
+            #[cfg(feature = "imxrt106x")]
             ral::lpuart::LPUART8 => 72,
             _ => unreachable!(),
         }
@@ -264,9 +268,13 @@ impl dma::Source<u8> for ral::lpuart::Instance {
             ral::lpuart::LPUART2 => 67,
             ral::lpuart::LPUART3 => 5,
             ral::lpuart::LPUART4 => 69,
+            #[cfg(feature = "imxrt106x")]
             ral::lpuart::LPUART5 => 7,
+            #[cfg(feature = "imxrt106x")]
             ral::lpuart::LPUART6 => 71,
+            #[cfg(feature = "imxrt106x")]
             ral::lpuart::LPUART7 => 9,
+            #[cfg(feature = "imxrt106x")]
             ral::lpuart::LPUART8 => 73,
             _ => unreachable!(),
         }

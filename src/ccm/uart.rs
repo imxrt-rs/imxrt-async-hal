@@ -38,9 +38,13 @@ pub unsafe fn clock_gate(uart: *const ral::lpuart::RegisterBlock, gate: ClockGat
         ral::lpuart::LPUART2 => set_clock_gate(CCGR_BASE.add(0), &[14], value),
         ral::lpuart::LPUART3 => set_clock_gate(CCGR_BASE.add(0), &[6], value),
         ral::lpuart::LPUART4 => set_clock_gate(CCGR_BASE.add(1), &[12], value),
+        #[cfg(feature = "imxrt106x")]
         ral::lpuart::LPUART5 => set_clock_gate(CCGR_BASE.add(3), &[1], value),
+        #[cfg(feature = "imxrt106x")]
         ral::lpuart::LPUART6 => set_clock_gate(CCGR_BASE.add(3), &[3], value),
+        #[cfg(feature = "imxrt106x")]
         ral::lpuart::LPUART7 => set_clock_gate(CCGR_BASE.add(5), &[13], value),
+        #[cfg(feature = "imxrt106x")]
         ral::lpuart::LPUART8 => set_clock_gate(CCGR_BASE.add(6), &[7], value),
         _ => unreachable!(),
     }

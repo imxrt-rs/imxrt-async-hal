@@ -121,9 +121,13 @@ impl Inst for ral::lpuart::Instance {
             ral::lpuart::LPUART2 => 2,
             ral::lpuart::LPUART3 => 3,
             ral::lpuart::LPUART4 => 4,
+            #[cfg(feature = "imxrt106x")]
             ral::lpuart::LPUART5 => 5,
+            #[cfg(feature = "imxrt106x")]
             ral::lpuart::LPUART6 => 6,
+            #[cfg(feature = "imxrt106x")]
             ral::lpuart::LPUART7 => 7,
+            #[cfg(feature = "imxrt106x")]
             ral::lpuart::LPUART8 => 8,
             _ => unreachable!(),
         }
