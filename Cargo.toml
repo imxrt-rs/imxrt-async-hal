@@ -5,7 +5,7 @@ authors = ["Ian McIntyre <ianpmcintyre@gmail.com>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
 keywords = ["imxrt", "nxp", "embedded", "async"]
-categories = ["embedded", "no-std"]
+categories = ["embedded", "no-std", "asynchronous"]
 readme = "README.md"
 description = """
 Async peripherals for NXP iMX RT processors.

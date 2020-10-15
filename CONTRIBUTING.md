@@ -13,8 +13,8 @@ in the [README](./README.md).
 
 ## Running tests
 
-Unit and documentation tests run on your development host. You must specify
-a chip variant. The example below uses the `imxrt106x` chip variant:
+Unit and documentation tests run on your host computer. You must specify
+the `imxrt106x` chip variant for documentation tests,
 
 ```
 cargo test --features imxrt106x
