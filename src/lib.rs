@@ -71,7 +71,6 @@
 //! const BAUD: u32 = 115_200;
 //! # mod executor { pub fn block_on<F: core::future::Future>(f: F) {} }
 //!
-//! # fn main() {
 //! // Acquire all handles to the processor pads
 //! let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
 //! let mut led = hal::gpio::GPIO::new(pads.b0.p03).output();
@@ -137,7 +136,6 @@
 //! };
 //!
 //! executor::block_on(future::join(blinking_loop, echo_loop));
-//! # }
 //! ```
 //!
 //! ## License
