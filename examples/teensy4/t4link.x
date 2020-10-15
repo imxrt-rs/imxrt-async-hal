@@ -103,8 +103,6 @@ SECTIONS
         *(.text .text.*);
         *(.HardFaultTrampoline);
         *(.HardFault.*);
-        *(.flashmem); /* Compatibility with USB stack */
-        *(.progmem);  /* Compat with USB stack */
         . = ALIGN(4); /* Pad .text to the alignment to workaround overlapping load section bug in old lld */
     } > FLASH
     . = ALIGN(4); /* Ensure __etext is aligned if something unaligned is inserted after .text */
@@ -167,7 +165,6 @@ SECTIONS
     {
         . = ALIGN(4);
         *(.uninit .uninit.*);
-        *(.dmabuffers); /* Compat with USB */
         . = ALIGN(4);
     } > RAM
 
