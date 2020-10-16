@@ -18,6 +18,7 @@ imxrt-ral = "0.4"
 
 [target.thumbv7em-none-eabihf.dependencies.cortex-m-rt]
 version = "0.6"
+optional = true
 
 [dependencies.futures]
 version = "0.3"

@@ -238,7 +238,7 @@ mod uart;
 
 pub use imxrt_ral as ral;
 
-#[cfg(target_arch = "arm")]
+#[cfg(all(target_arch = "arm", feature = "rt"))]
 use cortex_m_rt as rt;
 
 //
