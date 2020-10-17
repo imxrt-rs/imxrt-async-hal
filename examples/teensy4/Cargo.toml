@@ -34,11 +34,9 @@ rev = "aa43ccd"
 
 [dependencies.teensy4-fcb]
 version = "0.2"
-git = "https://github.com/mciantyre/teensy4-rs"
 
 [dependencies.teensy4-pins]
 version = "0.1"
-git = "https://github.com/mciantyre/teensy4-rs"
 
 # Don't optimize build dependencies, like proc macros.
 # Helps with build times.
