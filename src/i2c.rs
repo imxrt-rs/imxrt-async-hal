@@ -122,16 +122,16 @@ where
 
         static ONCE: crate::once::Once = crate::once::new();
         ONCE.call(|| unsafe {
-            #[cfg(not(any(feature = "imxrt101x", feature = "imxrt106x")))]
+            #[cfg(not(any(feature = "imxrt1010", feature = "imxrt1060")))]
             compile_error!("Ensure that LPI2C interrupts are unmasked");
 
-            // imxrt101x, imxrt106x
+            // imxrt1010, imxrt1060
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::LPI2C1);
-            // imxrt101x, imxrt106x
+            // imxrt1010, imxrt1060
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::LPI2C2);
-            #[cfg(feature = "imxrt106x")]
+            #[cfg(feature = "imxrt1060")]
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::LPI2C3);
-            #[cfg(feature = "imxrt106x")]
+            #[cfg(feature = "imxrt1060")]
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::LPI2C4);
         });
 

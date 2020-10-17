@@ -119,25 +119,25 @@ impl Inst for ral::lpuart::Instance {
         // Make sure that the match expression will never hit the unreachable!() case.
         // The comments and conditional compiles show what we're currently considering in
         // that match. If your chip isn't listed, it's not something we considered.
-        #[cfg(not(any(feature = "imxrt101x", feature = "imxrt106x")))]
+        #[cfg(not(any(feature = "imxrt1010", feature = "imxrt1060")))]
         compile_error!("Ensure that the LPUART instances are correct");
 
         match &**self as *const _ {
-            // imxrt101x, imxrt106x
+            // imxrt1010, imxrt1060
             ral::lpuart::LPUART1 => 1,
-            // imxrt101x, imxrt106x
+            // imxrt1010, imxrt1060
             ral::lpuart::LPUART2 => 2,
-            // imxrt101x, imxrt106x
+            // imxrt1010, imxrt1060
             ral::lpuart::LPUART3 => 3,
-            // imxrt101x, imxrt106x
+            // imxrt1010, imxrt1060
             ral::lpuart::LPUART4 => 4,
-            #[cfg(feature = "imxrt106x")]
+            #[cfg(feature = "imxrt1060")]
             ral::lpuart::LPUART5 => 5,
-            #[cfg(feature = "imxrt106x")]
+            #[cfg(feature = "imxrt1060")]
             ral::lpuart::LPUART6 => 6,
-            #[cfg(feature = "imxrt106x")]
+            #[cfg(feature = "imxrt1060")]
             ral::lpuart::LPUART7 => 7,
-            #[cfg(feature = "imxrt106x")]
+            #[cfg(feature = "imxrt1060")]
             ral::lpuart::LPUART8 => 8,
             _ => unreachable!(),
         }
@@ -173,17 +173,17 @@ impl Inst for ral::lpspi::Instance {
         // Make sure that the match expression will never hit the unreachable!() case.
         // The comments and conditional compiles show what we're currently considering in
         // that match. If your chip isn't listed, it's not something we considered.
-        #[cfg(not(any(feature = "imxrt101x", feature = "imxrt106x")))]
+        #[cfg(not(any(feature = "imxrt1010", feature = "imxrt1060")))]
         compile_error!("Ensure that the LPSPI instances are correct");
 
         match &**self as *const _ {
-            // imxrt101x, imxrt106x
+            // imxrt1010, imxrt1060
             ral::lpspi::LPSPI1 => 1,
-            // imxrt101x, imxrt106x
+            // imxrt1010, imxrt1060
             ral::lpspi::LPSPI2 => 2,
-            #[cfg(feature = "imxrt106x")]
+            #[cfg(feature = "imxrt1060")]
             ral::lpspi::LPSPI3 => 3,
-            #[cfg(feature = "imxrt106x")]
+            #[cfg(feature = "imxrt1060")]
             ral::lpspi::LPSPI4 => 4,
             _ => unreachable!(),
         }
@@ -219,17 +219,17 @@ impl Inst for ral::lpi2c::Instance {
         // Make sure that the match expression will never hit the unreachable!() case.
         // The comments and conditional compiles show what we're currently considering in
         // that match. If your chip isn't listed, it's not something we considered.
-        #[cfg(not(any(feature = "imxrt101x", feature = "imxrt106x")))]
+        #[cfg(not(any(feature = "imxrt1010", feature = "imxrt1060")))]
         compile_error!("Ensure that the LPI2C instances are correct");
 
         match &**self as *const _ {
-            // imxrt101x, imxrt106x
+            // imxrt1010, imxrt1060
             ral::lpi2c::LPI2C1 => 1,
-            // imxrt101x, imxrt106x
+            // imxrt1010, imxrt1060
             ral::lpi2c::LPI2C2 => 2,
-            #[cfg(feature = "imxrt106x")]
+            #[cfg(feature = "imxrt1060")]
             ral::lpi2c::LPI2C3 => 3,
-            #[cfg(feature = "imxrt106x")]
+            #[cfg(feature = "imxrt1060")]
             ral::lpi2c::LPI2C4 => 4,
             _ => unreachable!(),
         }

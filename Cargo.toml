@@ -38,8 +38,8 @@ default = ["gpio", "gpt", "i2c", "pipe", "pit", "spi", "uart"]
 # Runtime features
 rt = ["imxrt-ral/rt", "cortex-m-rt/device"]
 # Chip variant features
-imxrt101x = ["imxrt-iomuxc/imxrt101x", "imxrt-ral/imxrt1011"]
-imxrt106x = ["imxrt-iomuxc/imxrt106x", "imxrt-ral/imxrt1062"]
+imxrt1010 = ["imxrt-iomuxc/imxrt101x", "imxrt-ral/imxrt1011"]
+imxrt1060 = ["imxrt-iomuxc/imxrt106x", "imxrt-ral/imxrt1062"]
 
 
 # Don't optimize build dependencies, like proc macros.
@@ -48,5 +48,5 @@ imxrt106x = ["imxrt-iomuxc/imxrt106x", "imxrt-ral/imxrt1062"]
 opt-level = 0
 
 [package.metadata.docs.rs]
-features = ["imxrt106x"]
+features = ["imxrt1060"]
 rustdoc-args = ["--cfg", "docsrs"]

@@ -233,26 +233,26 @@ impl dma::Destination<u8> for ral::lpuart::Instance {
         // Make sure that the match expression will never hit the unreachable!() case.
         // The comments and conditional compiles show what we're currently considering in
         // that match. If your chip isn't listed, it's not something we considered.
-        #[cfg(not(any(feature = "imxrt101x", feature = "imxrt106x")))]
+        #[cfg(not(any(feature = "imxrt1010", feature = "imxrt1060")))]
         compile_error!("Ensure that LPUART DMAMUX TX channels are correct");
 
         // See table 4-3 of the iMXRT1060 Reference Manual (Rev 2)
         match &**self as *const _ {
-            // imxrt101x, imxrt106x
+            // imxrt1010, imxrt1060
             ral::lpuart::LPUART1 => 2,
-            // imxrt101x, imxrt106x
+            // imxrt1010, imxrt1060
             ral::lpuart::LPUART2 => 66,
-            // imxrt101x, imxrt106x
+            // imxrt1010, imxrt1060
             ral::lpuart::LPUART3 => 4,
-            // imxrt101x, imxrt106x
+            // imxrt1010, imxrt1060
             ral::lpuart::LPUART4 => 68,
-            #[cfg(feature = "imxrt106x")]
+            #[cfg(feature = "imxrt1060")]
             ral::lpuart::LPUART5 => 6,
-            #[cfg(feature = "imxrt106x")]
+            #[cfg(feature = "imxrt1060")]
             ral::lpuart::LPUART6 => 70,
-            #[cfg(feature = "imxrt106x")]
+            #[cfg(feature = "imxrt1060")]
             ral::lpuart::LPUART7 => 8,
-            #[cfg(feature = "imxrt106x")]
+            #[cfg(feature = "imxrt1060")]
             ral::lpuart::LPUART8 => 72,
             _ => unreachable!(),
         }
@@ -275,26 +275,26 @@ impl dma::Source<u8> for ral::lpuart::Instance {
         // Make sure that the match expression will never hit the unreachable!() case.
         // The comments and conditional compiles show what we're currently considering in
         // that match. If your chip isn't listed, it's not something we considered.
-        #[cfg(not(any(feature = "imxrt101x", feature = "imxrt106x")))]
+        #[cfg(not(any(feature = "imxrt1010", feature = "imxrt1060")))]
         compile_error!("Ensure that LPUART DMAMUX RX channels are correct");
 
         // See table 4-3 of the iMXRT1060 Reference Manual (Rev 2)
         match &**self as *const _ {
-            // imxrt101x, imxrt106x
+            // imxrt1010, imxrt1060
             ral::lpuart::LPUART1 => 3,
-            // imxrt101x, imxrt106x
+            // imxrt1010, imxrt1060
             ral::lpuart::LPUART2 => 67,
-            // imxrt101x, imxrt106x
+            // imxrt1010, imxrt1060
             ral::lpuart::LPUART3 => 5,
-            // imxrt101x, imxrt106x
+            // imxrt1010, imxrt1060
             ral::lpuart::LPUART4 => 69,
-            #[cfg(feature = "imxrt106x")]
+            #[cfg(feature = "imxrt1060")]
             ral::lpuart::LPUART5 => 7,
-            #[cfg(feature = "imxrt106x")]
+            #[cfg(feature = "imxrt1060")]
             ral::lpuart::LPUART6 => 71,
-            #[cfg(feature = "imxrt106x")]
+            #[cfg(feature = "imxrt1060")]
             ral::lpuart::LPUART7 => 9,
-            #[cfg(feature = "imxrt106x")]
+            #[cfg(feature = "imxrt1060")]
             ral::lpuart::LPUART8 => 73,
             _ => unreachable!(),
         }

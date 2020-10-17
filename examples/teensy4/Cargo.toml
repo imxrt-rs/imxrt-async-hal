@@ -23,7 +23,7 @@ default-features = false
 [dependencies.imxrt-async-hal]
 version = "0.1"
 path = "../.."
-features = ["rt", "imxrt106x"]
+features = ["rt", "imxrt1060"]
 
 [dependencies.cortex-m-rt]
 version = "0.6"

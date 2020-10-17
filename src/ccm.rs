@@ -49,7 +49,7 @@
 mod i2c;
 #[cfg(any(feature = "gpt", feature = "pit"))]
 mod perclock;
-#[cfg(feature = "imxrt106x")]
+#[cfg(feature = "imxrt1060")]
 mod pll1;
 #[cfg(feature = "spi")]
 mod spi;
@@ -119,7 +119,7 @@ pub struct CCM {
     /// `Handle` is used throughout the HAL
     pub handle: Handle,
     /// PLL1, which controls the ARM clock
-    #[cfg(feature = "imxrt106x")]
+    #[cfg(feature = "imxrt1060")]
     pub pll1: PLL1,
     /// The periodic clock handle
     ///
@@ -152,7 +152,7 @@ impl CCM {
     pub const fn new(ccm: ral::ccm::Instance) -> Self {
         CCM {
             handle: Handle(ccm),
-            #[cfg(feature = "imxrt106x")]
+            #[cfg(feature = "imxrt1060")]
             pll1: PLL1(()),
             #[cfg(any(feature = "gpt", feature = "pit"))]
             perclock: Disabled(PerClock(())),
@@ -276,13 +276,13 @@ impl I2CClock {
 ///
 /// This clock is enabled by default. Use [`set_arm_clock`](#method.set_arm_clock)
 /// to specify the ARM clock frequency.
-#[cfg(feature = "imxrt106x")]
-#[cfg_attr(docsrs, doc(cfg(feature = "imxrt106x")))]
+#[cfg(feature = "imxrt1060")]
+#[cfg_attr(docsrs, doc(cfg(feature = "imxrt1060")))]
 pub struct PLL1(());
 // TODO PLL1 might be a thing on non 106x chips. Ian is just
 // hiding it completely for simplicity.
 
-#[cfg(feature = "imxrt106x")]
+#[cfg(feature = "imxrt1060")]
 impl PLL1 {
     /// Consume the PLL1 and set the ARM clock speed, returning the ARM and IPG clock frequencies
     ///

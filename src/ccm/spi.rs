@@ -40,18 +40,18 @@ pub unsafe fn clock_gate(spi: *const ral::lpspi::RegisterBlock, value: ClockGate
     // Make sure that the match expression will never hit the unreachable!() case.
     // The comments and conditional compiles show what we're currently considering in
     // that match. If your chip isn't listed, it's not something we considered.
-    #[cfg(not(any(feature = "imxrt101x", feature = "imxrt106x")))]
+    #[cfg(not(any(feature = "imxrt1010", feature = "imxrt1060")))]
     compile_error!("Ensure that LPSPI clock gates are correct");
 
     let ccgr = CCGR_BASE.add(1);
     let gate = match spi {
-        // imxrt101x, imxrt106x
+        // imxrt1010, imxrt1060
         ral::lpspi::LPSPI1 => 0,
-        // imxrt101x, imxrt106x
+        // imxrt1010, imxrt1060
         ral::lpspi::LPSPI2 => 1,
-        #[cfg(feature = "imxrt106x")]
+        #[cfg(feature = "imxrt1060")]
         ral::lpspi::LPSPI3 => 2,
-        #[cfg(feature = "imxrt106x")]
+        #[cfg(feature = "imxrt1060")]
         ral::lpspi::LPSPI4 => 3,
         _ => unreachable!(),
     };

@@ -325,17 +325,17 @@ fn set_clock_speed(spi: &ral::lpspi::Instance, hz: u32) {
 /// See table 4-3 of the iMXRT1060 Reference Manual (Rev 2)
 #[inline(always)]
 fn source_signal(spi: &ral::lpspi::Instance) -> u32 {
-    #[cfg(not(any(feature = "imxrt101x", feature = "imxrt106x")))]
+    #[cfg(not(any(feature = "imxrt1010", feature = "imxrt1060")))]
     compile_error!("Ensure that LPSPI DMAMUX RX channels are correct");
 
     match &**spi as *const _ {
-        // imxrt101x, imxrt106x
+        // imxrt1010, imxrt1060
         ral::lpspi::LPSPI1 => 13,
-        // imxrt101x, imxrt106x
+        // imxrt1010, imxrt1060
         ral::lpspi::LPSPI2 => 77,
-        #[cfg(feature = "imxrt106x")]
+        #[cfg(feature = "imxrt1060")]
         ral::lpspi::LPSPI3 => 15,
-        #[cfg(feature = "imxrt106x")]
+        #[cfg(feature = "imxrt1060")]
         ral::lpspi::LPSPI4 => 79,
         _ => unreachable!(),
     }
@@ -346,17 +346,17 @@ fn source_signal(spi: &ral::lpspi::Instance) -> u32 {
 /// See table 4-3 of the iMXRT1060 Reference Manual (Rev 2)
 #[inline(always)]
 fn destination_signal(spi: &ral::lpspi::Instance) -> u32 {
-    #[cfg(not(any(feature = "imxrt101x", feature = "imxrt106x")))]
+    #[cfg(not(any(feature = "imxrt1010", feature = "imxrt1060")))]
     compile_error!("Ensure that LPSPI DMAMUX TX channels are correct");
 
     match &**spi as *const _ {
-        // imxrt101x, imxrt106x
+        // imxrt1010, imxrt1060
         ral::lpspi::LPSPI1 => 14,
-        // imxrt101x, imxrt106x
+        // imxrt1010, imxrt1060
         ral::lpspi::LPSPI2 => 78,
-        #[cfg(feature = "imxrt106x")]
+        #[cfg(feature = "imxrt1060")]
         ral::lpspi::LPSPI3 => 16,
-        #[cfg(feature = "imxrt106x")]
+        #[cfg(feature = "imxrt1060")]
         ral::lpspi::LPSPI4 => 80,
         _ => unreachable!(),
     }

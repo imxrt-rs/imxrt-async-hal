@@ -43,8 +43,8 @@ You may select only one chip feature.
 
 The crate compiles for the following chips:
 
-- `"imxrt101x"` for i.MX RT **1010** variants
-- `"imxrt106x"` for i.MX RT **1060** variants
+- `"imxrt1010"` for i.MX RT **1010** variants
+- `"imxrt1060"` for i.MX RT **1060** variants
 
 Each peripheral has it's own feature, which is enabled by default. However, you may
 want to disable some peripherals because you have your own interrupt-driven peripheral,
@@ -56,8 +56,8 @@ that peripheral.
 
 | **Chip**  | `"gpio"` | `"gpt"` | `"i2c"` | `"pipe"` | `"pit"` | `"spi"` | `"uart"` |
 | --------- | -------- | ------- | ------- | -------- | ------- | ------- | -------- |
-| imxrt101x |    ✓     |    ✓    |    ✓    |    ✓     |    ✓    |    ✓    |     ✓    |
-| imxrt106x |    ✓     |    ✓    |    ✓    |    ✓     |    ✓    |    ✓    |     ✓    |
+| imxrt1010 |    ✓     |    ✓    |    ✓    |    ✓     |    ✓    |    ✓    |     ✓    |
+| imxrt1060 |    ✓     |    ✓    |    ✓    |    ✓     |    ✓    |    ✓    |     ✓    |
 
 When developing a binary for your embedded system, you should enable this crate's `"rt"`
 feature. Otherwise, when developing libraries against the crate, you may skip the

@@ -348,7 +348,7 @@ pub fn channels(dma: ral::dma0::Instance, mux: ral::dmamux::Instance) -> [Option
 
     // Correctly accounts for all i.MX RT variants that are
     // not in the 1010 (1011) family.
-    #[cfg(not(feature = "imxrt101x"))]
+    #[cfg(not(feature = "imxrt1010"))]
     unsafe {
         cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::DMA0_DMA16);
         cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::DMA1_DMA17);
@@ -368,7 +368,7 @@ pub fn channels(dma: ral::dma0::Instance, mux: ral::dmamux::Instance) -> [Option
         cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::DMA15_DMA31);
     };
     // Acounts for the 1010 family (1011) outlier that only has 16 DMA channels.
-    #[cfg(feature = "imxrt101x")]
+    #[cfg(feature = "imxrt1010")]
     unsafe {
         cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::DMA0);
         cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::DMA1);

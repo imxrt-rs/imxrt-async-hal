@@ -44,18 +44,18 @@ pub unsafe fn clock_gate(i2c: *const ral::lpi2c::RegisterBlock, gate: ClockGate)
     // Make sure that the match expression will never hit the unreachable!() case.
     // The comments and conditional compiles show what we're currently considering in
     // that match. If your chip isn't listed, it's not something we considered.
-    #[cfg(not(any(feature = "imxrt101x", feature = "imxrt106x")))]
+    #[cfg(not(any(feature = "imxrt1010", feature = "imxrt1060")))]
     compile_error!("Ensure that LPUART clock gates are correct");
 
     let value = gate as u8;
     match i2c {
-        // imxrt101x, imxrt106x
+        // imxrt1010, imxrt1060
         ral::lpi2c::LPI2C1 => set_clock_gate(CCGR_BASE.add(2), &[3], value),
-        // imxrt101x, imxrt106x
+        // imxrt1010, imxrt1060
         ral::lpi2c::LPI2C2 => set_clock_gate(CCGR_BASE.add(2), &[4], value),
-        #[cfg(feature = "imxrt106x")]
+        #[cfg(feature = "imxrt1060")]
         ral::lpi2c::LPI2C3 => set_clock_gate(CCGR_BASE.add(2), &[5], value),
-        #[cfg(feature = "imxrt106x")]
+        #[cfg(feature = "imxrt1060")]
         ral::lpi2c::LPI2C4 => set_clock_gate(CCGR_BASE.add(6), &[12], value),
         _ => unreachable!(),
     }

@@ -14,10 +14,10 @@ in the [README](./README.md).
 ## Running tests
 
 Unit and documentation tests run on your host computer. You must specify
-the `imxrt106x` chip variant for documentation tests,
+the `imxrt1060` chip variant for documentation tests,
 
 ```
-cargo test --features imxrt106x
+cargo test --features imxrt1060
 ```
 
 ## Update the README
@@ -36,14 +36,14 @@ Use the typical `cargo doc` to locally browse API docs. You must specify
 a chip variant:
 
 ```
-cargo doc --features imxrt106x [--open]
+cargo doc --features imxrt1060 [--open]
 ```
 
 To generate the documentation that includes feature hints -- the docs that
 docs.rs generates -- install a nightly compiler. Then, run
 
 ```
-cargo +nightly rustdoc --features imxrt106x [--open] -- --cfg docsrs
+cargo +nightly rustdoc --features imxrt1060 [--open] -- --cfg docsrs
 ```
 
 ## Resources

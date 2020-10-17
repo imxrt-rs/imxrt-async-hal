@@ -105,10 +105,10 @@ where
         // The match expressions depend on the imxrt-iomuxc gpio::Pin
         // associated constants. Study the imxrt-iomuxc APIs, and make sure
         // that the unreachable!() arms are truly unreachable.
-        #[cfg(not(any(feature = "imxrt101x", feature = "imxrt106x")))]
+        #[cfg(not(any(feature = "imxrt1010", feature = "imxrt1060")))]
         compile_error!("Ensure that GPIO register access is correct");
 
-        #[cfg(feature = "imxrt106x")]
+        #[cfg(feature = "imxrt1060")]
         match self.module() {
             1 => gpio::GPIO1,
             2 => gpio::GPIO2,
@@ -118,7 +118,7 @@ where
             _ => unreachable!(),
         }
 
-        #[cfg(feature = "imxrt101x")]
+        #[cfg(feature = "imxrt1010")]
         match self.module() {
             1 => gpio::GPIO1,
             2 => gpio::GPIO2,
@@ -165,24 +165,24 @@ where
 
         static ONCE: crate::once::Once = crate::once::new();
         ONCE.call(|| unsafe {
-            #[cfg(not(any(feature = "imxrt101x", feature = "imxrt106x")))]
+            #[cfg(not(any(feature = "imxrt1010", feature = "imxrt1060")))]
             compile_error!("Ensure that GPIO interrupts are correctly unmasked");
 
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::GPIO1_Combined_0_15);
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::GPIO1_Combined_16_31);
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::GPIO2_Combined_0_15);
-            #[cfg(feature = "imxrt106x")]
+            #[cfg(feature = "imxrt1060")]
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::GPIO2_Combined_16_31);
-            #[cfg(feature = "imxrt106x")]
+            #[cfg(feature = "imxrt1060")]
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::GPIO3_Combined_0_15);
-            #[cfg(feature = "imxrt106x")]
+            #[cfg(feature = "imxrt1060")]
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::GPIO3_Combined_16_31);
-            #[cfg(feature = "imxrt106x")]
+            #[cfg(feature = "imxrt1060")]
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::GPIO4_Combined_0_15);
-            #[cfg(feature = "imxrt106x")]
+            #[cfg(feature = "imxrt1060")]
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::GPIO4_Combined_16_31);
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::GPIO5_Combined_0_15);
-            #[cfg(feature = "imxrt106x")]
+            #[cfg(feature = "imxrt1060")]
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::GPIO5_Combined_16_31);
         });
         Self {
@@ -388,7 +388,7 @@ unsafe fn on_interrupt(gpio: *const ral::gpio::RegisterBlock, mut module: usize)
         .for_each(|waker| waker.wake());
 }
 
-#[cfg(not(any(feature = "imxrt101x", feature = "imxrt106x")))]
+#[cfg(not(any(feature = "imxrt1010", feature = "imxrt1060")))]
 compile_error!("Ensure that GPIO interrupt handlers are correctly defined");
 
 interrupts! {
@@ -406,27 +406,27 @@ interrupts! {
         on_interrupt(ral::gpio::GPIO2, 2);
     }}
 
-    #[cfg(feature = "imxrt106x")]
+    #[cfg(feature = "imxrt1060")]
     handler!{unsafe fn GPIO2_Combined_16_31() {
         on_interrupt(ral::gpio::GPIO2, 2);
     }}
 
-    #[cfg(feature = "imxrt106x")]
+    #[cfg(feature = "imxrt1060")]
     handler!{unsafe fn GPIO3_Combined_0_15() {
         on_interrupt(ral::gpio::GPIO3, 3);
     }}
 
-    #[cfg(feature = "imxrt106x")]
+    #[cfg(feature = "imxrt1060")]
     handler!{unsafe fn GPIO3_Combined_16_31() {
         on_interrupt(ral::gpio::GPIO3, 3);
     }}
 
-    #[cfg(feature = "imxrt106x")]
+    #[cfg(feature = "imxrt1060")]
     handler!{unsafe fn GPIO4_Combined_0_15() {
         on_interrupt(ral::gpio::GPIO4, 4);
     }}
 
-    #[cfg(feature = "imxrt106x")]
+    #[cfg(feature = "imxrt1060")]
     handler!{unsafe fn GPIO4_Combined_16_31() {
         on_interrupt(ral::gpio::GPIO4, 4);
     }}
@@ -436,7 +436,7 @@ interrupts! {
         on_interrupt(ral::gpio::GPIO5, 5);
     }}
 
-    #[cfg(feature = "imxrt106x")]
+    #[cfg(feature = "imxrt1060")]
     handler!{unsafe fn GPIO5_Combined_16_31() {
         on_interrupt(ral::gpio::GPIO5, 5);
     }}

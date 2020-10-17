@@ -41,8 +41,8 @@
 //!
 //! The crate compiles for the following chips:
 //!
-//! - `"imxrt101x"` for i.MX RT **1010** variants
-//! - `"imxrt106x"` for i.MX RT **1060** variants
+//! - `"imxrt1010"` for i.MX RT **1010** variants
+//! - `"imxrt1060"` for i.MX RT **1060** variants
 //!
 //! Each peripheral has it's own feature, which is enabled by default. However, you may
 //! want to disable some peripherals because you have your own interrupt-driven peripheral,
@@ -54,8 +54,8 @@
 //!
 //! | **Chip**  | `"gpio"` | `"gpt"` | `"i2c"` | `"pipe"` | `"pit"` | `"spi"` | `"uart"` |
 //! | --------- | -------- | ------- | ------- | -------- | ------- | ------- | -------- |
-//! | imxrt101x |    ✓     |    ✓    |    ✓    |    ✓     |    ✓    |    ✓    |     ✓    |
-//! | imxrt106x |    ✓     |    ✓    |    ✓    |    ✓     |    ✓    |    ✓    |     ✓    |
+//! | imxrt1010 |    ✓     |    ✓    |    ✓    |    ✓     |    ✓    |    ✓    |     ✓    |
+//! | imxrt1060 |    ✓     |    ✓    |    ✓    |    ✓     |    ✓    |    ✓    |     ✓    |
 //!
 //! When developing a binary for your embedded system, you should enable this crate's `"rt"`
 //! feature. Otherwise, when developing libraries against the crate, you may skip the
@@ -159,11 +159,11 @@
 // things that you need to consider when adding a new chip. Once
 // you've added support for that new chip, you should update the
 // comditional compile.
-#[cfg(not(any(feature = "imxrt101x", feature = "imxrt106x")))]
+#[cfg(not(any(feature = "imxrt1010", feature = "imxrt1060")))]
 compile_error!(concat!(
     "You must select a chip feature flag! Available chips:\n",
-    "  - imxrt101x\n",
-    "  - imxrt106x\n"
+    "  - imxrt1010\n",
+    "  - imxrt1060\n"
 ));
 
 /// Decorates one or more functions that act as interrupt handlers.
@@ -293,16 +293,16 @@ mod once {
 ///
 /// [`imxrt-iomuxc`]: https://docs.rs/imxrt-iomuxc/0.1/imxrt_iomuxc/
 pub mod iomuxc {
-    #[cfg(not(any(feature = "imxrt101x", feature = "imxrt106x")))]
+    #[cfg(not(any(feature = "imxrt1010", feature = "imxrt1060")))]
     compile_error!("Ensure that your chip has imxrt-iomuxc support");
 
     pub mod pads {
-        // The imxrt101x module has a group of pads that are named 'gpio'. It
+        // The imxrt1010 module has a group of pads that are named 'gpio'. It
         // conflicts with the gpio module exported in the prelude. We're wrapping
         // the pads in a pads module to make the distinction clear.
-        #[cfg(feature = "imxrt101x")]
+        #[cfg(feature = "imxrt1010")]
         pub use imxrt_iomuxc::imxrt101x::*;
-        #[cfg(feature = "imxrt106x")]
+        #[cfg(feature = "imxrt1060")]
         pub use imxrt_iomuxc::imxrt106x::*;
     }
     pub use imxrt_iomuxc::prelude::*;
@@ -315,8 +315,8 @@ pub mod iomuxc {
     ///
     /// let pads = iomuxc::new(IOMUXC::take().unwrap());
     /// ```
-    #[cfg_attr(docsrs, doc(cfg(any(feature = "imxrt101x", feature = "imxrt106x"))))]
-    #[cfg(any(feature = "imxrt101x", feature = "imxrt106x"))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "imxrt1010", feature = "imxrt1060"))))]
+    #[cfg(any(feature = "imxrt1010", feature = "imxrt1060"))]
     pub fn new(_: crate::ral::iomuxc::Instance) -> pads::Pads {
         // Safety: ^--- there's a single instance. Either the user
         // used an `unsafe` method to steal it, or we own the only
