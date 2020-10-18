@@ -157,7 +157,7 @@ impl<TX, RX> UART<TX, RX> {
     }
 }
 
-const UART_CLOCK: u32 = crate::ccm::UARTClock::frequency();
+const UART_CLOCK: u32 = crate::ccm::UART_CLOCK_FREQUENCY_HZ;
 
 /// An opaque type that describes timing configurations
 struct Timings {

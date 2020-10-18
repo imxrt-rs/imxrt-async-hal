@@ -2,7 +2,7 @@
 
 use crate::ral::{self, lpi2c::Instance};
 
-const I2C_CLOCK_HZ: u32 = crate::ccm::I2CClock::frequency();
+const I2C_CLOCK_HZ: u32 = crate::ccm::I2C_CLOCK_FREQUENCY_HZ;
 
 /// I2C clock speed
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

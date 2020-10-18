@@ -20,6 +20,10 @@ imxrt-ral = "0.4"
 version = "0.6"
 optional = true
 
+[dependencies.imxrt-ccm]
+features = ["imxrt-ral"]
+path = "../ccm"
+
 [dependencies.futures]
 version = "0.3"
 default-features = false
@@ -38,8 +42,8 @@ default = ["gpio", "gpt", "i2c", "pipe", "pit", "spi", "uart"]
 # Runtime features
 rt = ["imxrt-ral/rt", "cortex-m-rt/device"]
 # Chip variant features
-imxrt1010 = ["imxrt-iomuxc/imxrt101x", "imxrt-ral/imxrt1011"]
-imxrt1060 = ["imxrt-iomuxc/imxrt106x", "imxrt-ral/imxrt1062"]
+imxrt1010 = ["imxrt-iomuxc/imxrt101x", "imxrt-ral/imxrt1011", "imxrt-ccm/imxrt1010"]
+imxrt1060 = ["imxrt-iomuxc/imxrt106x", "imxrt-ral/imxrt1062", "imxrt-ccm/imxrt1060"]
 
 
 # Don't optimize build dependencies, like proc macros.

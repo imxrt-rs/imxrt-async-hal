@@ -102,7 +102,7 @@ pub struct SPI<Pins> {
 }
 
 const DEFAULT_CLOCK_SPEED_HZ: u32 = 8_000_000;
-const CLOCK_HZ: u32 = crate::ccm::SPIClock::frequency();
+const CLOCK_HZ: u32 = crate::ccm::SPI_CLOCK_FREQUENCY_HZ;
 
 impl<SDO, SDI, SCK, PCS0, M> SPI<Pins<SDO, SDI, SCK, PCS0>>
 where
