@@ -1,66 +1,7 @@
 //! Supporting traits for defining peripheral DMA
 //! sources and destinations
 
-use super::{element::Element, interrupt, Channel, Error};
-
-/// Describes a peripheral that can be the source of DMA data
-///
-/// By 'source,' we mean that it provides data for a DMA transfer.
-/// A 'source,' would be a hardware device sending data into our
-/// memory.
-pub trait Source<E: Element> {
-    /// Peripheral source request signal
-    ///
-    /// See Table 4-3 of the reference manual. A source probably
-    /// has something like 'receive' in the name.
-    fn source_signal(&self) -> u32;
-    /// Returns a pointer to the register from which the DMA channel
-    /// reads data
-    ///
-    /// This is the register that software reads to acquire data from
-    /// a device. The type of the pointer describes the type of reads
-    /// the DMA channel performs when transferring data.
-    ///
-    /// This memory is assumed to be static.
-    fn source(&self) -> *const E;
-    /// Perform any actions necessary to enable DMA transfers
-    ///
-    /// Callers use this method to put the peripheral in a state where
-    /// it can supply the DMA channel with data.
-    fn enable_source(&self);
-    /// Perform any actions necessary to disable or cancel DMA transfers
-    ///
-    /// This may include undoing the actions in `enable_source()`.
-    fn disable_source(&self);
-}
-
-/// Describes a peripheral that can be the destination for DMA data
-///
-/// By 'destination,' we mean that it receives data from a DMA transfer.
-/// Software is sending data from memory to a device using DMA.
-pub trait Destination<E: Element> {
-    /// Peripheral destination request signal
-    ///
-    /// See Table 4-3 of the reference manual. A destination probably
-    /// has something like 'transfer' in the name.
-    fn destination_signal(&self) -> u32;
-    /// Returns a pointer to the register into which the DMA channel
-    /// writes data
-    ///
-    /// This is the register that software writes to when sending data to a
-    /// device. The type of the pointer describes the type of reads the
-    /// DMA channel performs when transferring data.
-    fn destination(&self) -> *const E;
-    /// Perform any actions necessary to enable DMA transfers
-    ///
-    /// Callers use this method to put the peripheral into a state where
-    /// it can accept transfers from a DMA channel.
-    fn enable_destination(&self);
-    /// Perform any actions necessary to disable or cancel DMA transfers
-    ///
-    /// This may include undoing the actions in `enable_destination()`.
-    fn disable_destination(&self);
-}
+use super::{interrupt, Channel, Destination, Element, Error, Source};
 
 pub type Result<T> = core::result::Result<T, Error>;
 
@@ -71,11 +12,11 @@ where
 {
     channel.set_trigger_from_hardware(Some(source.source_signal()));
     unsafe {
-        channel.set_source_transfer(super::Transfer::hardware(source.source()));
+        channel.set_source_transfer(&super::Transfer::hardware(source.source()));
     }
-    let buffer_description = super::Transfer::buffer_mut(buffer);
     unsafe {
-        channel.set_destination_transfer(buffer_description);
+        let buffer_description = super::Transfer::buffer_linear(buffer.as_ptr(), buffer.len());
+        channel.set_destination_transfer(&buffer_description);
     }
     channel.set_minor_loop_elements::<E>(1);
     channel.set_transfer_iterations(buffer.len() as u16);
@@ -112,11 +53,10 @@ where
 {
     channel.set_trigger_from_hardware(Some(destination.destination_signal()));
     unsafe {
-        channel.set_destination_transfer(super::Transfer::hardware(destination.destination()));
-    }
-    let buffer_description = super::Transfer::buffer(buffer);
-    unsafe {
-        channel.set_source_transfer(buffer_description);
+        channel.set_destination_transfer(&super::Transfer::hardware(destination.destination()));
+
+        let buffer_description = super::Transfer::buffer_linear(buffer.as_ptr(), buffer.len());
+        channel.set_source_transfer(&buffer_description);
     }
     channel.set_minor_loop_elements::<E>(1);
     channel.set_transfer_iterations(buffer.len() as u16);

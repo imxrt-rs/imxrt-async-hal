@@ -175,7 +175,7 @@ impl<E: Copy> Sender<E> {
     /// if the transfer failed.
     pub async fn send<'t>(&'t mut self, value: &'t E) -> Result<()> {
         unsafe {
-            self.channel.shared_mut()[SENDER_STATE].set_state(state::READY);
+            shared_mut(&mut self.channel)[SENDER_STATE].set_state(state::READY);
         }
         Send {
             channel: &mut self.channel,
@@ -190,7 +190,7 @@ impl<'t, E: Copy> Future for Send<'t, E> {
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.get_mut();
         let (sender_state, receiver_state) = unsafe {
-            let shared = this.channel.shared();
+            let shared = shared(&this.channel);
             (shared[SENDER_STATE].state(), shared[RECEIVER_STATE].state())
         };
         match (sender_state, receiver_state) {
@@ -203,15 +203,14 @@ impl<'t, E: Copy> Future for Send<'t, E> {
                 this.channel.set_transfer_iterations(len as u16);
 
                 unsafe {
-                    this.channel.set_source_transfer(dma::Transfer::buffer(
-                        core::slice::from_raw_parts(data, len),
-                    ));
-                    let sender_shared = &mut this.channel.shared_mut()[SENDER_STATE];
+                    this.channel
+                        .set_source_transfer(&dma::Transfer::buffer_linear(data, len));
+                    let sender_shared = &mut shared_mut(&mut this.channel)[SENDER_STATE];
                     sender_shared.waker = Some(cx.waker().clone());
                     sender_shared.set_state(state::PENDING);
                     atomic::compiler_fence(atomic::Ordering::Release);
                     if state::PENDING == receiver_state {
-                        this.channel.set_enable(true);
+                        this.channel.enable();
                         this.channel.start();
                     }
                 }
@@ -226,11 +225,11 @@ impl<'t, E: Copy> Future for Send<'t, E> {
 
 impl<'t, E> Drop for Send<'t, E> {
     fn drop(&mut self) {
-        self.channel.set_enable(false);
+        self.channel.disable();
         atomic::compiler_fence(atomic::Ordering::Release);
         // Safety: channel is disabled, so there is no ISR that can run.
         unsafe {
-            self.channel.shared_mut()[SENDER_STATE].set_state(state::UNDEFINED);
+            shared_mut(&mut self.channel)[SENDER_STATE].set_state(state::UNDEFINED);
         }
     }
 }
@@ -241,7 +240,7 @@ impl<E> Drop for Sender<E> {
         // The Send future disables the transfer. By the time
         // this runs, we cannot be prempted by the DMA ISR.
         unsafe {
-            let shared = self.channel.shared_mut();
+            let shared = shared_mut(&mut self.channel);
             shared[SENDER_STATE].set_state(state::DROPPED);
             if let Some(waker) = shared[RECEIVER_STATE].waker.take() {
                 waker.wake();
@@ -261,7 +260,7 @@ impl<E: Copy + Unpin> Receiver<E> {
     /// Returns the transmitted data, or an [`Error`](../enum.Error.html) if the transfer failed.
     pub async fn receive(&mut self) -> Result<E> {
         unsafe {
-            self.channel.shared_mut()[RECEIVER_STATE].set_state(state::READY);
+            shared_mut(&mut self.channel)[RECEIVER_STATE].set_state(state::READY);
         }
         Receive {
             channel: &mut self.channel,
@@ -277,7 +276,7 @@ impl<'t, E: Copy + Unpin> Future for Receive<'t, E> {
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.get_mut();
         let (receiver_state, sender_state) = unsafe {
-            let shared = this.channel.shared();
+            let shared = shared(&this.channel);
             (shared[RECEIVER_STATE].state(), shared[SENDER_STATE].state())
         };
         match (receiver_state, sender_state) {
@@ -287,16 +286,14 @@ impl<'t, E: Copy + Unpin> Future for Receive<'t, E> {
                 let len = core::mem::size_of::<E>();
                 unsafe {
                     this.channel
-                        .set_destination_transfer(dma::Transfer::buffer_mut(
-                            core::slice::from_raw_parts_mut(data, len),
-                        ));
+                        .set_destination_transfer(&dma::Transfer::buffer_linear(data, len));
 
-                    let receiver_shared = &mut this.channel.shared_mut()[RECEIVER_STATE];
+                    let receiver_shared = &mut shared_mut(&mut this.channel)[RECEIVER_STATE];
                     receiver_shared.waker = Some(cx.waker().clone());
                     receiver_shared.set_state(state::PENDING);
                     atomic::compiler_fence(atomic::Ordering::Release);
                     if state::PENDING == sender_state {
-                        this.channel.set_enable(true);
+                        this.channel.enable();
                         this.channel.start();
                     }
 
@@ -312,11 +309,11 @@ impl<'t, E: Copy + Unpin> Future for Receive<'t, E> {
 
 impl<'t, E> Drop for Receive<'t, E> {
     fn drop(&mut self) {
-        self.channel.set_enable(false);
+        self.channel.disable();
         atomic::compiler_fence(atomic::Ordering::Release);
         // Safety: channel is disabled, so there is no ISR that can run.
         unsafe {
-            self.channel.shared_mut()[RECEIVER_STATE].set_state(state::UNDEFINED);
+            shared_mut(&mut self.channel)[RECEIVER_STATE].set_state(state::UNDEFINED);
         }
     }
 }
@@ -327,11 +324,23 @@ impl<E> Drop for Receiver<E> {
         // The Receive future disables the transfer. By the time
         // this runs, we cannot be prempted by the DMA ISR.
         unsafe {
-            let shared = self.channel.shared_mut();
+            let shared = shared_mut(&mut self.channel);
             shared[RECEIVER_STATE].set_state(state::DROPPED);
             if let Some(waker) = shared[SENDER_STATE].waker.take() {
                 waker.wake();
             }
         }
     }
+}
+
+use super::{interrupt, Channel};
+
+unsafe fn shared_mut(
+    channel: &mut Channel,
+) -> &'static mut [interrupt::Shared; interrupt::NUM_SHARED_STATES] {
+    &mut interrupt::SHARED_STATES[channel.channel()]
+}
+
+unsafe fn shared(channel: &Channel) -> &'static [interrupt::Shared; interrupt::NUM_SHARED_STATES] {
+    &interrupt::SHARED_STATES[channel.channel()]
 }

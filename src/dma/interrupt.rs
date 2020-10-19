@@ -294,13 +294,13 @@ impl<'c, F: FnMut(&mut Channel)> Future for Interrupt<'c, F> {
             state::READY => unsafe {
                 SHARED_STATES[this.channel.channel()][0].waker = Some(cx.waker().clone());
                 atomic::compiler_fence(atomic::Ordering::Release);
-                this.channel.set_enable(true);
+                this.channel.enable();
                 if this.channel.is_error() {
-                    this.channel.set_enable(false);
+                    this.channel.disable();
                     atomic::compiler_fence(atomic::Ordering::Acquire);
                     this.state = state::UNDEFINED;
                     SHARED_STATES[this.channel.channel()][0].waker = None;
-                    let es = super::ErrorStatus::new(this.channel.error_status());
+                    let es = this.channel.error_status();
                     this.channel.clear_error();
                     Poll::Ready(Err(Error::Setup(es)))
                 } else {
@@ -316,7 +316,7 @@ impl<'c, F: FnMut(&mut Channel)> Future for Interrupt<'c, F> {
 impl<'c, F: FnMut(&mut Channel)> Drop for Interrupt<'c, F> {
     fn drop(&mut self) {
         (self.on_drop)(&mut self.channel);
-        self.channel.set_enable(false);
+        self.channel.disable();
         self.channel.clear_complete();
         atomic::compiler_fence(atomic::Ordering::Release);
         unsafe {

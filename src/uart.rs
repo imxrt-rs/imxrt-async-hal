@@ -57,7 +57,7 @@ use core::fmt;
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "uart")))]
 pub struct UART<TX, RX> {
-    uart: ral::lpuart::Instance,
+    uart: DmaCapable,
     channel: dma::Channel,
     tx: TX,
     rx: RX,
@@ -90,7 +90,9 @@ where
         crate::iomuxc::uart::prepare(&mut rx);
 
         let mut uart = UART {
-            uart: uart.release(),
+            uart: DmaCapable {
+                uart: uart.release(),
+            },
             tx,
             rx,
             channel,
@@ -137,7 +139,7 @@ impl<TX, RX> UART<TX, RX> {
 
     /// Return the pins, RAL instance, and DMA channel that comprise the UART driver
     pub fn release(self) -> (TX, RX, ral::lpuart::Instance, dma::Channel) {
-        (self.tx, self.rx, self.uart, self.channel)
+        (self.tx, self.rx, self.uart.uart, self.channel)
     }
 
     /// Wait to receive a `buffer` of data
@@ -228,7 +230,20 @@ fn timings(effective_clock: u32, baud: u32) -> Result<Timings, Error> {
     })
 }
 
-impl dma::Destination<u8> for ral::lpuart::Instance {
+/// Adapter to support DMA peripheral traits
+/// on RAL LPSPI instances
+struct DmaCapable {
+    uart: ral::lpuart::Instance,
+}
+
+impl core::ops::Deref for DmaCapable {
+    type Target = ral::lpuart::Instance;
+    fn deref(&self) -> &Self::Target {
+        &self.uart
+    }
+}
+
+unsafe impl dma::Destination<u8> for DmaCapable {
     fn destination_signal(&self) -> u32 {
         // Make sure that the match expression will never hit the unreachable!() case.
         // The comments and conditional compiles show what we're currently considering in
@@ -237,7 +252,7 @@ impl dma::Destination<u8> for ral::lpuart::Instance {
         compile_error!("Ensure that LPUART DMAMUX TX channels are correct");
 
         // See table 4-3 of the iMXRT1060 Reference Manual (Rev 2)
-        match &**self as *const _ {
+        match &*self.uart as *const _ {
             // imxrt1010, imxrt1060
             ral::lpuart::LPUART1 => 2,
             // imxrt1010, imxrt1060
@@ -258,19 +273,19 @@ impl dma::Destination<u8> for ral::lpuart::Instance {
         }
     }
     fn destination(&self) -> *const u8 {
-        &self.DATA as *const _ as *const u8
+        &self.uart.DATA as *const _ as *const u8
     }
     fn enable_destination(&self) {
-        ral::modify_reg!(ral::lpuart, self, BAUD, TDMAE: 1);
+        ral::modify_reg!(ral::lpuart, self.uart, BAUD, TDMAE: 1);
     }
     fn disable_destination(&self) {
-        while ral::read_reg!(ral::lpuart, self, BAUD, TDMAE == 1) {
-            ral::modify_reg!(ral::lpuart, self, BAUD, TDMAE: 0);
+        while ral::read_reg!(ral::lpuart, self.uart, BAUD, TDMAE == 1) {
+            ral::modify_reg!(ral::lpuart, self.uart, BAUD, TDMAE: 0);
         }
     }
 }
 
-impl dma::Source<u8> for ral::lpuart::Instance {
+unsafe impl dma::Source<u8> for DmaCapable {
     fn source_signal(&self) -> u32 {
         // Make sure that the match expression will never hit the unreachable!() case.
         // The comments and conditional compiles show what we're currently considering in
@@ -279,7 +294,7 @@ impl dma::Source<u8> for ral::lpuart::Instance {
         compile_error!("Ensure that LPUART DMAMUX RX channels are correct");
 
         // See table 4-3 of the iMXRT1060 Reference Manual (Rev 2)
-        match &**self as *const _ {
+        match &*self.uart as *const _ {
             // imxrt1010, imxrt1060
             ral::lpuart::LPUART1 => 3,
             // imxrt1010, imxrt1060
@@ -300,13 +315,13 @@ impl dma::Source<u8> for ral::lpuart::Instance {
         }
     }
     fn source(&self) -> *const u8 {
-        &self.DATA as *const _ as *const u8
+        &self.uart.DATA as *const _ as *const u8
     }
     fn enable_source(&self) {
         // Clear all status flags
         ral::modify_reg!(
             ral::lpuart,
-            self,
+            self.uart,
             STAT,
             IDLE: IDLE_1,
             OR: OR_1,
@@ -314,11 +329,11 @@ impl dma::Source<u8> for ral::lpuart::Instance {
             FE: FE_1,
             PF: PF_1
         );
-        ral::modify_reg!(ral::lpuart, self, BAUD, RDMAE: 1);
+        ral::modify_reg!(ral::lpuart, self.uart, BAUD, RDMAE: 1);
     }
     fn disable_source(&self) {
-        while ral::read_reg!(ral::lpuart, self, BAUD, RDMAE == 1) {
-            ral::modify_reg!(ral::lpuart, self, BAUD, RDMAE: 0);
+        while ral::read_reg!(ral::lpuart, self.uart, BAUD, RDMAE == 1) {
+            ral::modify_reg!(ral::lpuart, self.uart, BAUD, RDMAE: 0);
         }
     }
 }

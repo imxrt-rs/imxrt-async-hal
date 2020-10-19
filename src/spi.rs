@@ -96,7 +96,7 @@ pub struct Pins<SDO, SDI, SCK, PCS0> {
 #[cfg_attr(docsrs, doc(cfg(feature = "spi")))]
 pub struct SPI<Pins> {
     pins: Pins,
-    spi: ral::lpspi::Instance,
+    spi: DmaCapable,
     tx_channel: dma::Channel,
     rx_channel: dma::Channel,
 }
@@ -139,7 +139,7 @@ where
 
         SPI {
             pins,
-            spi,
+            spi: DmaCapable { spi },
             tx_channel: channels.0,
             rx_channel: channels.1,
         }
@@ -154,7 +154,7 @@ where
         ral::lpspi::Instance,
         (dma::Channel, dma::Channel),
     ) {
-        (self.pins, self.spi, (self.tx_channel, self.rx_channel))
+        (self.pins, self.spi.spi, (self.tx_channel, self.rx_channel))
     }
 }
 
@@ -362,6 +362,19 @@ fn destination_signal(spi: &ral::lpspi::Instance) -> u32 {
     }
 }
 
+/// Adapter to support DMA peripheral traits
+/// on RAL LPSPI instances
+struct DmaCapable {
+    spi: ral::lpspi::Instance,
+}
+
+impl core::ops::Deref for DmaCapable {
+    type Target = ral::lpspi::Instance;
+    fn deref(&self) -> &Self::Target {
+        &self.spi
+    }
+}
+
 #[inline(always)]
 fn set_frame_size<Word>(spi: &ral::lpspi::Instance) {
     ral::modify_reg!(ral::lpspi, spi, TCR, FRAMESZ: ((core::mem::size_of::<Word>() * 8 - 1) as u32));
@@ -395,63 +408,63 @@ fn disable_destination(spi: &ral::lpspi::Instance) {
     }
 }
 
-impl dma::Source<u8> for ral::lpspi::Instance {
+unsafe impl dma::Source<u8> for DmaCapable {
     fn source_signal(&self) -> u32 {
-        source_signal(self)
+        source_signal(&self.spi)
     }
     fn source(&self) -> *const u8 {
-        &self.RDR as *const _ as *const u8
+        &self.spi.RDR as *const _ as *const u8
     }
     fn enable_source(&self) {
-        enable_source::<u8>(self);
+        enable_source::<u8>(&self.spi);
     }
     fn disable_source(&self) {
-        disable_source(self);
+        disable_source(&self.spi);
     }
 }
 
-impl dma::Destination<u8> for ral::lpspi::Instance {
+unsafe impl dma::Destination<u8> for DmaCapable {
     fn destination_signal(&self) -> u32 {
-        destination_signal(self)
+        destination_signal(&self.spi)
     }
     fn destination(&self) -> *const u8 {
-        &self.TDR as *const _ as *const u8
+        &self.spi.TDR as *const _ as *const u8
     }
     fn enable_destination(&self) {
-        enable_destination::<u8>(self);
+        enable_destination::<u8>(&self.spi);
     }
     fn disable_destination(&self) {
-        disable_destination(self);
+        disable_destination(&self.spi);
     }
 }
 
-impl dma::Source<u16> for ral::lpspi::Instance {
+unsafe impl dma::Source<u16> for DmaCapable {
     fn source_signal(&self) -> u32 {
-        source_signal(self)
+        source_signal(&self.spi)
     }
     fn source(&self) -> *const u16 {
-        &self.RDR as *const _ as *const u16
+        &self.spi.RDR as *const _ as *const u16
     }
     fn enable_source(&self) {
-        enable_source::<u16>(self);
+        enable_source::<u16>(&self.spi);
     }
     fn disable_source(&self) {
-        disable_source(self);
+        disable_source(&self.spi);
     }
 }
 
-impl dma::Destination<u16> for ral::lpspi::Instance {
+unsafe impl dma::Destination<u16> for DmaCapable {
     fn destination_signal(&self) -> u32 {
-        destination_signal(self)
+        destination_signal(&self.spi)
     }
     fn destination(&self) -> *const u16 {
-        &self.TDR as *const _ as *const u16
+        &self.spi.TDR as *const _ as *const u16
     }
     fn enable_destination(&self) {
-        enable_destination::<u16>(self);
+        enable_destination::<u16>(&self.spi);
     }
     fn disable_destination(&self) {
-        disable_destination(self);
+        disable_destination(&self.spi);
     }
 }
 

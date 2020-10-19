@@ -44,4 +44,4 @@ version = "0.1"
 opt-level = 0
 
 [patch.crates-io]
-imxrt-iomuxc = { rev = "14aa29e", git = "https://github.com/imxrt-rs/imxrt-rs" }
+imxrt-iomuxc = { path = "../../../core/imxrt-iomuxc" }
