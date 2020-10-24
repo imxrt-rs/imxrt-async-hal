@@ -35,7 +35,7 @@ fn main() -> ! {
         spi_clock,
         ..
     } = hal::ral::ccm::CCM::take()
-        .map(hal::ccm::CCM::from_ral_ccm)
+        .map(hal::ccm::CCM::from_ral)
         .unwrap();
     let mut gpt = hal::ral::gpt::GPT2::take().unwrap();
     let mut perclock = perclock.enable(&mut handle);

@@ -34,7 +34,7 @@ fn main() -> ! {
         uart_clock,
         ..
     } = hal::ral::ccm::CCM::take()
-        .map(hal::ccm::CCM::from_ral_ccm)
+        .map(hal::ccm::CCM::from_ral)
         .unwrap();
     let mut perclock = perclock.enable(&mut handle);
     perclock.clock_gate_gpt(&mut gpt, hal::ccm::ClockGate::On);
