@@ -68,7 +68,7 @@ use crate::{
 /// iomuxc::configure(&mut pads.ad_b1.p07, PINCONFIG);
 /// iomuxc::configure(&mut pads.ad_b1.p06, PINCONFIG);
 ///
-/// let mut ccm = CCM::take().map(ccm::CCM::new).unwrap();
+/// let mut ccm = CCM::take().map(ccm::CCM::from_ral).unwrap();
 /// let mut i2c_clock = ccm.i2c_clock.enable(&mut ccm.handle);
 /// let mut i2c3 = LPI2C3::take().and_then(hal::instance::i2c).unwrap();
 /// i2c_clock.clock_gate(&mut i2c3, ccm::ClockGate::On);
@@ -331,7 +331,7 @@ fn check_busy(i2c: &Instance) -> Result<(), Error> {
 ///     mut handle,
 ///     i2c_clock,
 ///     ..
-/// } = CCM::take().map(hal::ccm::CCM::new).unwrap();
+/// } = CCM::take().map(hal::ccm::CCM::from_ral).unwrap();
 /// let mut i2c_clock = i2c_clock.enable(&mut handle);
 /// let mut i2c2 = LPI2C2::take().unwrap();
 /// i2c_clock.clock_gate(&mut i2c2, hal::ccm::ClockGate::On);
@@ -347,7 +347,7 @@ struct ClockingWeakRalInstance;
 ///     mut handle,
 ///     i2c_clock,
 ///     ..
-/// } = CCM::take().map(hal::ccm::CCM::new).unwrap();
+/// } = CCM::take().map(hal::ccm::CCM::from_ral).unwrap();
 /// let mut i2c_clock = i2c_clock.enable(&mut handle);
 /// let mut i2c2: hal::instance::I2C<hal::iomuxc::consts::U2> = LPI2C2::take()
 ///     .and_then(hal::instance::i2c)

@@ -21,7 +21,7 @@ use core::{
 /// use hal::ral::{ccm, gpt};
 /// use hal::{ccm::{CCM, ClockGate}, GPT};
 ///
-/// let mut ccm = ccm::CCM::take().map(CCM::new).unwrap();
+/// let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();
 /// let mut perclock = ccm.perclock.enable(&mut ccm.handle);
 /// let mut gpt = gpt::GPT1::take().map(|mut gpt| {
 ///     perclock.clock_gate_gpt(&mut gpt, ClockGate::On);

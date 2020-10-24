@@ -26,7 +26,7 @@ use core::fmt;
 ///
 /// let pads = IOMUXC::take().map(iomuxc::new).unwrap();
 ///
-/// let mut ccm = CCM::take().map(ccm::CCM::new).unwrap();
+/// let mut ccm = CCM::take().map(ccm::CCM::from_ral).unwrap();
 /// let mut dma = DMA0::take().unwrap();
 /// ccm.handle.clock_gate_dma(&mut dma, ClockGate::On);
 /// let mut channels = dma::channels(
@@ -331,7 +331,7 @@ impl dma::Source<u8> for ral::lpuart::Instance {
 ///     mut handle,
 ///     uart_clock,
 ///     ..
-/// } = CCM::take().map(hal::ccm::CCM::new).unwrap();
+/// } = CCM::take().map(hal::ccm::CCM::from_ral).unwrap();
 /// let mut uart_clock = uart_clock.enable(&mut handle);
 /// let mut uart2 = LPUART2::take().unwrap();
 /// uart_clock.clock_gate(&mut uart2, hal::ccm::ClockGate::On);
@@ -347,7 +347,7 @@ struct ClockingWeakRalInstance;
 ///     mut handle,
 ///     uart_clock,
 ///     ..
-/// } = CCM::take().map(hal::ccm::CCM::new).unwrap();
+/// } = CCM::take().map(hal::ccm::CCM::from_ral).unwrap();
 /// let mut uart_clock = uart_clock.enable(&mut handle);
 /// let mut uart2: hal::instance::UART<hal::iomuxc::consts::U2> = LPUART2::take()
 ///     .and_then(hal::instance::uart)

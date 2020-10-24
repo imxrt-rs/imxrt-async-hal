@@ -61,7 +61,7 @@ pub struct Pins<SDO, SDI, SCK, PCS0> {
 ///
 /// let pads = IOMUXC::take().map(iomuxc::new).unwrap();
 ///
-/// let mut ccm = CCM::take().map(ccm::CCM::new).unwrap();
+/// let mut ccm = CCM::take().map(ccm::CCM::from_ral).unwrap();
 /// let mut dma = DMA0::take().unwrap();
 /// ccm.handle.clock_gate_dma(&mut dma, ClockGate::On);
 /// let mut channels = dma::channels(
@@ -463,7 +463,7 @@ impl dma::Destination<u16> for ral::lpspi::Instance {
 ///     mut handle,
 ///     spi_clock,
 ///     ..
-/// } = CCM::take().map(hal::ccm::CCM::new).unwrap();
+/// } = CCM::take().map(hal::ccm::CCM::from_ral).unwrap();
 /// let mut spi_clock = spi_clock.enable(&mut handle);
 /// let mut spi2 = LPSPI2::take().unwrap();
 /// spi_clock.clock_gate(&mut spi2, hal::ccm::ClockGate::On);
@@ -479,7 +479,7 @@ struct ClockingWeakRalInstance;
 ///     mut handle,
 ///     spi_clock,
 ///     ..
-/// } = CCM::take().map(hal::ccm::CCM::new).unwrap();
+/// } = CCM::take().map(hal::ccm::CCM::from_ral).unwrap();
 /// let mut spi_clock = spi_clock.enable(&mut handle);
 /// let mut spi2: hal::instance::SPI<hal::iomuxc::consts::U2> = LPSPI2::take()
 ///     .and_then(hal::instance::spi)

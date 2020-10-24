@@ -29,7 +29,7 @@ const CLOCK_PERIOD: Duration = Duration::from_micros(CLOCK_PERIOD_US as u64);
 /// use hal::ral::{ccm, pit};
 /// use hal::{ccm::{CCM, ClockGate}, PIT};
 ///
-/// let mut ccm = ccm::CCM::take().map(CCM::new).unwrap();
+/// let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();
 /// let mut perclock = ccm.perclock.enable(&mut ccm.handle);
 /// let (_, _, _, mut pit) = pit::PIT::take().map(|mut pit| {
 ///     perclock.clock_gate_pit(&mut pit, ClockGate::On);
