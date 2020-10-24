@@ -60,7 +60,7 @@ fn main() -> ! {
         perclock,
         i2c_clock,
         ..
-    } = CCM::take().map(ccm::CCM::new).unwrap();
+    } = CCM::take().map(ccm::CCM::from_ral_ccm).unwrap();
     let mut perclock = perclock.enable(&mut handle);
     let mut timer = GPT1::take()
         .map(|mut inst| {

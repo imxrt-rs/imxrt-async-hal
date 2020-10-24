@@ -17,7 +17,9 @@ fn main() -> ! {
     let pins = teensy4_pins::t40::into_pins(pads);
     let mut led = hal::gpio::GPIO::new(pins.p13).output();
 
-    let mut ccm = hal::ral::ccm::CCM::take().map(hal::ccm::CCM::new).unwrap();
+    let mut ccm = hal::ral::ccm::CCM::take()
+        .map(hal::ccm::CCM::from_ral_ccm)
+        .unwrap();
     let mut perclock = ccm.perclock.enable(&mut ccm.handle);
 
     let mut gpt = hal::ral::gpt::GPT1::take().unwrap();

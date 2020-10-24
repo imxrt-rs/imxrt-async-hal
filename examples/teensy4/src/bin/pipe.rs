@@ -32,7 +32,9 @@ fn main() -> ! {
         mut handle,
         perclock,
         ..
-    } = hal::ral::ccm::CCM::take().map(hal::ccm::CCM::new).unwrap();
+    } = hal::ral::ccm::CCM::take()
+        .map(hal::ccm::CCM::from_ral_ccm)
+        .unwrap();
     let mut perclock = perclock.enable(&mut handle);
     let mut timer = hal::GPT::new(
         hal::ral::gpt::GPT1::take()
