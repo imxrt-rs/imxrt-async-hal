@@ -47,7 +47,7 @@ pub struct GeneralPurposeTimer(ral::gpt::Instance);
 const DIVIDER: u32 = 5;
 
 /// GPT effective frequency
-const CLOCK_HZ: u32 = crate::ccm::PERCLOCK_FREQUENCY_HZ / DIVIDER;
+const CLOCK_HZ: u32 = crate::ccm::PERCLOCK_CLOCK_FREQUENCY_HZ / DIVIDER;
 const CLOCK_PERIOD_US: u32 = 1_000_000u32 / CLOCK_HZ;
 const _STATIC_ASSERT: [u32; 1] = [0; (CLOCK_PERIOD_US == 5) as usize];
 const CLOCK_PERIOD: Duration = Duration::from_micros(CLOCK_PERIOD_US as u64);

@@ -8,7 +8,7 @@ use core::{
     time::Duration,
 };
 
-const CLOCK_HZ: u32 = crate::ccm::PERCLOCK_FREQUENCY_HZ;
+const CLOCK_HZ: u32 = crate::ccm::PERCLOCK_CLOCK_FREQUENCY_HZ;
 const CLOCK_PERIOD_US: u32 = 1_000_000u32 / CLOCK_HZ;
 const _STATIC_ASSERT: [u32; 1] = [0; (CLOCK_PERIOD_US == 1) as usize];
 const CLOCK_PERIOD: Duration = Duration::from_micros(CLOCK_PERIOD_US as u64);

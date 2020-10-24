@@ -217,8 +217,8 @@ macro_rules! handler {
 pub mod ccm {
     pub use imxrt_ccm::{
         ral::{I2CClock, PerClock, SPIClock, UARTClock, CCM},
-        ClockGate, I2C_CLOCK_FREQUENCY_HZ, PERCLOCK_FREQUENCY_HZ, SPI_CLOCK_FREQUENCY_HZ, UART,
-        UART_CLOCK_FREQUENCY_HZ,
+        ClockGate, I2C_CLOCK_FREQUENCY_HZ, PERCLOCK_CLOCK_FREQUENCY_HZ, SPI_CLOCK_FREQUENCY_HZ,
+        UART, UART_CLOCK_FREQUENCY_HZ,
     };
 }
 #[cfg(any(feature = "pipe", feature = "spi", feature = "uart"))]
