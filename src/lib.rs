@@ -257,8 +257,7 @@ pub mod ccm {
 
     pub use imxrt_ccm::{
         ral::{I2CClock, PerClock, SPIClock, UARTClock, CCM},
-        ClockGate, I2C_CLOCK_FREQUENCY_HZ, PERCLOCK_CLOCK_FREQUENCY_HZ, SPI_CLOCK_FREQUENCY_HZ,
-        UART_CLOCK_FREQUENCY_HZ,
+        ClockGate,
     };
 }
 #[cfg(any(feature = "pipe", feature = "spi", feature = "uart"))]

@@ -9,8 +9,8 @@ use core::{
 
 /// General purpose timers (GPT)
 ///
-/// The timer ticks every **5us (200KHz)**. This may affect very precise timing.
-/// For a more precise timer, see [`PIT`](struct.PIT.html).
+/// The timer **divides the input clock by 5**. This may affect very precise
+/// timing. For a more precise timer, see [`PIT`](struct.PIT.html).
 ///
 /// # Example
 ///
@@ -34,7 +34,10 @@ use core::{
 /// # };
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "gpt")))]
-pub struct GeneralPurposeTimer(ral::gpt::Instance);
+pub struct GeneralPurposeTimer {
+    gpt: ral::gpt::Instance,
+    hz: u32,
+}
 
 /// GPT clock divider
 ///
@@ -46,15 +49,9 @@ pub struct GeneralPurposeTimer(ral::gpt::Instance);
 /// Can't find anything in the errata...
 const DIVIDER: u32 = 5;
 
-/// GPT effective frequency
-const CLOCK_HZ: u32 = crate::ccm::PERCLOCK_CLOCK_FREQUENCY_HZ / DIVIDER;
-const CLOCK_PERIOD_US: u32 = 1_000_000u32 / CLOCK_HZ;
-const _STATIC_ASSERT: [u32; 1] = [0; (CLOCK_PERIOD_US == 5) as usize];
-const CLOCK_PERIOD: Duration = Duration::from_micros(CLOCK_PERIOD_US as u64);
-
 impl GeneralPurposeTimer {
     /// Create a new `GPT` from a RAL GPT instance
-    pub fn new(gpt: ral::gpt::Instance, _: &crate::ccm::PerClock) -> Self {
+    pub fn new(gpt: ral::gpt::Instance, clock: &crate::ccm::PerClock) -> Self {
         let irq = match &*gpt as *const _ {
             ral::gpt::GPT1 => ral::interrupt::GPT1,
             ral::gpt::GPT2 => ral::interrupt::GPT2,
@@ -85,12 +82,15 @@ impl GeneralPurposeTimer {
         );
 
         unsafe { cortex_m::peripheral::NVIC::unmask(irq) };
-        GeneralPurposeTimer(gpt)
+        GeneralPurposeTimer {
+            gpt,
+            hz: clock.frequency() / DIVIDER,
+        }
     }
 
     /// Wait for the specified `duration` to elapse
     ///
-    /// If the microseconds represented by the duration cannot be represented by a `u32`, the
+    /// If the microseconds represented by the duration cannot fit in a `u32`, the
     /// delay will saturate at `u32::max_value()` microseconds.
     pub async fn delay(&mut self, duration: Duration) {
         use core::convert::TryFrom;
@@ -99,12 +99,12 @@ impl GeneralPurposeTimer {
     }
     /// Wait for `microseconds` to elapse
     pub async fn delay_us(&mut self, microseconds: u32) {
-        Delay::new(&self.0, microseconds).await
+        Delay::new(&self.gpt, microseconds, self.hz).await
     }
 
-    /// Returns the `GPT` clock period: 5us
-    pub const fn clock_period(&self) -> Duration {
-        CLOCK_PERIOD
+    /// Returns the `GPT` clock period
+    pub fn clock_period(&self) -> Duration {
+        Duration::from_micros((1_000_000 / self.hz) as u64)
     }
 }
 
@@ -128,7 +128,7 @@ fn disable_interrupt(gpt: &ral::gpt::Instance) {
 
 enum State {
     Expired,
-    Ready { us: u32 },
+    Ready { ns: u32 },
     Waiting(Waker),
 }
 
@@ -137,7 +137,9 @@ impl State {
         State::Expired
     }
     fn ready(&mut self, us: u32) {
-        *self = State::Ready { us };
+        *self = State::Ready {
+            ns: us.saturating_mul(1_000),
+        };
     }
 }
 
@@ -154,19 +156,21 @@ fn state(gpt: &ral::gpt::Instance) -> &'static mut State {
 /// A future that waits for the timer to elapse
 struct Delay<'a> {
     gpt: &'a ral::gpt::Instance,
+    hz: u32,
 }
 
 impl<'a> Delay<'a> {
-    fn new(gpt: &'a ral::gpt::Instance, us: u32) -> Self {
+    fn new(gpt: &'a ral::gpt::Instance, us: u32, hz: u32) -> Self {
         state(gpt).ready(us);
-        Delay { gpt }
+        Delay { gpt, hz }
     }
 }
 
 impl<'a> Delay<'a> {
-    fn set_delay(&self, delay: u32) {
-        let ticks = delay
-            .checked_div(CLOCK_PERIOD_US)
+    fn set_delay(&self, delay_ns: u32) {
+        let period_ns = 1_000_000_000 / self.hz;
+        let ticks = delay_ns
+            .checked_div(period_ns)
             .unwrap_or(0)
             .saturating_sub(1);
         let current_tick = ral::read_reg!(ral::gpt, self.gpt, CNT);
@@ -180,8 +184,8 @@ impl<'a> Future for Delay<'a> {
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let state = state(&self.gpt);
         match state {
-            State::Ready { us } => {
-                self.set_delay(*us);
+            State::Ready { ns } => {
+                self.set_delay(*ns);
                 *state = State::Waiting(cx.waker().clone());
                 atomic::compiler_fence(atomic::Ordering::Release);
                 enable_interrupt(&self.gpt);
