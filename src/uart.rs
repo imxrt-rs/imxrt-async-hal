@@ -61,6 +61,7 @@ pub struct UART<TX, RX> {
     channel: dma::Channel,
     tx: TX,
     rx: RX,
+    hz: u32,
 }
 
 impl<TX, RX> fmt::Debug for UART<TX, RX> {
@@ -84,7 +85,7 @@ where
         mut tx: TX,
         mut rx: RX,
         channel: dma::Channel,
-        _: &crate::ccm::UARTClock,
+        clock: &crate::ccm::UARTClock,
     ) -> UART<TX, RX> {
         crate::iomuxc::uart::prepare(&mut tx);
         crate::iomuxc::uart::prepare(&mut rx);
@@ -94,6 +95,7 @@ where
             tx,
             rx,
             channel,
+            hz: clock.frequency(),
         };
         let _ = uart.set_baud(9600);
         ral::modify_reg!(ral::lpuart, uart.uart, CTRL, TE: TE_1, RE: RE_1);
@@ -106,7 +108,7 @@ impl<TX, RX> UART<TX, RX> {
     ///
     /// If there is an error, the error is [`Error::Clock`](enum.UARTError.html#variant.Clock).
     pub fn set_baud(&mut self, baud: u32) -> Result<(), Error> {
-        let timings = timings(UART_CLOCK, baud)?;
+        let timings = timings(self.hz, baud)?;
         self.while_disabled(|this| {
             ral::modify_reg!(
                 ral::lpuart,
@@ -156,8 +158,6 @@ impl<TX, RX> UART<TX, RX> {
         Ok(len)
     }
 }
-
-const UART_CLOCK: u32 = crate::ccm::UART_CLOCK_FREQUENCY_HZ;
 
 /// An opaque type that describes timing configurations
 struct Timings {

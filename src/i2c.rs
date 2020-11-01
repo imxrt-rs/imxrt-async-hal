@@ -88,6 +88,7 @@ pub struct I2C<SCL, SDA> {
     i2c: Instance,
     scl: SCL,
     sda: SDA,
+    hz: u32,
 }
 
 impl<SCL, SDA, M> I2C<SCL, SDA>
@@ -104,7 +105,7 @@ where
         i2c: crate::instance::I2C<M>,
         mut scl: SCL,
         mut sda: SDA,
-        _: &crate::ccm::I2CClock,
+        clock: &crate::ccm::I2CClock,
     ) -> Self {
         iomuxc::i2c::prepare(&mut scl);
         iomuxc::i2c::prepare(&mut sda);
@@ -115,7 +116,7 @@ where
         ral::write_reg!(ral::lpi2c, i2c, MCR, RST: RST_0);
         // Should already be disabled, but just in case...
         while_disabled(&i2c, |i2c| {
-            clock::set_speed(ClockSpeed::KHz100, i2c);
+            clock::set_speed(ClockSpeed::KHz100, clock.frequency(), i2c);
         });
         ral::write_reg!(ral::lpi2c, i2c, MFCR, TXWATER: 3, RXWATER: 0);
         ral::modify_reg!(ral::lpi2c, i2c, MCR, MEN: MEN_1);
@@ -135,7 +136,12 @@ where
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::LPI2C4);
         });
 
-        I2C { i2c, scl, sda }
+        I2C {
+            i2c,
+            scl,
+            sda,
+            hz: clock.frequency(),
+        }
     }
 }
 
@@ -179,7 +185,7 @@ impl<SCL, SDA> I2C<SCL, SDA> {
     /// If there is an error, error variant is [`I2CError::ClockSpeed`](enum.I2CError.html#variant.ClockSpeed).
     pub fn set_clock_speed(&mut self, clock_speed: ClockSpeed) -> Result<(), Error> {
         while_disabled(&self.i2c, |i2c| {
-            clock::set_speed(clock_speed, i2c);
+            clock::set_speed(clock_speed, self.hz, i2c);
         });
         Ok(())
     }
