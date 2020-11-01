@@ -24,7 +24,7 @@ use core::{
 /// let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();
 /// let mut perclock = ccm.perclock.enable(&mut ccm.handle);
 /// let mut gpt = gpt::GPT1::take().map(|mut gpt| {
-///     perclock.clock_gate_gpt(&mut gpt, ClockGate::On);
+///     perclock.set_clock_gate_gpt(&mut gpt, ClockGate::On);
 ///     GPT::new(gpt, &perclock)
 /// }).unwrap();
 ///

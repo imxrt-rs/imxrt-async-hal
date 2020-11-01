@@ -28,7 +28,7 @@ use core::{
 /// let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();
 /// let mut perclock = ccm.perclock.enable(&mut ccm.handle);
 /// let (_, _, _, mut pit) = pit::PIT::take().map(|mut pit| {
-///     perclock.clock_gate_pit(&mut pit, ClockGate::On);
+///     perclock.set_clock_gate_pit(&mut pit, ClockGate::On);
 ///     PIT::new(pit, &perclock)
 /// }).unwrap();
 ///

@@ -40,13 +40,13 @@ fn main() -> ! {
     let mut gpt = hal::ral::gpt::GPT2::take().unwrap();
     let mut perclock = perclock.enable(&mut handle);
     let mut spi_clock = spi_clock.enable(&mut handle);
-    perclock.clock_gate_gpt(&mut gpt, hal::ccm::ClockGate::On);
+    perclock.set_clock_gate_gpt(&mut gpt, hal::ccm::ClockGate::On);
 
     let mut timer = hal::GPT::new(gpt, &perclock);
     let mut channels = hal::dma::channels(
         hal::ral::dma0::DMA0::take()
             .map(|mut dma| {
-                handle.clock_gate_dma(&mut dma, hal::ccm::ClockGate::On);
+                handle.set_clock_gate_dma(&mut dma, hal::ccm::ClockGate::On);
                 dma
             })
             .unwrap(),
@@ -56,7 +56,7 @@ fn main() -> ! {
     let mut spi4 = hal::ral::lpspi::LPSPI4::take()
         .and_then(hal::instance::spi)
         .unwrap();
-    spi_clock.clock_gate(&mut spi4, hal::ccm::ClockGate::On);
+    spi_clock.set_clock_gate(&mut spi4, hal::ccm::ClockGate::On);
     let pins = hal::SPIPins {
         sdo: pins.p11,
         sdi: pins.p12,

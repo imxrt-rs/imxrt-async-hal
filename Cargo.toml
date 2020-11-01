@@ -23,7 +23,7 @@ optional = true
 [dependencies.imxrt-ccm]
 features = ["imxrt-ral"]
 git = "https://github.com/imxrt-rs/imxrt-ccm.git"
-rev = "f52c621"
+rev = "0c93478"
 
 [dependencies.futures]
 version = "0.3"

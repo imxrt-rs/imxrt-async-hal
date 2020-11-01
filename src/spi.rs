@@ -63,7 +63,7 @@ pub struct Pins<SDO, SDI, SCK, PCS0> {
 ///
 /// let mut ccm = CCM::take().map(ccm::CCM::from_ral).unwrap();
 /// let mut dma = DMA0::take().unwrap();
-/// ccm.handle.clock_gate_dma(&mut dma, ClockGate::On);
+/// ccm.handle.set_clock_gate_dma(&mut dma, ClockGate::On);
 /// let mut channels = dma::channels(
 ///     dma,
 ///     DMAMUX::take().unwrap(),
@@ -77,7 +77,7 @@ pub struct Pins<SDO, SDI, SCK, PCS0> {
 ///     pcs0: pads.b0.p00,
 /// };
 /// let mut spi4 = LPSPI4::take().and_then(instance::spi).unwrap();
-/// spi_clock.clock_gate(&mut spi4, ClockGate::On);
+/// spi_clock.set_clock_gate(&mut spi4, ClockGate::On);
 /// let mut spi = SPI::new(
 ///     spi_pins,
 ///     spi4,
@@ -467,7 +467,7 @@ impl dma::Destination<u16> for ral::lpspi::Instance {
 /// } = CCM::take().map(hal::ccm::CCM::from_ral).unwrap();
 /// let mut spi_clock = spi_clock.enable(&mut handle);
 /// let mut spi2 = LPSPI2::take().unwrap();
-/// spi_clock.clock_gate(&mut spi2, hal::ccm::ClockGate::On);
+/// spi_clock.set_clock_gate(&mut spi2, hal::ccm::ClockGate::On);
 /// ```
 #[cfg(doctest)]
 struct ClockingWeakRalInstance;
@@ -485,7 +485,7 @@ struct ClockingWeakRalInstance;
 /// let mut spi2: hal::instance::SPI<hal::iomuxc::consts::U2> = LPSPI2::take()
 ///     .and_then(hal::instance::spi)
 ///     .unwrap();
-/// spi_clock.clock_gate(&mut spi2, hal::ccm::ClockGate::On);
+/// spi_clock.set_clock_gate(&mut spi2, hal::ccm::ClockGate::On);
 /// ```
 #[cfg(doctest)]
 struct ClockingStrongHalInstance;
