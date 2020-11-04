@@ -68,10 +68,10 @@ use crate::{
 /// iomuxc::configure(&mut pads.ad_b1.p07, PINCONFIG);
 /// iomuxc::configure(&mut pads.ad_b1.p06, PINCONFIG);
 ///
-/// let mut ccm = CCM::take().map(ccm::CCM::new).unwrap();
+/// let mut ccm = CCM::take().map(ccm::CCM::from_ral).unwrap();
 /// let mut i2c_clock = ccm.i2c_clock.enable(&mut ccm.handle);
 /// let mut i2c3 = LPI2C3::take().and_then(hal::instance::i2c).unwrap();
-/// i2c_clock.clock_gate(&mut i2c3, ccm::ClockGate::On);
+/// i2c_clock.set_clock_gate(&mut i2c3, ccm::ClockGate::On);
 ///
 /// let mut i2c = I2C::new(i2c3, pads.ad_b1.p07, pads.ad_b1.p06, &i2c_clock);
 /// i2c.set_clock_speed(I2CClockSpeed::KHz400).unwrap();
@@ -88,6 +88,7 @@ pub struct I2C<SCL, SDA> {
     i2c: Instance,
     scl: SCL,
     sda: SDA,
+    hz: u32,
 }
 
 impl<SCL, SDA, M> I2C<SCL, SDA>
@@ -104,7 +105,7 @@ where
         i2c: crate::instance::I2C<M>,
         mut scl: SCL,
         mut sda: SDA,
-        _: &crate::ccm::I2CClock,
+        clock: &crate::ccm::I2CClock,
     ) -> Self {
         iomuxc::i2c::prepare(&mut scl);
         iomuxc::i2c::prepare(&mut sda);
@@ -115,7 +116,7 @@ where
         ral::write_reg!(ral::lpi2c, i2c, MCR, RST: RST_0);
         // Should already be disabled, but just in case...
         while_disabled(&i2c, |i2c| {
-            clock::set_speed(ClockSpeed::KHz100, i2c);
+            clock::set_speed(ClockSpeed::KHz100, clock.frequency(), i2c);
         });
         ral::write_reg!(ral::lpi2c, i2c, MFCR, TXWATER: 3, RXWATER: 0);
         ral::modify_reg!(ral::lpi2c, i2c, MCR, MEN: MEN_1);
@@ -135,7 +136,12 @@ where
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::LPI2C4);
         });
 
-        I2C { i2c, scl, sda }
+        I2C {
+            i2c,
+            scl,
+            sda,
+            hz: clock.frequency(),
+        }
     }
 }
 
@@ -179,7 +185,7 @@ impl<SCL, SDA> I2C<SCL, SDA> {
     /// If there is an error, error variant is [`I2CError::ClockSpeed`](enum.I2CError.html#variant.ClockSpeed).
     pub fn set_clock_speed(&mut self, clock_speed: ClockSpeed) -> Result<(), Error> {
         while_disabled(&self.i2c, |i2c| {
-            clock::set_speed(clock_speed, i2c);
+            clock::set_speed(clock_speed, self.hz, i2c);
         });
         Ok(())
     }
@@ -331,10 +337,10 @@ fn check_busy(i2c: &Instance) -> Result<(), Error> {
 ///     mut handle,
 ///     i2c_clock,
 ///     ..
-/// } = CCM::take().map(hal::ccm::CCM::new).unwrap();
+/// } = CCM::take().map(hal::ccm::CCM::from_ral).unwrap();
 /// let mut i2c_clock = i2c_clock.enable(&mut handle);
 /// let mut i2c2 = LPI2C2::take().unwrap();
-/// i2c_clock.clock_gate(&mut i2c2, hal::ccm::ClockGate::On);
+/// i2c_clock.set_clock_gate(&mut i2c2, hal::ccm::ClockGate::On);
 /// ```
 #[cfg(doctest)]
 struct ClockingWeakRalInstance;
@@ -347,12 +353,12 @@ struct ClockingWeakRalInstance;
 ///     mut handle,
 ///     i2c_clock,
 ///     ..
-/// } = CCM::take().map(hal::ccm::CCM::new).unwrap();
+/// } = CCM::take().map(hal::ccm::CCM::from_ral).unwrap();
 /// let mut i2c_clock = i2c_clock.enable(&mut handle);
 /// let mut i2c2: hal::instance::I2C<hal::iomuxc::consts::U2> = LPI2C2::take()
 ///     .and_then(hal::instance::i2c)
 ///     .unwrap();
-/// i2c_clock.clock_gate(&mut i2c2, hal::ccm::ClockGate::On);
+/// i2c_clock.set_clock_gate(&mut i2c2, hal::ccm::ClockGate::On);
 /// ```
 #[cfg(doctest)]
 struct ClockingStrongHalInstance;

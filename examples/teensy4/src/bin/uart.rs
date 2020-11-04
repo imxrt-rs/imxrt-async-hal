@@ -33,15 +33,17 @@ fn main() -> ! {
         perclock,
         uart_clock,
         ..
-    } = hal::ral::ccm::CCM::take().map(hal::ccm::CCM::new).unwrap();
+    } = hal::ral::ccm::CCM::take()
+        .map(hal::ccm::CCM::from_ral)
+        .unwrap();
     let mut perclock = perclock.enable(&mut handle);
-    perclock.clock_gate_gpt(&mut gpt, hal::ccm::ClockGate::On);
+    perclock.set_clock_gate_gpt(&mut gpt, hal::ccm::ClockGate::On);
 
     let mut timer = hal::GPT::new(gpt, &perclock);
     let mut channels = hal::dma::channels(
         hal::ral::dma0::DMA0::take()
             .map(|mut dma| {
-                handle.clock_gate_dma(&mut dma, hal::ccm::ClockGate::On);
+                handle.set_clock_gate_dma(&mut dma, hal::ccm::ClockGate::On);
                 dma
             })
             .unwrap(),
@@ -51,7 +53,7 @@ fn main() -> ! {
     let mut uart_clock = uart_clock.enable(&mut handle);
     let uart2 = hal::ral::lpuart::LPUART2::take()
         .map(|mut inst| {
-            uart_clock.clock_gate(&mut inst, hal::ccm::ClockGate::On);
+            uart_clock.set_clock_gate(&mut inst, hal::ccm::ClockGate::On);
             inst
         })
         .and_then(hal::instance::uart)

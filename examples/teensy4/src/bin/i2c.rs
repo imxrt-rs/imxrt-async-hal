@@ -60,17 +60,17 @@ fn main() -> ! {
         perclock,
         i2c_clock,
         ..
-    } = CCM::take().map(ccm::CCM::new).unwrap();
+    } = CCM::take().map(ccm::CCM::from_ral).unwrap();
     let mut perclock = perclock.enable(&mut handle);
     let mut timer = GPT1::take()
         .map(|mut inst| {
-            perclock.clock_gate_gpt(&mut inst, ccm::ClockGate::On);
+            perclock.set_clock_gate_gpt(&mut inst, ccm::ClockGate::On);
             GPT::new(inst, &perclock)
         })
         .unwrap();
     let mut i2c_clock = i2c_clock.enable(&mut handle);
     let mut i2c3 = LPI2C3::take().and_then(hal::instance::i2c).unwrap();
-    i2c_clock.clock_gate(&mut i2c3, hal::ccm::ClockGate::On);
+    i2c_clock.set_clock_gate(&mut i2c3, hal::ccm::ClockGate::On);
     let mut i2c = I2C::new(i2c3, pins.p16, pins.p17, &i2c_clock);
     i2c.set_clock_speed(CLOCK_SPEED).unwrap();
 

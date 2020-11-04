@@ -81,19 +81,19 @@
 //!     perclock,
 //!     uart_clock,
 //!     ..
-//! } = hal::ral::ccm::CCM::take().map(hal::ccm::CCM::new).unwrap();
+//! } = hal::ral::ccm::CCM::take().map(hal::ccm::CCM::from_ral).unwrap();
 //!
 //! let mut gpt = hal::ral::gpt::GPT2::take().unwrap();
 //! // Enable the periodic clock for the GPT
 //! let mut perclock = perclock.enable(&mut handle);
-//! perclock.clock_gate_gpt(&mut gpt, hal::ccm::ClockGate::On);
+//! perclock.set_clock_gate_gpt(&mut gpt, hal::ccm::ClockGate::On);
 //! let mut timer = hal::GPT::new(gpt, &perclock);
 //!
 //! // Acquire DMA channels, which are used to schedule UART transfers
 //! let mut channels = hal::dma::channels(
 //!     hal::ral::dma0::DMA0::take()
 //!         .map(|mut dma| {
-//!             handle.clock_gate_dma(&mut dma, hal::ccm::ClockGate::On);
+//!             handle.set_clock_gate_dma(&mut dma, hal::ccm::ClockGate::On);
 //!             dma
 //!         })
 //!         .unwrap(),
@@ -104,7 +104,7 @@
 //! let mut uart_clock = uart_clock.enable(&mut handle);
 //! let uart2 = hal::ral::lpuart::LPUART2::take()
 //!     .map(|mut inst| {
-//!         uart_clock.clock_gate(&mut inst, hal::ccm::ClockGate::On);
+//!         uart_clock.set_clock_gate(&mut inst, hal::ccm::ClockGate::On);
 //!         inst
 //!     })
 //!     .and_then(hal::instance::uart)
@@ -214,7 +214,52 @@ macro_rules! handler {
 //
 // Modules
 //
-pub mod ccm;
+pub mod ccm {
+    //! Clock control module (CCM)
+    //!
+    //! The clocks and types exposed in `ccm` support clock control and peripheral clock
+    //! gating. Use [`CCM::from_ral`](type.CCM.html) to acquire the clock roots and the
+    //! CCM handle. Then, enable your clocks.
+    //!
+    //! ```no_run
+    //! use imxrt_async_hal as hal;
+    //! use hal::{ccm, ral};
+    //!
+    //! let ccm::CCM {
+    //!     mut handle,
+    //!     uart_clock,
+    //!     ..
+    //! } = ral::ccm::CCM::take().map(ccm::CCM::from_ral).unwrap();
+    //!
+    //! let mut uart_clock = uart_clock.enable(&mut handle);
+    //! ```
+    //!
+    //! Clocks can enable peripheral clock gates, and they may be used in APIs that require
+    //! you to first initialize clocks.
+    //!
+    //! ```no_run
+    //! # use imxrt_async_hal as hal;
+    //! # use hal::{ccm, ral};
+    //! # let ccm::CCM {
+    //! #     mut handle,
+    //! #     uart_clock,
+    //! #     ..
+    //! # } = ral::ccm::CCM::take().map(ccm::CCM::from_ral).unwrap();
+    //! # let mut uart_clock = uart_clock.enable(&mut handle);
+    //! type UART2 = hal::instance::UART<hal::iomuxc::consts::U2>;
+    //! let mut lpuart2: UART2 = ral::lpuart::LPUART2::take().and_then(hal::instance::uart).unwrap();
+    //!
+    //! // Enable the clock gate:
+    //! uart_clock.set_clock_gate(&mut lpuart2, ccm::ClockGate::On);
+    //!
+    //! // Create the peripheral... see UART documentation for more information.
+    //! ```
+
+    pub use imxrt_ccm::{
+        ral::{I2CClock, PerClock, SPIClock, UARTClock, CCM},
+        ClockGate,
+    };
+}
 #[cfg(any(feature = "pipe", feature = "spi", feature = "uart"))]
 #[cfg_attr(
     docsrs,

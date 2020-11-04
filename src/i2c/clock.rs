@@ -2,8 +2,6 @@
 
 use crate::ral::{self, lpi2c::Instance};
 
-const I2C_CLOCK_HZ: u32 = crate::ccm::I2CClock::frequency();
-
 /// I2C clock speed
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(docsrs, doc(cfg(feature = "i2c")))]
@@ -17,7 +15,7 @@ pub enum ClockSpeed {
 /// Commit the clock speed to the I2C peripheral
 ///
 /// Should only be called while the I2C peripheral is disabled.
-pub fn set_speed(clock_speed: ClockSpeed, reg: &Instance) {
+pub fn set_speed(clock_speed: ClockSpeed, base_hz: u32, reg: &Instance) {
     // Baud rate = (source_clock/2^prescale)/(CLKLO+1+CLKHI+1 + FLOOR((2+FILTSCL)/2^prescale)
     // Assume CLKLO = 2*CLKHI, SETHOLD = CLKHI, DATAVD = CLKHI/2, FILTSCL = FILTSDA = 0,
     // and that risetime is negligible (less than 1 cycle).
@@ -52,12 +50,12 @@ pub fn set_speed(clock_speed: ClockSpeed, reg: &Instance) {
             // See below for justification on magic numbers.
             // In the 1 == clkhi case, the + 3 is the minimum allowable CLKLO value
             // + 1 is CLKHI itself
-            (I2C_CLOCK_HZ / divider) / ((1 + 3 + 2) + 2 / divider)
+            (base_hz / divider) / ((1 + 3 + 2) + 2 / divider)
         } else {
             // CLKLO = 2 * CLKHI, allows us to do 3 * CLKHI
             // + 2 accounts for the CLKLOW + 1 and CLKHI + 1
             // + 2 accounts for the FLOOR((2 + FILTSCL)) factor
-            (I2C_CLOCK_HZ / divider) / ((3 * clkhi + 2) + 2 / divider)
+            (base_hz / divider) / ((3 * clkhi + 2) + 2 / divider)
         };
         let error = cmp::max(computed_rate, baud_rate) - cmp::min(computed_rate, baud_rate);
         ByError {

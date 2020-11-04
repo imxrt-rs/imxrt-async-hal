@@ -13,13 +13,18 @@ Async peripherals for NXP iMX RT processors.
 
 [dependencies]
 cortex-m = "0.6"
-imxrt-dma = { path = "../core/imxrt-dma" }
-imxrt-iomuxc = { path = "../core/imxrt-iomuxc" }
+imxrt-dma = { path = "../dma" }
+imxrt-iomuxc = { rev = "14aa29e", git = "https://github.com/imxrt-rs/imxrt-rs" }
 imxrt-ral = "0.4"
 
 [target.thumbv7em-none-eabihf.dependencies.cortex-m-rt]
 version = "0.6"
 optional = true
+
+[dependencies.imxrt-ccm]
+features = ["imxrt-ral"]
+git = "https://github.com/imxrt-rs/imxrt-ccm.git"
+rev = "0c93478"
 
 [dependencies.futures]
 version = "0.3"
@@ -39,8 +44,8 @@ default = ["gpio", "gpt", "i2c", "pipe", "pit", "spi", "uart"]
 # Runtime features
 rt = ["imxrt-ral/rt", "cortex-m-rt/device"]
 # Chip variant features
-imxrt1010 = ["imxrt-iomuxc/imxrt101x", "imxrt-ral/imxrt1011"]
-imxrt1060 = ["imxrt-iomuxc/imxrt106x", "imxrt-ral/imxrt1062"]
+imxrt1010 = ["imxrt-iomuxc/imxrt101x", "imxrt-ral/imxrt1011", "imxrt-ccm/imxrt1010"]
+imxrt1060 = ["imxrt-iomuxc/imxrt106x", "imxrt-ral/imxrt1062", "imxrt-ccm/imxrt1060"]
 
 
 # Don't optimize build dependencies, like proc macros.

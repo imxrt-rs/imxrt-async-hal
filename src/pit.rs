@@ -8,14 +8,10 @@ use core::{
     time::Duration,
 };
 
-const CLOCK_HZ: u32 = crate::ccm::PerClock::frequency();
-const CLOCK_PERIOD_US: u32 = 1_000_000u32 / CLOCK_HZ;
-const _STATIC_ASSERT: [u32; 1] = [0; (CLOCK_PERIOD_US == 1) as usize];
-const CLOCK_PERIOD: Duration = Duration::from_micros(CLOCK_PERIOD_US as u64);
-
 /// Periodic interrupt timer (PIT)
 ///
-/// The PIT timer channels are the most precise timers in the HAL. PIT timers tick every **1us (1MHz)**.
+/// The PIT timer channels are the most precise timers in the HAL. PIT timers run on the periodic clock
+/// frequency.
 ///
 /// A single hardware PIT instance has four PIT channels. Use [`new`](#method.new) to acquire these four
 /// channels.
@@ -29,10 +25,10 @@ const CLOCK_PERIOD: Duration = Duration::from_micros(CLOCK_PERIOD_US as u64);
 /// use hal::ral::{ccm, pit};
 /// use hal::{ccm::{CCM, ClockGate}, PIT};
 ///
-/// let mut ccm = ccm::CCM::take().map(CCM::new).unwrap();
+/// let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();
 /// let mut perclock = ccm.perclock.enable(&mut ccm.handle);
 /// let (_, _, _, mut pit) = pit::PIT::take().map(|mut pit| {
-///     perclock.clock_gate_pit(&mut pit, ClockGate::On);
+///     perclock.set_clock_gate_pit(&mut pit, ClockGate::On);
 ///     PIT::new(pit, &perclock)
 /// }).unwrap();
 ///
@@ -41,32 +37,51 @@ const CLOCK_PERIOD: Duration = Duration::from_micros(CLOCK_PERIOD_US as u64);
 /// # };
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "pit")))]
-pub struct PeriodicTimer(register::ChannelInstance);
+pub struct PeriodicTimer {
+    channel: register::ChannelInstance,
+    hz: u32,
+}
 
 impl PeriodicTimer {
     /// Acquire four PIT channels from the RAL's PIT instance
     pub fn new(
         pit: ral::pit::Instance,
-        _: &crate::ccm::PerClock,
+        clock: &crate::ccm::PerClock,
     ) -> (PeriodicTimer, PeriodicTimer, PeriodicTimer, PeriodicTimer) {
         ral::write_reg!(ral::pit, pit, MCR, MDIS: MDIS_0);
         unsafe {
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::PIT);
+            let hz = clock.frequency();
             (
-                PeriodicTimer(register::ChannelInstance::zero()),
-                PeriodicTimer(register::ChannelInstance::one()),
-                PeriodicTimer(register::ChannelInstance::two()),
-                PeriodicTimer(register::ChannelInstance::three()),
+                PeriodicTimer {
+                    channel: register::ChannelInstance::zero(),
+                    hz,
+                },
+                PeriodicTimer {
+                    channel: register::ChannelInstance::one(),
+                    hz,
+                },
+                PeriodicTimer {
+                    channel: register::ChannelInstance::two(),
+                    hz,
+                },
+                PeriodicTimer {
+                    channel: register::ChannelInstance::three(),
+                    hz,
+                },
             )
         }
     }
     /// Wait for `microseconds` to elapse
     pub async fn delay_us(&mut self, microseconds: u32) {
         unsafe {
-            STATES[self.0.index()].0 = State::Ready { us: microseconds };
+            STATES[self.channel.index()].0 = State::Ready {
+                ns: microseconds.saturating_mul(1_000),
+            };
         }
         Delay {
-            channel: &mut self.0,
+            channel: &mut self.channel,
+            hz: self.hz,
         }
         .await
     }
@@ -80,16 +95,16 @@ impl PeriodicTimer {
             .await
     }
 
-    /// Returns the PIT clock period: 1us
-    pub const fn clock_period(&self) -> Duration {
-        CLOCK_PERIOD
+    /// Returns the PIT clock period
+    pub fn clock_period(&self) -> Duration {
+        Duration::from_nanos((1_000_000_000 / self.hz) as u64)
     }
 }
 
 #[derive(Clone, Copy)]
 enum State {
     Unknown,
-    Ready { us: u32 },
+    Ready { ns: u32 },
     Pending,
     Complete,
 }
@@ -103,12 +118,14 @@ static mut STATES: [(State, Option<Waker>); 4] = [
 
 struct Delay<'a> {
     channel: &'a mut register::ChannelInstance,
+    hz: u32,
 }
 
 impl<'a> Delay<'a> {
-    fn set_delay(&self, delay: u32) {
-        let ticks = delay
-            .checked_div(CLOCK_PERIOD_US)
+    fn set_delay(&self, delay_ns: u32) {
+        let period_ns = 1_000_000_000 / self.hz;
+        let ticks = delay_ns
+            .checked_div(period_ns)
             .unwrap_or(0)
             .saturating_sub(1);
         ral::write_reg!(register, self.channel, LDVAL, ticks);
@@ -121,10 +138,10 @@ impl<'a> Future for Delay<'a> {
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let state = unsafe { STATES[self.channel.index()].0 };
         match state {
-            State::Ready { us } => {
+            State::Ready { ns } => {
                 ral::write_reg!(register, self.channel, TCTRL, 0); // Redundant with ISR, but doesn't hurt
                 atomic::compiler_fence(atomic::Ordering::SeqCst);
-                self.set_delay(us);
+                self.set_delay(ns);
                 unsafe {
                     STATES[self.channel.index()] = (State::Pending, Some(cx.waker().clone()));
                 }

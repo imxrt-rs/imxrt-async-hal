@@ -24,7 +24,12 @@ use imxrt_dma::{Element, Transfer};
 pub(crate) use peripheral::{receive, receive_raw, transfer, transfer_raw};
 
 use crate::ral;
-pub use imxrt_dma::{BandwidthControl, Channel, ErrorStatus, CHANNEL_COUNT};
+pub use imxrt_dma::{BandwidthControl, Channel, ErrorStatus};
+
+#[cfg(not(feature = "imxrt1010"))]
+pub const CHANNEL_COUNT: usize = 32;
+#[cfg(feature = "imxrt1010")]
+pub const CHANNEL_COUNT: usize = 16;
 
 /// An error when preparing a transfer
 #[derive(Debug)]
@@ -49,7 +54,7 @@ pub enum Error {
 /// are initialized to `Some(channel)`. The rest are `None`**.
 ///
 /// You should enable the clock gates before calling `channels`. See
-/// [`ccm::Handle::clock_gate_dma`](../ccm/struct.Handle.html#method.clock_gate_dma) for more information.
+/// [`ccm::Handle::clock_gate_dma`](../ccm/struct.Handle.html#method.set_clock_gate_dma) for more information.
 ///
 /// # Example
 ///
@@ -62,9 +67,9 @@ pub enum Error {
 ///
 /// fn prepare_peripheral(channel: dma::Channel) { /* ... */ }
 ///
-/// let mut ccm = ccm::CCM::take().map(CCM::new).unwrap();
+/// let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();
 /// let mut dma = dma0::DMA0::take().unwrap();
-/// ccm.handle.clock_gate_dma(&mut dma, ClockGate::On);
+/// ccm.handle.set_clock_gate_dma(&mut dma, ClockGate::On);
 /// let mut channels = dma::channels(
 ///     dma,
 ///     dmamux::DMAMUX::take().unwrap(),

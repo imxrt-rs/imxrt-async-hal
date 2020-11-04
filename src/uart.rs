@@ -26,9 +26,9 @@ use core::fmt;
 ///
 /// let pads = IOMUXC::take().map(iomuxc::new).unwrap();
 ///
-/// let mut ccm = CCM::take().map(ccm::CCM::new).unwrap();
+/// let mut ccm = CCM::take().map(ccm::CCM::from_ral).unwrap();
 /// let mut dma = DMA0::take().unwrap();
-/// ccm.handle.clock_gate_dma(&mut dma, ClockGate::On);
+/// ccm.handle.set_clock_gate_dma(&mut dma, ClockGate::On);
 /// let mut channels = dma::channels(
 ///     dma,
 ///     DMAMUX::take().unwrap(),
@@ -36,7 +36,7 @@ use core::fmt;
 /// let mut uart2 = LPUART2::take().and_then(instance::uart).unwrap();
 ///
 /// let mut uart_clock = ccm.uart_clock.enable(&mut ccm.handle);
-/// uart_clock.clock_gate(&mut uart2, ClockGate::On);
+/// uart_clock.set_clock_gate(&mut uart2, ClockGate::On);
 ///
 /// let mut uart = UART::new(
 ///     uart2,
@@ -61,6 +61,7 @@ pub struct UART<TX, RX> {
     channel: dma::Channel,
     tx: TX,
     rx: RX,
+    hz: u32,
 }
 
 impl<TX, RX> fmt::Debug for UART<TX, RX> {
@@ -84,7 +85,7 @@ where
         mut tx: TX,
         mut rx: RX,
         channel: dma::Channel,
-        _: &crate::ccm::UARTClock,
+        clock: &crate::ccm::UARTClock,
     ) -> UART<TX, RX> {
         crate::iomuxc::uart::prepare(&mut tx);
         crate::iomuxc::uart::prepare(&mut rx);
@@ -96,6 +97,7 @@ where
             tx,
             rx,
             channel,
+            hz: clock.frequency(),
         };
         let _ = uart.set_baud(9600);
         ral::modify_reg!(ral::lpuart, uart.uart, CTRL, TE: TE_1, RE: RE_1);
@@ -108,7 +110,7 @@ impl<TX, RX> UART<TX, RX> {
     ///
     /// If there is an error, the error is [`Error::Clock`](enum.UARTError.html#variant.Clock).
     pub fn set_baud(&mut self, baud: u32) -> Result<(), Error> {
-        let timings = timings(UART_CLOCK, baud)?;
+        let timings = timings(self.hz, baud)?;
         self.while_disabled(|this| {
             ral::modify_reg!(
                 ral::lpuart,
@@ -158,8 +160,6 @@ impl<TX, RX> UART<TX, RX> {
         Ok(len)
     }
 }
-
-const UART_CLOCK: u32 = crate::ccm::UARTClock::frequency();
 
 /// An opaque type that describes timing configurations
 struct Timings {
@@ -346,10 +346,10 @@ unsafe impl dma::Source<u8> for DmaCapable {
 ///     mut handle,
 ///     uart_clock,
 ///     ..
-/// } = CCM::take().map(hal::ccm::CCM::new).unwrap();
+/// } = CCM::take().map(hal::ccm::CCM::from_ral).unwrap();
 /// let mut uart_clock = uart_clock.enable(&mut handle);
 /// let mut uart2 = LPUART2::take().unwrap();
-/// uart_clock.clock_gate(&mut uart2, hal::ccm::ClockGate::On);
+/// uart_clock.set_clock_gate(&mut uart2, hal::ccm::ClockGate::On);
 /// ```
 #[cfg(doctest)]
 struct ClockingWeakRalInstance;
@@ -362,12 +362,12 @@ struct ClockingWeakRalInstance;
 ///     mut handle,
 ///     uart_clock,
 ///     ..
-/// } = CCM::take().map(hal::ccm::CCM::new).unwrap();
+/// } = CCM::take().map(hal::ccm::CCM::from_ral).unwrap();
 /// let mut uart_clock = uart_clock.enable(&mut handle);
 /// let mut uart2: hal::instance::UART<hal::iomuxc::consts::U2> = LPUART2::take()
 ///     .and_then(hal::instance::uart)
 ///     .unwrap();
-/// uart_clock.clock_gate(&mut uart2, hal::ccm::ClockGate::On);
+/// uart_clock.set_clock_gate(&mut uart2, hal::ccm::ClockGate::On);
 /// ```
 #[cfg(doctest)]
 struct ClockingStrongHalInstance;

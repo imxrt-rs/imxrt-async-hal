@@ -61,9 +61,9 @@ pub struct Pins<SDO, SDI, SCK, PCS0> {
 ///
 /// let pads = IOMUXC::take().map(iomuxc::new).unwrap();
 ///
-/// let mut ccm = CCM::take().map(ccm::CCM::new).unwrap();
+/// let mut ccm = CCM::take().map(ccm::CCM::from_ral).unwrap();
 /// let mut dma = DMA0::take().unwrap();
-/// ccm.handle.clock_gate_dma(&mut dma, ClockGate::On);
+/// ccm.handle.set_clock_gate_dma(&mut dma, ClockGate::On);
 /// let mut channels = dma::channels(
 ///     dma,
 ///     DMAMUX::take().unwrap(),
@@ -77,7 +77,7 @@ pub struct Pins<SDO, SDI, SCK, PCS0> {
 ///     pcs0: pads.b0.p00,
 /// };
 /// let mut spi4 = LPSPI4::take().and_then(instance::spi).unwrap();
-/// spi_clock.clock_gate(&mut spi4, ClockGate::On);
+/// spi_clock.set_clock_gate(&mut spi4, ClockGate::On);
 /// let mut spi = SPI::new(
 ///     spi_pins,
 ///     spi4,
@@ -99,10 +99,10 @@ pub struct SPI<Pins> {
     spi: DmaCapable,
     tx_channel: dma::Channel,
     rx_channel: dma::Channel,
+    hz: u32,
 }
 
 const DEFAULT_CLOCK_SPEED_HZ: u32 = 8_000_000;
-const CLOCK_HZ: u32 = crate::ccm::SPIClock::frequency();
 
 impl<SDO, SDI, SCK, PCS0, M> SPI<Pins<SDO, SDI, SCK, PCS0>>
 where
@@ -120,7 +120,7 @@ where
         mut pins: Pins<SDO, SDI, SCK, PCS0>,
         spi: instance::SPI<M>,
         channels: (dma::Channel, dma::Channel),
-        _: &crate::ccm::SPIClock,
+        clock: &crate::ccm::SPIClock,
     ) -> Self {
         iomuxc::spi::prepare(&mut pins.sdo);
         iomuxc::spi::prepare(&mut pins.sdi);
@@ -131,7 +131,7 @@ where
 
         ral::write_reg!(ral::lpspi, spi, CR, RST: RST_1);
         ral::write_reg!(ral::lpspi, spi, CR, RST: RST_0);
-        set_clock_speed(&spi, DEFAULT_CLOCK_SPEED_HZ);
+        set_clock_speed(&spi, clock.frequency(), DEFAULT_CLOCK_SPEED_HZ);
         ral::write_reg!(ral::lpspi, spi, CFGR1, MASTER: MASTER_1, SAMPLE: SAMPLE_1);
         // spi.set_mode(embedded_hal::spi::MODE_0).unwrap();
         ral::write_reg!(ral::lpspi, spi, FCR, RXWATER: 0xF, TXWATER: 0xF);
@@ -142,6 +142,7 @@ where
             spi: DmaCapable { spi },
             tx_channel: channels.0,
             rx_channel: channels.1,
+            hz: clock.frequency(),
         }
     }
 
@@ -193,7 +194,7 @@ impl<Pins> SPI<Pins> {
     pub fn set_clock_speed(&mut self, hz: u32) -> Result<(), Error> {
         self.with_master_disabled(|| {
             // Safety: master is disabled
-            set_clock_speed(&self.spi, hz);
+            set_clock_speed(&self.spi, self.hz, hz);
             Ok(())
         })
     }
@@ -301,9 +302,9 @@ impl<Pins> SPI<Pins> {
 }
 
 /// Must be called while SPI is disabled
-fn set_clock_speed(spi: &ral::lpspi::Instance, hz: u32) {
-    let mut div = CLOCK_HZ / hz;
-    if CLOCK_HZ / div > hz {
+fn set_clock_speed(spi: &ral::lpspi::Instance, base: u32, hz: u32) {
+    let mut div = base / hz;
+    if base / div > hz {
         div += 1;
     }
     let div = div.saturating_sub(2).min(255).max(0);
@@ -476,10 +477,10 @@ unsafe impl dma::Destination<u16> for DmaCapable {
 ///     mut handle,
 ///     spi_clock,
 ///     ..
-/// } = CCM::take().map(hal::ccm::CCM::new).unwrap();
+/// } = CCM::take().map(hal::ccm::CCM::from_ral).unwrap();
 /// let mut spi_clock = spi_clock.enable(&mut handle);
 /// let mut spi2 = LPSPI2::take().unwrap();
-/// spi_clock.clock_gate(&mut spi2, hal::ccm::ClockGate::On);
+/// spi_clock.set_clock_gate(&mut spi2, hal::ccm::ClockGate::On);
 /// ```
 #[cfg(doctest)]
 struct ClockingWeakRalInstance;
@@ -492,12 +493,12 @@ struct ClockingWeakRalInstance;
 ///     mut handle,
 ///     spi_clock,
 ///     ..
-/// } = CCM::take().map(hal::ccm::CCM::new).unwrap();
+/// } = CCM::take().map(hal::ccm::CCM::from_ral).unwrap();
 /// let mut spi_clock = spi_clock.enable(&mut handle);
 /// let mut spi2: hal::instance::SPI<hal::iomuxc::consts::U2> = LPSPI2::take()
 ///     .and_then(hal::instance::spi)
 ///     .unwrap();
-/// spi_clock.clock_gate(&mut spi2, hal::ccm::ClockGate::On);
+/// spi_clock.set_clock_gate(&mut spi2, hal::ccm::ClockGate::On);
 /// ```
 #[cfg(doctest)]
 struct ClockingStrongHalInstance;
