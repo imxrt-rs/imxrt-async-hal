@@ -13,7 +13,7 @@ Async peripherals for NXP iMX RT processors.
 
 [dependencies]
 cortex-m = "0.6"
-imxrt-dma = { path = "../dma" }
+imxrt-dma = { rev = "a825d22", git = "https://github.com/imxrt-rs/imxrt-dma" }
 imxrt-iomuxc = { rev = "14aa29e", git = "https://github.com/imxrt-rs/imxrt-rs" }
 imxrt-ral = "0.4"
 
