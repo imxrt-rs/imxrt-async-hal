@@ -166,16 +166,13 @@ impl<'a> Drop for Delay<'a> {
 interrupts! {
     handler!{unsafe fn PIT() {
         use register::ChannelInstance;
-        const CHANNELS: [ChannelInstance; 4] = unsafe {
-            [
-                ChannelInstance::zero(),
-                ChannelInstance::one(),
-                ChannelInstance::two(),
-                ChannelInstance::three(),
-            ]
-        };
 
-        CHANNELS
+        [
+            ChannelInstance::zero(),
+            ChannelInstance::one(),
+            ChannelInstance::two(),
+            ChannelInstance::three(),
+        ]
             .iter_mut()
             .zip(STATES.iter_mut())
             .filter(|(channel, _)| ral::read_reg!(register, channel, TFLG, TIF == 1))
