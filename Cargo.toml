@@ -13,18 +13,25 @@ Async peripherals for NXP iMX RT processors.
 
 [dependencies]
 cortex-m = "0.6"
-imxrt-dma = { rev = "a825d22", git = "https://github.com/imxrt-rs/imxrt-dma" }
-imxrt-iomuxc = { rev = "14aa29e", git = "https://github.com/imxrt-rs/imxrt-rs" }
-imxrt-ral = "0.4"
-
-[target.thumbv7em-none-eabihf.dependencies.cortex-m-rt]
-version = "0.6"
-optional = true
 
 [dependencies.imxrt-ccm]
 features = ["imxrt-ral"]
 git = "https://github.com/imxrt-rs/imxrt-ccm.git"
 rev = "0c93478"
+
+[dependencies.imxrt-dma]
+git = "https://github.com/imxrt-rs/imxrt-dma"
+rev = "a825d22"
+
+[dependencies.imxrt-iomuxc]
+version = "0.1"
+
+[dependencies.imxrt-ral]
+version = "0.4"
+
+[target.thumbv7em-none-eabihf.dependencies.cortex-m-rt]
+version = "0.6"
+optional = true
 
 [dependencies.futures]
 version = "0.3"
@@ -47,7 +54,6 @@ rt = ["imxrt-ral/rt", "cortex-m-rt/device"]
 imxrt1010 = ["imxrt-iomuxc/imxrt101x", "imxrt-ral/imxrt1011", "imxrt-ccm/imxrt1010"]
 imxrt1060 = ["imxrt-iomuxc/imxrt106x", "imxrt-ral/imxrt1062", "imxrt-ccm/imxrt1060"]
 
-
 # Don't optimize build dependencies, like proc macros.
 # Helps with build times.
 [profile.release.build-override]
@@ -56,3 +62,7 @@ opt-level = 0
 [package.metadata.docs.rs]
 features = ["imxrt1060"]
 rustdoc-args = ["--cfg", "docsrs"]
+
+[patch.crates-io.imxrt-iomuxc]
+git = "https://github.com/imxrt-rs/imxrt-iomuxc"
+branch = "v0.1-imxrt101x"

@@ -43,5 +43,6 @@ version = "0.1"
 [profile.release.build-override]
 opt-level = 0
 
-[patch.crates-io]
-imxrt-iomuxc = { rev = "14aa29e", git = "https://github.com/imxrt-rs/imxrt-rs" }
+[patch.crates-io.imxrt-iomuxc]
+git = "https://github.com/imxrt-rs/imxrt-iomuxc"
+branch = "v0.1-imxrt101x"
