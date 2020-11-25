@@ -62,6 +62,7 @@ opt-level = 0
 [package.metadata.docs.rs]
 features = ["imxrt1060"]
 rustdoc-args = ["--cfg", "docsrs"]
+default-target = "thumbv7em-none-eabihf"
 
 [patch.crates-io.imxrt-iomuxc]
 git = "https://github.com/imxrt-rs/imxrt-iomuxc"
