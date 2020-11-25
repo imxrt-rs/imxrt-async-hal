@@ -10,7 +10,8 @@
 //!
 //! The example shows how a forgotten DMA transfer will still generate
 //! data even after the future was forgotten. The LED turns on as soon
-//! as the buffer reads non-zero.
+//! as the buffer reads non-zero. The example is sensitive to how the
+//! stack is laid out in each function call.
 
 #![no_std]
 #![no_main]
@@ -41,11 +42,12 @@ static VTABLE: RawWakerVTable = {
 };
 
 static DATA: u32 = 0;
-type Buffer = [u8; 64];
 
+/// Prepare to receive UART data from a DMA transfer into stack memory
 #[inline(never)]
-fn prepare_receive(uart: &mut hal::UART<P14, P15>, buffer: &mut Buffer) {
-    let mut read = uart.read(buffer);
+fn prepare_receive(uart: &mut hal::UART<P14, P15>) {
+    let mut buffer: [u8; 8] = [0; 8];
+    let mut read = uart.read(&mut buffer);
     let pin = unsafe { Pin::new_unchecked(&mut read) };
     let waker =
         unsafe { Waker::from_raw(RawWaker::new(&DATA as *const u32 as *const (), &VTABLE)) };
@@ -54,8 +56,10 @@ fn prepare_receive(uart: &mut hal::UART<P14, P15>, buffer: &mut Buffer) {
     core::mem::forget(read); // If you remove this line, the LED doesn't turn on.
 }
 
+/// Watch the stack memory, and turn on the LED when its non-zero
 #[inline(never)]
-fn watch_stack(led: &mut hal::gpio::GPIO<P13, hal::gpio::Output>, buffer: &Buffer) -> ! {
+fn watch_stack(led: &mut hal::gpio::GPIO<P13, hal::gpio::Output>) -> ! {
+    let buffer: [u8; 256] = [0; 256];
     loop {
         for idx in 0..buffer.len() {
             let elem = &buffer[idx];
@@ -110,7 +114,6 @@ fn main() -> ! {
     );
     uart.set_baud(BAUD).unwrap();
 
-    let mut buffer: Buffer = [0; 64];
-    prepare_receive(&mut uart, &mut buffer);
-    watch_stack(&mut led, &buffer);
+    prepare_receive(&mut uart);
+    watch_stack(&mut led);
 }
