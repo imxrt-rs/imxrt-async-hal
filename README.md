@@ -2,6 +2,8 @@
 
 Embedded, async Rust for i.MX RT processors
 
+#### [API Docs (main branch)](https://imxrt-rs.github.io/imxrt-async-hal/)
+
 `imxrt-async-hal` brings async Rust support to NXP's i.MX RT processors.
 The crate includes `await`able peripherals and timers. Once the I/O completes
 or the timer elapses, an interrupt fires to wake the executor. By combining
