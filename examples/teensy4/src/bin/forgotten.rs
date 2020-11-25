@@ -61,8 +61,7 @@ fn prepare_receive(uart: &mut hal::UART<P14, P15>) {
 fn watch_stack(led: &mut hal::gpio::GPIO<P13, hal::gpio::Output>) -> ! {
     let buffer: [u8; 256] = [0; 256];
     loop {
-        for idx in 0..buffer.len() {
-            let elem = &buffer[idx];
+        for elem in &buffer {
             let value = unsafe { core::ptr::read_volatile(elem) };
             if value != 0 {
                 loop {
