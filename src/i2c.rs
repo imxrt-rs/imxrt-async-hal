@@ -2,6 +2,7 @@
 
 mod clock;
 mod commands;
+mod write_read;
 
 pub use clock::ClockSpeed;
 
@@ -84,11 +85,14 @@ use crate::{
 /// # };
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "i2c")))]
+#[pin_project::pin_project]
 pub struct I2C<SCL, SDA> {
     i2c: Instance,
     scl: SCL,
     sda: SDA,
     hz: u32,
+
+    write_read_state: Option<write_read::State>,
 }
 
 impl<SCL, SDA, M> I2C<SCL, SDA>
@@ -141,6 +145,8 @@ where
             scl,
             sda,
             hz: clock.frequency(),
+
+            write_read_state: None,
         }
     }
 }
@@ -194,31 +200,13 @@ impl<SCL, SDA> I2C<SCL, SDA> {
     ///
     /// Sends `output`, generates a repeated start, then awaits the I2C device
     /// to send enough data for `input`.
-    pub async fn write_read(
-        &mut self,
+    pub fn write_read<'a>(
+        &'a mut self,
         address: u8,
-        output: &[u8],
-        input: &mut [u8],
-    ) -> Result<(), Error> {
-        if input.len() > 256 {
-            return Err(Error::RequestTooMuchData);
-        }
-
-        check_busy(&self.i2c)?;
-
-        clear_fifo(&self.i2c);
-        clear_status(&self.i2c);
-
-        commands::start_write(&self.i2c, address).await?;
-        commands::send(&self.i2c, output).await?;
-        commands::start_read(&self.i2c, address).await?;
-        commands::end_of_packet(&self.i2c).await?;
-        if !input.is_empty() {
-            commands::receive(&self.i2c, input).await?;
-        }
-        commands::stop(&self.i2c).await?;
-
-        Ok(())
+        output: &'a [u8],
+        input: &'a mut [u8],
+    ) -> write_read::WriteRead<'a, Self> {
+        write_read::WriteRead::new(self, address, output, input)
     }
 
     /// Perform an I2C write, sending `buffer` to the I2C device identified by `address`
