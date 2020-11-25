@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["prepare","Prepare a pad to be used as a GPIO pin"]],"trait":[["Pin","A GPIO pin"]]});

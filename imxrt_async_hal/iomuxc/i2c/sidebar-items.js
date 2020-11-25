@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["SCL","Tag that indicates the SCL signal"],["SDA","Tag that indicates the SDA signal"]],"fn":[["prepare","Prepare an I2C pin"]],"trait":[["Pin","An I2C pin"],["Signal","An I2C signal; one of `SCL` or `SDA`"]]});

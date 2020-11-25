@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Pads","Pads with the prefix 'SD_B1'"]],"type":[["ErasedPads","Erased pads with the prefix 'SD_B1'"],["SD_B1_00",""],["SD_B1_01",""],["SD_B1_02",""],["SD_B1_03",""],["SD_B1_04",""],["SD_B1_05",""],["SD_B1_06",""],["SD_B1_07",""],["SD_B1_08",""],["SD_B1_09",""],["SD_B1_10",""],["SD_B1_11",""]]});

@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["RX","Type tag for the receive pin"],["TX","Type tag for the transfer pin"]],"fn":[["prepare","Prepare a UART pin"]],"trait":[["Direction","A pin direction, either transfer or receive"],["Pin","A UART pin"]]});

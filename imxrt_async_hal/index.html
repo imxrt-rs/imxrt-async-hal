@@ -1,0 +1,159 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="API documentation for the Rust `imxrt_async_hal` crate."><meta name="keywords" content="rust, rustlang, rust-lang, imxrt_async_hal"><title>imxrt_async_hal - Rust</title><link rel="stylesheet" type="text/css" href="../normalize.css"><link rel="stylesheet" type="text/css" href="../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../ayu.css" disabled ><script id="default-settings"></script><script src="../storage.js"></script><noscript><link rel="stylesheet" href="../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="alternate icon" type="image/png" href="../favicon-16x16.png">
+<link rel="alternate icon" type="image/png" href="../favicon-32x32.png"><style type="text/css">#crate-search{background-image:url("../down-arrow.svg");}</style></head><body class="rustdoc mod"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../imxrt_async_hal/index.html'><div class='logo-container rust-logo'><img src='../rust-logo.png' alt='logo'></div></a><p class="location">Crate imxrt_async_hal</p><div class="block version"><p>Version 0.1.0</p></div><div class="sidebar-elems"><a id="all-types" href="all.html"><p>See all imxrt_async_hal's items</p></a><div class="block items"><ul><li><a href="#reexports">Re-exports</a></li><li><a href="#modules">Modules</a></li><li><a href="#structs">Structs</a></li><li><a href="#enums">Enums</a></li></ul></div><p class="location"></p><script>window.sidebarCurrent = {name: "imxrt_async_hal", ty: "mod", relpath: "../"};</script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu"><img src="../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices" role="menu"></div></div><script src="../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><span class="help-button">?</span>
+                <a id="settings-menu" href="../settings.html"><img src="../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class="fqn"><span class="out-of-band"><span id="render-detail"><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span><a class="srclink" href="../src/imxrt_async_hal/lib.rs.html#1-371" title="goto source code">[src]</a></span><span class="in-band">Crate <a class="mod" href="">imxrt_async_hal</a></span></h1><div class="docblock"><p>Embedded, async Rust for i.MX RT processors</p>
+<p><code>imxrt-async-hal</code> brings async Rust support to NXP's i.MX RT processors.
+The crate includes <code>await</code>able peripherals and timers. Once the I/O completes
+or the timer elapses, an interrupt fires to wake the executor. By combining
+interrupt-driven peripherals with a single-threaded executor, you can write
+multiple, concurrent tasks for your embedded system.</p>
+<p>The crate registers interrupt handlers to support async execution. The implementation
+registers interrupt handlers statically, using the <a href="https://crates.io/crates/cortex-m-rt"><code>cortex-m-rt</code></a> interfaces. This
+means that your final program should also depend on <code>cortex-m-rt</code>, or bet at least
+<code>cortex-m-rt</code> compatible.</p>
+<p>The crate does not include an executor, or any API for driving futures. You will
+need to select your own executor that supports a Cortex-M system.
+The executor should be thread safe, prepared to handle wakes from interrupt handlers.</p>
+<p>See the project's examples to try this code on your hardware. This crate has been
+primarily developed using a Teensy 4 (i.MX RT 1062). It compiles for other
+i.MX RT chip variants.</p>
+<h1 id="dependencies" class="section-header"><a href="#dependencies">Dependencies</a></h1>
+<ul>
+<li>
+<p>A Rust installation; recommended installation using <code>rustup</code>. We support the
+latest, stable Rust toolchain.</p>
+</li>
+<li>
+<p>The <code>thumbv7em-none-eabihf</code> Rust target, which may be installed using
+<code>rustup</code>: <code>rustup target add thumbv7em-none-eabihf</code></p>
+<p>The target is only necessary when building for an embedded system. The
+main crate should build and test on your host.</p>
+</li>
+<li>
+<p>An embedded system with a compatible i.MX RT processor.</p>
+</li>
+</ul>
+<h1 id="feature-flags" class="section-header"><a href="#feature-flags">Feature flags</a></h1>
+<p>You're <strong>required</strong> to specify a feature that describes your i.MX RT chip variant.
+You may select only one chip feature.</p>
+<p>The crate compiles for the following chips:</p>
+<ul>
+<li><code>&quot;imxrt1010&quot;</code> for i.MX RT <strong>1010</strong> variants</li>
+<li><code>&quot;imxrt1060&quot;</code> for i.MX RT <strong>1060</strong> variants</li>
+</ul>
+<p>Each peripheral has it's own feature, which is enabled by default. However, you may
+want to disable some peripherals because you have your own interrupt-driven peripheral,
+and the interrupt handler that this crate provides causes a duplicate definition</p>
+<p>To select peripherals, disable the crate's default features. Then, select one or more of
+the peripheral features from the table. The checkmarks indicate a chip's support for
+that peripheral.</p>
+<table><thead><tr><th><strong>Chip</strong></th><th><code>&quot;gpio&quot;</code></th><th><code>&quot;gpt&quot;</code></th><th><code>&quot;i2c&quot;</code></th><th><code>&quot;pipe&quot;</code></th><th><code>&quot;pit&quot;</code></th><th><code>&quot;spi&quot;</code></th><th><code>&quot;uart&quot;</code></th></tr></thead><tbody>
+<tr><td>imxrt1010</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+<tr><td>imxrt1060</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+</tbody></table>
+<p>When developing a binary for your embedded system, you should enable this crate's <code>&quot;rt&quot;</code>
+feature. Otherwise, when developing libraries against the crate, you may skip the
+<code>&quot;rt&quot;</code> feature.</p>
+<h1 id="example" class="section-header"><a href="#example">Example</a></h1>
+<p>Simultaneously blink an LED while echoing all UART data back to the sender.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered">
+<span class="kw">use</span> <span class="ident">imxrt_async_hal</span> <span class="kw">as</span> <span class="ident">hal</span>;
+<span class="kw">use</span> <span class="ident">futures</span>::<span class="ident">future</span>;
+<span class="kw">const</span> <span class="ident">BAUD</span>: <span class="ident">u32</span> <span class="op">=</span> <span class="number">115_200</span>;
+
+<span class="comment">// Acquire all handles to the processor pads</span>
+<span class="kw">let</span> <span class="ident">pads</span> <span class="op">=</span> <span class="ident">hal</span>::<span class="ident">iomuxc</span>::<span class="ident">new</span>(<span class="ident">hal</span>::<span class="ident">ral</span>::<span class="ident">iomuxc</span>::<span class="ident">IOMUXC</span>::<span class="ident">take</span>().<span class="ident">unwrap</span>());
+<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">led</span> <span class="op">=</span> <span class="ident">hal</span>::<span class="ident">gpio</span>::<span class="ident">GPIO</span>::<span class="ident">new</span>(<span class="ident">pads</span>.<span class="ident">b0</span>.<span class="ident">p03</span>).<span class="ident">output</span>();
+
+<span class="comment">// Acquire the clocks that we&#39;ll need to enable...</span>
+<span class="kw">let</span> <span class="ident">hal</span>::<span class="ident">ccm</span>::<span class="ident">CCM</span> {
+    <span class="kw-2">mut</span> <span class="ident">handle</span>,
+    <span class="ident">perclock</span>,
+    <span class="ident">uart_clock</span>,
+    ..
+} <span class="op">=</span> <span class="ident">hal</span>::<span class="ident">ral</span>::<span class="ident">ccm</span>::<span class="ident">CCM</span>::<span class="ident">take</span>().<span class="ident">map</span>(<span class="ident">hal</span>::<span class="ident">ccm</span>::<span class="ident">CCM</span>::<span class="ident">from_ral</span>).<span class="ident">unwrap</span>();
+
+<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">gpt</span> <span class="op">=</span> <span class="ident">hal</span>::<span class="ident">ral</span>::<span class="ident">gpt</span>::<span class="ident">GPT2</span>::<span class="ident">take</span>().<span class="ident">unwrap</span>();
+<span class="comment">// Enable the periodic clock for the GPT</span>
+<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">perclock</span> <span class="op">=</span> <span class="ident">perclock</span>.<span class="ident">enable</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">handle</span>);
+<span class="ident">perclock</span>.<span class="ident">set_clock_gate_gpt</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">gpt</span>, <span class="ident">hal</span>::<span class="ident">ccm</span>::<span class="ident">ClockGate</span>::<span class="ident">On</span>);
+<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">timer</span> <span class="op">=</span> <span class="ident">hal</span>::<span class="ident">GPT</span>::<span class="ident">new</span>(<span class="ident">gpt</span>, <span class="kw-2">&amp;</span><span class="ident">perclock</span>);
+
+<span class="comment">// Acquire DMA channels, which are used to schedule UART transfers</span>
+<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">channels</span> <span class="op">=</span> <span class="ident">hal</span>::<span class="ident">dma</span>::<span class="ident">channels</span>(
+    <span class="ident">hal</span>::<span class="ident">ral</span>::<span class="ident">dma0</span>::<span class="ident">DMA0</span>::<span class="ident">take</span>()
+        .<span class="ident">map</span>(<span class="op">|</span><span class="kw-2">mut</span> <span class="ident">dma</span><span class="op">|</span> {
+            <span class="ident">handle</span>.<span class="ident">set_clock_gate_dma</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">dma</span>, <span class="ident">hal</span>::<span class="ident">ccm</span>::<span class="ident">ClockGate</span>::<span class="ident">On</span>);
+            <span class="ident">dma</span>
+        })
+        .<span class="ident">unwrap</span>(),
+    <span class="ident">hal</span>::<span class="ident">ral</span>::<span class="ident">dmamux</span>::<span class="ident">DMAMUX</span>::<span class="ident">take</span>().<span class="ident">unwrap</span>(),
+);
+
+<span class="comment">// Enable the UART root clock, and prepare the UART2 driver</span>
+<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">uart_clock</span> <span class="op">=</span> <span class="ident">uart_clock</span>.<span class="ident">enable</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">handle</span>);
+<span class="kw">let</span> <span class="ident">uart2</span> <span class="op">=</span> <span class="ident">hal</span>::<span class="ident">ral</span>::<span class="ident">lpuart</span>::<span class="ident">LPUART2</span>::<span class="ident">take</span>()
+    .<span class="ident">map</span>(<span class="op">|</span><span class="kw-2">mut</span> <span class="ident">inst</span><span class="op">|</span> {
+        <span class="ident">uart_clock</span>.<span class="ident">set_clock_gate</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">inst</span>, <span class="ident">hal</span>::<span class="ident">ccm</span>::<span class="ident">ClockGate</span>::<span class="ident">On</span>);
+        <span class="ident">inst</span>
+    })
+    .<span class="ident">and_then</span>(<span class="ident">hal</span>::<span class="ident">instance</span>::<span class="ident">uart</span>)
+    .<span class="ident">unwrap</span>();
+
+<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">uart</span> <span class="op">=</span> <span class="ident">hal</span>::<span class="ident">UART</span>::<span class="ident">new</span>(
+    <span class="ident">uart2</span>,
+    <span class="ident">pads</span>.<span class="ident">ad_b1</span>.<span class="ident">p02</span>, <span class="comment">// TX pad</span>
+    <span class="ident">pads</span>.<span class="ident">ad_b1</span>.<span class="ident">p03</span>, <span class="comment">// RX pad</span>
+    <span class="ident">channels</span>[<span class="number">7</span>].<span class="ident">take</span>().<span class="ident">unwrap</span>(),
+    <span class="kw-2">&amp;</span><span class="ident">uart_clock</span>,
+);
+
+<span class="ident">uart</span>.<span class="ident">set_baud</span>(<span class="ident">BAUD</span>).<span class="ident">unwrap</span>();
+
+<span class="kw">let</span> <span class="ident">blinking_loop</span> <span class="op">=</span> <span class="ident">async</span> {
+    <span class="kw">loop</span> {
+        <span class="ident">timer</span>.<span class="ident">delay_us</span>(<span class="number">250_000</span>).<span class="ident">await</span>;
+        <span class="ident">led</span>.<span class="ident">toggle</span>();
+    }
+};
+
+<span class="kw">let</span> <span class="ident">echo_loop</span> <span class="op">=</span> <span class="ident">async</span> {
+    <span class="kw">loop</span> {
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">buffer</span> <span class="op">=</span> [<span class="number">0</span>; <span class="number">1</span>];
+        <span class="ident">uart</span>.<span class="ident">read</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">buffer</span>).<span class="ident">await</span>.<span class="ident">unwrap</span>();
+        <span class="ident">uart</span>.<span class="ident">write</span>(<span class="kw-2">&amp;</span><span class="ident">buffer</span>).<span class="ident">await</span>.<span class="ident">unwrap</span>();
+    }
+};
+
+<span class="ident">executor</span>::<span class="ident">block_on</span>(<span class="ident">future</span>::<span class="ident">join</span>(<span class="ident">blinking_loop</span>, <span class="ident">echo_loop</span>));</pre></div>
+<h2 id="license" class="section-header"><a href="#license">License</a></h2>
+<p>Licensed under either of</p>
+<ul>
+<li><a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> (<a href="./LICENSE-APACHE">LICENSE-APACHE</a>)</li>
+<li><a href="http://opensource.org/licenses/MIT">MIT License</a> (<a href="./LICENSE-MIT">LICENSE-MIT</a>)</li>
+</ul>
+<p>at your option.</p>
+<p>Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
+dual licensed as above, without any additional terms or conditions.</p>
+</div><h2 id="reexports" class="section-header"><a href="#reexports">Re-exports</a></h2>
+<table><tr><td><code>pub use imxrt_ral as ral;</code></td></tr></table><h2 id="modules" class="section-header"><a href="#modules">Modules</a></h2>
+<table><tr class="module-item"><td><a class="mod" href="ccm/index.html" title="imxrt_async_hal::ccm mod">ccm</a></td><td class="docblock-short"><p>Clock control module (CCM)</p>
+</td></tr><tr class="module-item"><td><a class="mod" href="dma/index.html" title="imxrt_async_hal::dma mod">dma</a></td><td class="docblock-short"><span class="stab portability" title="This is supported on crate features `pipe` or `spi` or `uart` only"><code>pipe</code> or <code>spi</code> or <code>uart</code></span><p>Direct Memory Access (DMA) for async I/O</p>
+</td></tr><tr class="module-item"><td><a class="mod" href="gpio/index.html" title="imxrt_async_hal::gpio mod">gpio</a></td><td class="docblock-short"><span class="stab portability" title="This is supported on crate feature `gpio` only"><code>gpio</code></span><p>GPIOs</p>
+</td></tr><tr class="module-item"><td><a class="mod" href="instance/index.html" title="imxrt_async_hal::instance mod">instance</a></td><td class="docblock-short"><p>Strongly-typed peripherals</p>
+</td></tr><tr class="module-item"><td><a class="mod" href="iomuxc/index.html" title="imxrt_async_hal::iomuxc mod">iomuxc</a></td><td class="docblock-short"><p>Pad multiplexing and configuration</p>
+</td></tr></table><h2 id="structs" class="section-header"><a href="#structs">Structs</a></h2>
+<table><tr class="module-item"><td><a class="struct" href="struct.GPT.html" title="imxrt_async_hal::GPT struct">GPT</a></td><td class="docblock-short"><span class="stab portability" title="This is supported on crate feature `gpt` only"><code>gpt</code></span><p>General purpose timers (GPT)</p>
+</td></tr><tr class="module-item"><td><a class="struct" href="struct.I2C.html" title="imxrt_async_hal::I2C struct">I2C</a></td><td class="docblock-short"><span class="stab portability" title="This is supported on crate feature `i2c` only"><code>i2c</code></span><p>I2C Driver</p>
+</td></tr><tr class="module-item"><td><a class="struct" href="struct.PIT.html" title="imxrt_async_hal::PIT struct">PIT</a></td><td class="docblock-short"><span class="stab portability" title="This is supported on crate feature `pit` only"><code>pit</code></span><p>Periodic interrupt timer (PIT)</p>
+</td></tr><tr class="module-item"><td><a class="struct" href="struct.SPI.html" title="imxrt_async_hal::SPI struct">SPI</a></td><td class="docblock-short"><span class="stab portability" title="This is supported on crate feature `spi` only"><code>spi</code></span><p>Serial Peripheral Interface (SPI)</p>
+</td></tr><tr class="module-item"><td><a class="struct" href="struct.SPIPins.html" title="imxrt_async_hal::SPIPins struct">SPIPins</a></td><td class="docblock-short"><span class="stab portability" title="This is supported on crate feature `spi` only"><code>spi</code></span><p>Pins for a SPI device</p>
+</td></tr><tr class="module-item"><td><a class="struct" href="struct.UART.html" title="imxrt_async_hal::UART struct">UART</a></td><td class="docblock-short"><span class="stab portability" title="This is supported on crate feature `uart` only"><code>uart</code></span><p>UART Serial driver</p>
+</td></tr></table><h2 id="enums" class="section-header"><a href="#enums">Enums</a></h2>
+<table><tr class="module-item"><td><a class="enum" href="enum.I2CClockSpeed.html" title="imxrt_async_hal::I2CClockSpeed enum">I2CClockSpeed</a></td><td class="docblock-short"><span class="stab portability" title="This is supported on crate feature `i2c` only"><code>i2c</code></span><p>I2C clock speed</p>
+</td></tr><tr class="module-item"><td><a class="enum" href="enum.I2CError.html" title="imxrt_async_hal::I2CError enum">I2CError</a></td><td class="docblock-short"><span class="stab portability" title="This is supported on crate feature `i2c` only"><code>i2c</code></span><p>Errors propagated from an <a href="struct.I2C.html"><code>I2C</code></a> device</p>
+</td></tr><tr class="module-item"><td><a class="enum" href="enum.SPIError.html" title="imxrt_async_hal::SPIError enum">SPIError</a></td><td class="docblock-short"><span class="stab portability" title="This is supported on crate feature `spi` only"><code>spi</code></span><p>Errors propagated from a <a href="struct.SPI.html"><code>SPI</code></a> device</p>
+</td></tr><tr class="module-item"><td><a class="enum" href="enum.UARTError.html" title="imxrt_async_hal::UARTError enum">UARTError</a></td><td class="docblock-short"><span class="stab portability" title="This is supported on crate feature `uart` only"><code>uart</code></span><p>Errors propagated from a <a href="struct.UART.html"><code>UART</code></a> device</p>
+</td></tr></table></section><section id="search" class="content hidden"></section><section class="footer"></section><script>window.rootPath = "../";window.currentCrate = "imxrt_async_hal";</script><script src="../main.js"></script><script defer src="../search-index.js"></script></body></html>

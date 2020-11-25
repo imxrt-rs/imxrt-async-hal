@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["A","PWM output A"],["B","PWM output B"]],"fn":[["prepare","Prepare a PWM pin"]],"trait":[["Output","A PWM output identified; one of `A` or `B`"],["Pin","A PWM pin"]]});

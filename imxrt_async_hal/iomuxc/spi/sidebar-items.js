@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["PCS0","A tag that indicates a SPI chip select pad"],["SCK","A tag that indicates a SPI clock pad"],["SDI","A tag that indicates a SPI data in pad"],["SDO","A tag that indicates a SPI data out pad"]],"fn":[["prepare","Prepare a SPI pin"]],"trait":[["Pin","A SPI pin"],["Signal","A SPI signal"]]});
