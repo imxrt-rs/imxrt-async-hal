@@ -99,7 +99,12 @@ impl GeneralPurposeTimer {
     }
     /// Wait for `microseconds` to elapse
     pub async fn delay_us(&mut self, microseconds: u32) {
-        Delay::new(&self.gpt, microseconds, self.hz).await
+        Delay {
+            gpt: &self.gpt,
+            delay_ns: microseconds.saturating_mul(1_000),
+            hz: self.hz,
+        }
+        .await
     }
 
     /// Returns the `GPT` clock period
@@ -125,30 +130,17 @@ fn enable_interrupt(gpt: &ral::gpt::Instance) {
 fn disable_interrupt(gpt: &ral::gpt::Instance) {
     ral::modify_reg!(ral::gpt, gpt, IR, OF1IE: 0);
 }
-
-enum State {
-    Expired,
-    Ready { ns: u32 },
-    Waiting(Waker),
-}
-
-impl State {
-    const fn new() -> Self {
-        State::Expired
-    }
-    fn ready(&mut self, us: u32) {
-        *self = State::Ready {
-            ns: us.saturating_mul(1_000),
-        };
-    }
+#[inline(always)]
+fn interrupt_enabled(gpt: &ral::gpt::Instance) -> bool {
+    ral::read_reg!(ral::gpt, gpt, IR, OF1IE == 1)
 }
 
 #[inline(always)]
-fn state(gpt: &ral::gpt::Instance) -> &'static mut State {
-    static mut STATES: [State; 2] = [State::new(), State::new()];
+fn waker(gpt: &ral::gpt::Instance) -> &'static mut Option<Waker> {
+    static mut WAKERS: [Option<Waker>; 2] = [None, None];
     match &**gpt as *const _ {
-        ral::gpt::GPT1 => unsafe { &mut STATES[0] },
-        ral::gpt::GPT2 => unsafe { &mut STATES[1] },
+        ral::gpt::GPT1 => unsafe { &mut WAKERS[0] },
+        ral::gpt::GPT2 => unsafe { &mut WAKERS[1] },
         _ => unreachable!("There are only two GPTs"),
     }
 }
@@ -157,45 +149,31 @@ fn state(gpt: &ral::gpt::Instance) -> &'static mut State {
 struct Delay<'a> {
     gpt: &'a ral::gpt::Instance,
     hz: u32,
-}
-
-impl<'a> Delay<'a> {
-    fn new(gpt: &'a ral::gpt::Instance, us: u32, hz: u32) -> Self {
-        state(gpt).ready(us);
-        Delay { gpt, hz }
-    }
-}
-
-impl<'a> Delay<'a> {
-    fn set_delay(&self, delay_ns: u32) {
-        let period_ns = 1_000_000_000 / self.hz;
-        let ticks = delay_ns
-            .checked_div(period_ns)
-            .unwrap_or(0)
-            .saturating_sub(1);
-        let current_tick = ral::read_reg!(ral::gpt, self.gpt, CNT);
-        let next_tick = current_tick.wrapping_add(ticks);
-        ral::write_reg!(ral::gpt, self.gpt, OCR1, next_tick);
-    }
+    delay_ns: u32,
 }
 
 impl<'a> Future for Delay<'a> {
     type Output = ();
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let state = state(&self.gpt);
-        match state {
-            State::Ready { ns } => {
-                self.set_delay(*ns);
-                *state = State::Waiting(cx.waker().clone());
-                atomic::compiler_fence(atomic::Ordering::Release);
-                enable_interrupt(&self.gpt);
-                Poll::Pending
-            }
-            State::Expired if is_triggered(&self.gpt) => {
-                clear_trigger(&self.gpt);
-                Poll::Ready(())
-            }
-            State::Waiting(_) | State::Expired => Poll::Pending,
+        if is_triggered(&self.gpt) {
+            clear_trigger(&self.gpt);
+            Poll::Ready(())
+        } else if interrupt_enabled(&self.gpt) {
+            Poll::Pending
+        } else {
+            *waker(&self.gpt) = Some(cx.waker().clone());
+            let period_ns = 1_000_000_000 / self.hz;
+            let ticks = self
+                .delay_ns
+                .checked_div(period_ns)
+                .unwrap_or(0)
+                .saturating_sub(1);
+            let current_tick = ral::read_reg!(ral::gpt, self.gpt, CNT);
+            let next_tick = current_tick.wrapping_add(ticks);
+            ral::write_reg!(ral::gpt, self.gpt, OCR1, next_tick);
+            atomic::compiler_fence(atomic::Ordering::Release);
+            enable_interrupt(&self.gpt);
+            Poll::Pending
         }
     }
 }
@@ -204,17 +182,15 @@ impl<'a> Drop for Delay<'a> {
     fn drop(&mut self) {
         disable_interrupt(&self.gpt);
         clear_trigger(&self.gpt);
-        *state(&self.gpt) = State::new()
     }
 }
 
 #[inline(always)]
 #[cfg_attr(not(target_arch = "arm"), allow(unused))]
-fn on_interrupt(gpt: &ral::gpt::Instance, state: &mut State) {
+fn on_interrupt(gpt: &ral::gpt::Instance, waker: &mut Option<Waker>) {
     if is_triggered(gpt) {
         disable_interrupt(gpt);
-        let waiting = core::mem::replace(state, State::Expired);
-        if let State::Waiting(waker) = waiting {
+        if let Some(waker) = waker.take() {
             waker.wake();
         } else {
             panic!("Cannot expire a timer that's not waiting!");
@@ -225,12 +201,12 @@ fn on_interrupt(gpt: &ral::gpt::Instance, state: &mut State) {
 interrupts! {
     handler!{unsafe fn GPT1() {
         let gpt = ral::gpt::GPT1::steal();
-        on_interrupt(&gpt, state(&gpt));
+        on_interrupt(&gpt, waker(&gpt));
     }}
 
 
     handler!{unsafe fn GPT2() {
         let gpt = ral::gpt::GPT2::steal();
-        on_interrupt(&gpt, state(&gpt));
+        on_interrupt(&gpt, waker(&gpt));
     }}
 }
