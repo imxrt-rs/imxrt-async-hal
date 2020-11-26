@@ -49,6 +49,15 @@ impl PeriodicTimer {
         clock: &crate::ccm::PerClock,
     ) -> (PeriodicTimer, PeriodicTimer, PeriodicTimer, PeriodicTimer) {
         ral::write_reg!(ral::pit, pit, MCR, MDIS: MDIS_0);
+        // Reset all PIT channels
+        //
+        // PIT channels may be used by a systems boot ROM, or another
+        // user. Set them to a known, good state.
+        ral::write_reg!(ral::pit, pit, TCTRL0, 0);
+        ral::write_reg!(ral::pit, pit, TCTRL1, 0);
+        ral::write_reg!(ral::pit, pit, TCTRL2, 0);
+        ral::write_reg!(ral::pit, pit, TCTRL3, 0);
+
         unsafe {
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::PIT);
             let hz = clock.frequency();
@@ -74,17 +83,14 @@ impl PeriodicTimer {
     }
     /// Wait for `microseconds` to elapse
     pub async fn delay_us(&mut self, microseconds: u32) {
-        unsafe {
-            STATES[self.channel.index()].0 = State::Ready {
-                ns: microseconds.saturating_mul(1_000),
-            };
-        }
         Delay {
             channel: &mut self.channel,
             hz: self.hz,
+            delay_ns: microseconds.saturating_mul(1_000),
         }
         .await
     }
+
     /// Wait for the specified `duration` to elapse
     ///
     /// If the microseconds represented by the duration cannot be represented by a `u32`, the
@@ -101,58 +107,41 @@ impl PeriodicTimer {
     }
 }
 
-#[derive(Clone, Copy)]
-enum State {
-    Unknown,
-    Ready { ns: u32 },
-    Pending,
-    Complete,
-}
-
-static mut STATES: [(State, Option<Waker>); 4] = [
-    (State::Unknown, None),
-    (State::Unknown, None),
-    (State::Unknown, None),
-    (State::Unknown, None),
-];
+static mut WAKERS: [Option<Waker>; 4] = [None, None, None, None];
 
 struct Delay<'a> {
     channel: &'a mut register::ChannelInstance,
     hz: u32,
-}
-
-impl<'a> Delay<'a> {
-    fn set_delay(&self, delay_ns: u32) {
-        let period_ns = 1_000_000_000 / self.hz;
-        let ticks = delay_ns
-            .checked_div(period_ns)
-            .unwrap_or(0)
-            .saturating_sub(1);
-        ral::write_reg!(register, self.channel, LDVAL, ticks);
-    }
+    delay_ns: u32,
 }
 
 impl<'a> Future for Delay<'a> {
     type Output = ();
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let state = unsafe { STATES[self.channel.index()].0 };
-        match state {
-            State::Ready { ns } => {
-                ral::write_reg!(register, self.channel, TCTRL, 0); // Redundant with ISR, but doesn't hurt
-                atomic::compiler_fence(atomic::Ordering::SeqCst);
-                self.set_delay(ns);
-                unsafe {
-                    STATES[self.channel.index()] = (State::Pending, Some(cx.waker().clone()));
-                }
-                atomic::compiler_fence(atomic::Ordering::SeqCst);
-                ral::modify_reg!(register, self.channel, TCTRL, TIE: 1);
-                ral::modify_reg!(register, self.channel, TCTRL, TEN: 1);
-                Poll::Pending
+        if ral::read_reg!(register, self.channel, TFLG, TIF == 1) {
+            // Complete! W1C
+            ral::write_reg!(register, self.channel, TFLG, TIF: 1);
+            Poll::Ready(())
+        } else if ral::read_reg!(register, self.channel, TCTRL) != 0 {
+            // We're active; do nothing
+            Poll::Pending
+        } else {
+            // Neither complete nor active; prepare to run
+            let period_ns = 1_000_000_000 / self.hz;
+            let ticks = self
+                .delay_ns
+                .checked_div(period_ns)
+                .unwrap_or(0)
+                .saturating_sub(1);
+            ral::write_reg!(register, self.channel, LDVAL, ticks);
+            unsafe {
+                WAKERS[self.channel.index()] = Some(cx.waker().clone());
             }
-            State::Pending => Poll::Pending,
-            State::Complete => Poll::Ready(()),
-            _ => unreachable!(),
+            atomic::compiler_fence(atomic::Ordering::SeqCst);
+            ral::modify_reg!(register, self.channel, TCTRL, TIE: 1);
+            ral::modify_reg!(register, self.channel, TCTRL, TEN: 1);
+            Poll::Pending
         }
     }
 }
@@ -174,13 +163,11 @@ interrupts! {
             ChannelInstance::three(),
         ]
             .iter_mut()
-            .zip(STATES.iter_mut())
+            .zip(WAKERS.iter_mut())
             .filter(|(channel, _)| ral::read_reg!(register, channel, TFLG, TIF == 1))
-            .for_each(|(channel, state)| {
-                ral::write_reg!(register, channel, TFLG, TIF: 1);
+            .for_each(|(channel, waker)| {
                 ral::write_reg!(register, channel, TCTRL, 0);
-                state.0 = State::Complete;
-                if let Some(waker) = state.1.take() {
+                if let Some(waker) = waker.take() {
                     waker.wake();
                 }
             });
