@@ -24,10 +24,10 @@ fn main() -> ! {
     let mut pit = hal::ral::pit::PIT::take().unwrap();
     perclock.set_clock_gate_pit(&mut pit, hal::ccm::ClockGate::On);
 
-    let (mut pit0, _, _, _) = hal::PIT::new(pit, &perclock);
+    let (mut pit, _, _, _) = hal::PIT::new(pit, &perclock);
     let blink_loop = async {
         loop {
-            pit0.delay(core::time::Duration::from_millis(250)).await;
+            pit.delay(core::time::Duration::from_millis(250)).await;
             led.toggle();
         }
     };
