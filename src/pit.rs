@@ -85,8 +85,7 @@ impl PeriodicTimer {
     pub async fn delay_us(&mut self, microseconds: u32) {
         Delay {
             channel: &mut self.channel,
-            hz: self.hz,
-            delay_ns: microseconds.saturating_mul(1_000),
+            ticks: ticks(microseconds, self.hz),
         }
         .await
     }
@@ -101,6 +100,21 @@ impl PeriodicTimer {
             .await
     }
 
+    /// Manually poll the timer until `microseconds` expire
+    ///
+    /// Once you call this, you must continue calling it until it returns `Poll::Ready`. The context must
+    /// stay active between the first call, and the return of `Poll::Ready`.
+    ///
+    /// To cancel any outstanding calls, use [`poll_cancel`].
+    pub unsafe fn poll_delays_us(&mut self, cx: &mut Context<'_>, microseconds: u32) -> Poll<()> {
+        poll_delay(&mut self.channel, cx, ticks(microseconds, self.hz))
+    }
+
+    /// Cancel any outstanding 'poll' calls
+    pub fn poll_cancel(&mut self) {
+        poll_cancel(&mut self.channel);
+    }
+
     /// Returns the PIT clock period
     pub fn clock_period(&self) -> Duration {
         Duration::from_nanos((1_000_000_000 / self.hz) as u64)
@@ -111,45 +125,60 @@ static mut WAKERS: [Option<Waker>; 4] = [None, None, None, None];
 
 struct Delay<'a> {
     channel: &'a mut register::ChannelInstance,
-    hz: u32,
-    delay_ns: u32,
+    ticks: u32,
 }
 
 impl<'a> Future for Delay<'a> {
     type Output = ();
 
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        if ral::read_reg!(register, self.channel, TFLG, TIF == 1) {
-            // Complete! W1C
-            ral::write_reg!(register, self.channel, TFLG, TIF: 1);
-            Poll::Ready(())
-        } else if ral::read_reg!(register, self.channel, TCTRL) != 0 {
-            // We're active; do nothing
-            Poll::Pending
-        } else {
-            // Neither complete nor active; prepare to run
-            let period_ns = 1_000_000_000 / self.hz;
-            let ticks = self
-                .delay_ns
-                .checked_div(period_ns)
-                .unwrap_or(0)
-                .saturating_sub(1);
-            ral::write_reg!(register, self.channel, LDVAL, ticks);
-            unsafe {
-                WAKERS[self.channel.index()] = Some(cx.waker().clone());
-            }
-            atomic::compiler_fence(atomic::Ordering::SeqCst);
-            ral::modify_reg!(register, self.channel, TCTRL, TIE: 1);
-            ral::modify_reg!(register, self.channel, TCTRL, TEN: 1);
-            Poll::Pending
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let ticks = self.ticks;
+        poll_delay(&mut self.channel, cx, ticks)
+    }
+}
+
+fn ticks(delay_us: u32, hz: u32) -> u32 {
+    let delay_ns: u32 = delay_us.saturating_mul(1_000);
+    let period_ns = 1_000_000_000 / hz;
+    delay_ns
+        .checked_div(period_ns)
+        .unwrap_or(0)
+        .saturating_sub(1)
+}
+
+fn poll_delay(
+    channel: &mut register::ChannelInstance,
+    cx: &mut Context<'_>,
+    ticks: u32,
+) -> Poll<()> {
+    if ral::read_reg!(register, channel, TFLG, TIF == 1) {
+        // Complete! W1C
+        ral::write_reg!(register, channel, TFLG, TIF: 1);
+        Poll::Ready(())
+    } else if ral::read_reg!(register, channel, TCTRL) != 0 {
+        // We're active; do nothing
+        Poll::Pending
+    } else {
+        // Neither complete nor active; prepare to run
+        ral::write_reg!(register, channel, LDVAL, ticks);
+        unsafe {
+            WAKERS[channel.index()] = Some(cx.waker().clone());
         }
+        atomic::compiler_fence(atomic::Ordering::SeqCst);
+        ral::modify_reg!(register, channel, TCTRL, TIE: 1);
+        ral::modify_reg!(register, channel, TCTRL, TEN: 1);
+        Poll::Pending
     }
 }
 
 impl<'a> Drop for Delay<'a> {
     fn drop(&mut self) {
-        ral::write_reg!(register, self.channel, TCTRL, 0);
+        poll_cancel(&mut self.channel);
     }
+}
+
+fn poll_cancel(channel: &mut register::ChannelInstance) {
+    ral::write_reg!(register, channel, TCTRL, 0);
 }
 
 interrupts! {
