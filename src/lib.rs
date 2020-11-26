@@ -272,7 +272,7 @@ pub mod gpio;
 #[cfg(feature = "gpt")]
 mod gpt;
 #[cfg(feature = "i2c")]
-mod i2c;
+pub mod i2c;
 pub mod instance;
 #[cfg(feature = "pit")]
 mod pit;

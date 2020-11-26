@@ -1,98 +1,104 @@
-//! I2C driver
+//! I2C driver, types, and futures
+//!
+//! The I2C driver utilizes the internal transmit and receive FIFOs to send and
+//! receive data. When the transmit buffer is nearly full, the driver yields.
+//! When the transmit buffer can support more data, an I2C interrupt
+//! fires and wakes the executor. This cycle continues until all of the
+//! caller's data is transmitted.
+//!
+//! When the receive buffer does not have any data, but the caller is awaiting
+//! data, the drier yields. Once there's at least one byte in the receive buffer,
+//! an I2C interrupt fires and wakers the executor. This cycle continues until
+//! all of the caller's receive buffer is filled.
+//!
+//! The driver also yields when waiting for stop and repeated start conditions.
+//!
+//! The I2C clock speed is unspecified out of construction. Use [`set_clock_speed`](#method.set_clock_speed)
+//! to select a valid I2C clock speed.
+//!
+//! The RAL instances are available in `ral::lpi2c`.
+//!
+//! # Pin configuration
+//!
+//! You may need to configure the SCL and SDA pins to support your clock speed and data rate. The snippet below
+//! provides one possible configuration that supports both 100KHz and 400KHz I2C clock speeds.
+//!
+//! ```
+//! use imxrt_async_hal as hal;
+//! use hal::iomuxc;
+//!
+//! const PINCONFIG: iomuxc::Config = iomuxc::Config::zero()
+//!     .set_open_drain(iomuxc::OpenDrain::Enabled)
+//!     .set_slew_rate(iomuxc::SlewRate::Fast)
+//!     .set_drive_strength(iomuxc::DriveStrength::R0_4)
+//!     .set_speed(iomuxc::Speed::Fast)
+//!     .set_pull_keep(iomuxc::PullKeep::Enabled)
+//!     .set_pull_keep_select(iomuxc::PullKeepSelect::Pull)
+//!     .set_pullupdown(iomuxc::PullUpDown::Pullup22k);
+//! ```
+//!
+//! # Example
+//!
+//! Prepare the I2C3 peripheral at 400KHz, using Teensy pins 16 and 17.
+//!
+//! ```no_run
+//! use imxrt_async_hal as hal;
+//! use hal::{
+//!     ccm, iomuxc, I2C, I2CClockSpeed,
+//!     ral::{ccm::CCM, iomuxc::IOMUXC, lpi2c::LPI2C3},
+//! };
+//! # const PINCONFIG: iomuxc::Config = iomuxc::Config::zero();
+//!
+//! let mut pads = IOMUXC::take()
+//!     .map(iomuxc::new)
+//!     .unwrap();
+//!
+//! iomuxc::configure(&mut pads.ad_b1.p07, PINCONFIG);
+//! iomuxc::configure(&mut pads.ad_b1.p06, PINCONFIG);
+//!
+//! let mut ccm = CCM::take().map(ccm::CCM::from_ral).unwrap();
+//! let mut i2c_clock = ccm.i2c_clock.enable(&mut ccm.handle);
+//! let mut i2c3 = LPI2C3::take().and_then(hal::instance::i2c).unwrap();
+//! i2c_clock.set_clock_gate(&mut i2c3, ccm::ClockGate::On);
+//!
+//! let mut i2c = I2C::new(i2c3, pads.ad_b1.p07, pads.ad_b1.p06, &i2c_clock);
+//! i2c.set_clock_speed(I2CClockSpeed::KHz400).unwrap();
+//!
+//! # async {
+//! # const DEVICE_ADDRESS: u8 = 0;
+//! let output = [1, 2, 3, 4];
+//! let mut input = [0; 7];
+//! i2c.write_read(DEVICE_ADDRESS, &output, &mut input).await.unwrap();
+//! # };
+//! ```
 
 mod clock;
 mod commands;
+mod read;
+mod write;
 mod write_read;
 
 pub use clock::ClockSpeed;
+pub use read::Read;
+pub use write::Write;
+pub use write_read::WriteRead;
 
 use crate::{
     iomuxc,
     ral::{self, lpi2c::Instance},
 };
 
-/// I2C Driver
+/// The I2C driver instance
 ///
-/// The I2C driver utilizes the internal transmit and receive FIFOs to send and
-/// receive data. When the transmit buffer is nearly full, the driver yields.
-/// When the transmit buffer can support more data, an I2C interrupt
-/// fires and wakes the executor. This cycle continues until all of the
-/// caller's data is transmitted.
-///
-/// When the receive buffer does not have any data, but the caller is awaiting
-/// data, the drier yields. Once there's at least one byte in the receive buffer,
-/// an I2C interrupt fires and wakers the executor. This cycle continues until
-/// all of the caller's receive buffer is filled.
-///
-/// The driver also yields when waiting for stop and repeated start conditions.
-///
-/// The I2C clock speed is unspecified out of construction. Use [`set_clock_speed`](#method.set_clock_speed)
-/// to select a valid I2C clock speed.
-///
-/// The RAL instances are available in `ral::lpi2c`.
-///
-/// # Pin configuration
-///
-/// You may need to configure the SCL and SDA pins to support your clock speed and data rate. The snippet below
-/// provides one possible configuration that supports both 100KHz and 400KHz I2C clock speeds.
-///
-/// ```
-/// use imxrt_async_hal as hal;
-/// use hal::iomuxc;
-///
-/// const PINCONFIG: iomuxc::Config = iomuxc::Config::zero()
-///     .set_open_drain(iomuxc::OpenDrain::Enabled)
-///     .set_slew_rate(iomuxc::SlewRate::Fast)
-///     .set_drive_strength(iomuxc::DriveStrength::R0_4)
-///     .set_speed(iomuxc::Speed::Fast)
-///     .set_pull_keep(iomuxc::PullKeep::Enabled)
-///     .set_pull_keep_select(iomuxc::PullKeepSelect::Pull)
-///     .set_pullupdown(iomuxc::PullUpDown::Pullup22k);
-/// ```
-///
-/// # Example
-///
-/// Prepare the I2C3 peripheral at 400KHz, using Teensy pins 16 and 17.
-///
-/// ```no_run
-/// use imxrt_async_hal as hal;
-/// use hal::{
-///     ccm, iomuxc, I2C, I2CClockSpeed,
-///     ral::{ccm::CCM, iomuxc::IOMUXC, lpi2c::LPI2C3},
-/// };
-/// # const PINCONFIG: iomuxc::Config = iomuxc::Config::zero();
-///
-/// let mut pads = IOMUXC::take()
-///     .map(iomuxc::new)
-///     .unwrap();
-///
-/// iomuxc::configure(&mut pads.ad_b1.p07, PINCONFIG);
-/// iomuxc::configure(&mut pads.ad_b1.p06, PINCONFIG);
-///
-/// let mut ccm = CCM::take().map(ccm::CCM::from_ral).unwrap();
-/// let mut i2c_clock = ccm.i2c_clock.enable(&mut ccm.handle);
-/// let mut i2c3 = LPI2C3::take().and_then(hal::instance::i2c).unwrap();
-/// i2c_clock.set_clock_gate(&mut i2c3, ccm::ClockGate::On);
-///
-/// let mut i2c = I2C::new(i2c3, pads.ad_b1.p07, pads.ad_b1.p06, &i2c_clock);
-/// i2c.set_clock_speed(I2CClockSpeed::KHz400).unwrap();
-///
-/// # async {
-/// # const DEVICE_ADDRESS: u8 = 0;
-/// let output = [1, 2, 3, 4];
-/// let mut input = [0; 7];
-/// i2c.write_read(DEVICE_ADDRESS, &output, &mut input).await.unwrap();
-/// # };
-/// ```
+/// See the [module-level documentation](mod@crate::i2c) for more information.
 #[cfg_attr(docsrs, doc(cfg(feature = "i2c")))]
-#[pin_project::pin_project]
 pub struct I2C<SCL, SDA> {
     i2c: Instance,
     scl: SCL,
     sda: SDA,
     hz: u32,
-
-    write_read_state: Option<write_read::State>,
+    /// `Some(state)` means that there's an ongoing operation
+    state: Option<State>,
 }
 
 impl<SCL, SDA, M> I2C<SCL, SDA>
@@ -146,7 +152,7 @@ where
             sda,
             hz: clock.frequency(),
 
-            write_read_state: None,
+            state: None,
         }
     }
 }
@@ -205,46 +211,26 @@ impl<SCL, SDA> I2C<SCL, SDA> {
         address: u8,
         output: &'a [u8],
         input: &'a mut [u8],
-    ) -> write_read::WriteRead<'a, Self> {
+    ) -> write_read::WriteRead<'a, SCL, SDA> {
         write_read::WriteRead::new(self, address, output, input)
     }
 
+    /// Reset any outstanding 'poll' operations
+    ///
+    /// `poll_cancel` resets internal state so that you can call other 'poll' methods.
+    pub fn poll_cancel(&mut self) {
+        disable_interrupts(&self.i2c);
+        self.state = None;
+    }
+
     /// Perform an I2C write, sending `buffer` to the I2C device identified by `address`
-    pub async fn write(&mut self, address: u8, buffer: &[u8]) -> Result<(), Error> {
-        if buffer.is_empty() {
-            return Ok(());
-        }
-
-        check_busy(&self.i2c)?;
-
-        clear_fifo(&self.i2c);
-        clear_status(&self.i2c);
-
-        commands::start_write(&self.i2c, address).await?;
-        commands::send(&self.i2c, buffer).await?;
-        commands::stop(&self.i2c).await?;
-
-        Ok(())
+    pub fn write<'a>(&'a mut self, address: u8, buffer: &'a [u8]) -> write::Write<'a, SCL, SDA> {
+        write::Write::new(self, address, buffer)
     }
 
     /// Request a `buffer` of data from an I2C device identified by `address`
-    pub async fn read(&mut self, address: u8, buffer: &mut [u8]) -> Result<(), Error> {
-        if buffer.len() > 256 {
-            return Err(Error::RequestTooMuchData);
-        } else if buffer.is_empty() {
-            return Ok(());
-        };
-
-        check_busy(&self.i2c)?;
-
-        clear_fifo(&self.i2c);
-        clear_status(&self.i2c);
-
-        commands::start_read(&self.i2c, address).await?;
-        commands::receive(&self.i2c, buffer).await?;
-        commands::stop(&self.i2c).await?;
-
-        Ok(())
+    pub fn read<'a>(&'a mut self, address: u8, buffer: &'a mut [u8]) -> read::Read<'a, SCL, SDA> {
+        read::Read::new(self, address, buffer)
     }
 }
 
@@ -315,6 +301,36 @@ fn check_busy(i2c: &Instance) -> Result<(), Error> {
     } else {
         Ok(())
     }
+}
+
+/// Disable the I2C interrupts enabled in `enable_interrupts`
+#[inline(always)]
+fn disable_interrupts(i2c: &Instance) {
+    ral::write_reg!(
+        ral::lpi2c,
+        i2c,
+        MIER,
+        PLTIE: PLTIE_0,
+        FEIE: FEIE_1,
+        ALIE: ALIE_0,
+        NDIE: NDIE_0,
+        EPIE: EPIE_0,
+        SDIE: SDIE_0,
+        RDIE: RDIE_0,
+        TDIE: TDIE_0
+    );
+}
+
+/// I2C polling state
+pub enum State {
+    StartWrite,
+    Send(usize),
+    StartRead,
+    EndOfPacket,
+    ReceiveLength,
+    Receive(usize),
+    StopSetup,
+    Stop,
 }
 
 /// ```no_run
