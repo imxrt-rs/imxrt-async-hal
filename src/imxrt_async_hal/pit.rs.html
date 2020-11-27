@@ -377,19 +377,6 @@
 <span id="374">374</span>
 <span id="375">375</span>
 <span id="376">376</span>
-<span id="377">377</span>
-<span id="378">378</span>
-<span id="379">379</span>
-<span id="380">380</span>
-<span id="381">381</span>
-<span id="382">382</span>
-<span id="383">383</span>
-<span id="384">384</span>
-<span id="385">385</span>
-<span id="386">386</span>
-<span id="387">387</span>
-<span id="388">388</span>
-<span id="389">389</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">ral</span>;
 
@@ -442,6 +429,15 @@
         <span class="ident">clock</span>: <span class="kw-2">&amp;</span><span class="kw">crate</span>::<span class="ident">ccm</span>::<span class="ident">PerClock</span>,
     ) <span class="op">-</span><span class="op">&gt;</span> (<span class="ident">PeriodicTimer</span>, <span class="ident">PeriodicTimer</span>, <span class="ident">PeriodicTimer</span>, <span class="ident">PeriodicTimer</span>) {
         <span class="ident">ral</span>::<span class="macro">write_reg</span><span class="macro">!</span>(<span class="ident">ral</span>::<span class="ident">pit</span>, <span class="ident">pit</span>, <span class="ident">MCR</span>, <span class="ident">MDIS</span>: <span class="ident">MDIS_0</span>);
+        <span class="comment">// Reset all PIT channels</span>
+        <span class="comment">//</span>
+        <span class="comment">// PIT channels may be used by a systems boot ROM, or another</span>
+        <span class="comment">// user. Set them to a known, good state.</span>
+        <span class="ident">ral</span>::<span class="macro">write_reg</span><span class="macro">!</span>(<span class="ident">ral</span>::<span class="ident">pit</span>, <span class="ident">pit</span>, <span class="ident">TCTRL0</span>, <span class="number">0</span>);
+        <span class="ident">ral</span>::<span class="macro">write_reg</span><span class="macro">!</span>(<span class="ident">ral</span>::<span class="ident">pit</span>, <span class="ident">pit</span>, <span class="ident">TCTRL1</span>, <span class="number">0</span>);
+        <span class="ident">ral</span>::<span class="macro">write_reg</span><span class="macro">!</span>(<span class="ident">ral</span>::<span class="ident">pit</span>, <span class="ident">pit</span>, <span class="ident">TCTRL2</span>, <span class="number">0</span>);
+        <span class="ident">ral</span>::<span class="macro">write_reg</span><span class="macro">!</span>(<span class="ident">ral</span>::<span class="ident">pit</span>, <span class="ident">pit</span>, <span class="ident">TCTRL3</span>, <span class="number">0</span>);
+
         <span class="kw">unsafe</span> {
             <span class="ident">cortex_m</span>::<span class="ident">peripheral</span>::<span class="ident">NVIC</span>::<span class="ident">unmask</span>(<span class="kw">crate</span>::<span class="ident">ral</span>::<span class="ident">interrupt</span>::<span class="ident">PIT</span>);
             <span class="kw">let</span> <span class="ident">hz</span> <span class="op">=</span> <span class="ident">clock</span>.<span class="ident">frequency</span>();
@@ -467,17 +463,14 @@
     }
     <span class="doccomment">/// Wait for `microseconds` to elapse</span>
     <span class="kw">pub</span> <span class="ident">async</span> <span class="kw">fn</span> <span class="ident">delay_us</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">microseconds</span>: <span class="ident">u32</span>) {
-        <span class="kw">unsafe</span> {
-            <span class="ident">STATES</span>[<span class="self">self</span>.<span class="ident">channel</span>.<span class="ident">index</span>()].<span class="number">0</span> <span class="op">=</span> <span class="ident">State</span>::<span class="ident">Ready</span> {
-                <span class="ident">ns</span>: <span class="ident">microseconds</span>.<span class="ident">saturating_mul</span>(<span class="number">1_000</span>),
-            };
-        }
         <span class="ident">Delay</span> {
             <span class="ident">channel</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">channel</span>,
             <span class="ident">hz</span>: <span class="self">self</span>.<span class="ident">hz</span>,
+            <span class="ident">delay_ns</span>: <span class="ident">microseconds</span>.<span class="ident">saturating_mul</span>(<span class="number">1_000</span>),
         }
         .<span class="ident">await</span>
     }
+
     <span class="doccomment">/// Wait for the specified `duration` to elapse</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// If the microseconds represented by the duration cannot be represented by a `u32`, the</span>
@@ -494,58 +487,41 @@
     }
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Copy</span>)]</span>
-<span class="kw">enum</span> <span class="ident">State</span> {
-    <span class="ident">Unknown</span>,
-    <span class="ident">Ready</span> { <span class="ident">ns</span>: <span class="ident">u32</span> },
-    <span class="ident">Pending</span>,
-    <span class="ident">Complete</span>,
-}
-
-<span class="kw">static</span> <span class="kw-2">mut</span> <span class="ident">STATES</span>: [(<span class="ident">State</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Waker</span><span class="op">&gt;</span>); <span class="number">4</span>] <span class="op">=</span> [
-    (<span class="ident">State</span>::<span class="ident">Unknown</span>, <span class="prelude-val">None</span>),
-    (<span class="ident">State</span>::<span class="ident">Unknown</span>, <span class="prelude-val">None</span>),
-    (<span class="ident">State</span>::<span class="ident">Unknown</span>, <span class="prelude-val">None</span>),
-    (<span class="ident">State</span>::<span class="ident">Unknown</span>, <span class="prelude-val">None</span>),
-];
+<span class="kw">static</span> <span class="kw-2">mut</span> <span class="ident">WAKERS</span>: [<span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Waker</span><span class="op">&gt;</span>; <span class="number">4</span>] <span class="op">=</span> [<span class="prelude-val">None</span>, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>];
 
 <span class="kw">struct</span> <span class="ident">Delay</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
     <span class="ident">channel</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> <span class="ident">register</span>::<span class="ident">ChannelInstance</span>,
     <span class="ident">hz</span>: <span class="ident">u32</span>,
-}
-
-<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">Delay</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
-    <span class="kw">fn</span> <span class="ident">set_delay</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">delay_ns</span>: <span class="ident">u32</span>) {
-        <span class="kw">let</span> <span class="ident">period_ns</span> <span class="op">=</span> <span class="number">1_000_000_000</span> <span class="op">/</span> <span class="self">self</span>.<span class="ident">hz</span>;
-        <span class="kw">let</span> <span class="ident">ticks</span> <span class="op">=</span> <span class="ident">delay_ns</span>
-            .<span class="ident">checked_div</span>(<span class="ident">period_ns</span>)
-            .<span class="ident">unwrap_or</span>(<span class="number">0</span>)
-            .<span class="ident">saturating_sub</span>(<span class="number">1</span>);
-        <span class="ident">ral</span>::<span class="macro">write_reg</span><span class="macro">!</span>(<span class="ident">register</span>, <span class="self">self</span>.<span class="ident">channel</span>, <span class="ident">LDVAL</span>, <span class="ident">ticks</span>);
-    }
+    <span class="ident">delay_ns</span>: <span class="ident">u32</span>,
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">Future</span> <span class="kw">for</span> <span class="ident">Delay</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
     <span class="kw">type</span> <span class="ident">Output</span> <span class="op">=</span> ();
 
     <span class="kw">fn</span> <span class="ident">poll</span>(<span class="self">self</span>: <span class="ident">Pin</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">Self</span><span class="op">&gt;</span>, <span class="ident">cx</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Context</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Poll</span><span class="op">&lt;</span><span class="self">Self</span>::<span class="ident">Output</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">state</span> <span class="op">=</span> <span class="kw">unsafe</span> { <span class="ident">STATES</span>[<span class="self">self</span>.<span class="ident">channel</span>.<span class="ident">index</span>()].<span class="number">0</span> };
-        <span class="kw">match</span> <span class="ident">state</span> {
-            <span class="ident">State</span>::<span class="ident">Ready</span> { <span class="ident">ns</span> } <span class="op">=</span><span class="op">&gt;</span> {
-                <span class="ident">ral</span>::<span class="macro">write_reg</span><span class="macro">!</span>(<span class="ident">register</span>, <span class="self">self</span>.<span class="ident">channel</span>, <span class="ident">TCTRL</span>, <span class="number">0</span>); <span class="comment">// Redundant with ISR, but doesn&#39;t hurt</span>
-                <span class="ident">atomic</span>::<span class="ident">compiler_fence</span>(<span class="ident">atomic</span>::<span class="ident">Ordering</span>::<span class="ident">SeqCst</span>);
-                <span class="self">self</span>.<span class="ident">set_delay</span>(<span class="ident">ns</span>);
-                <span class="kw">unsafe</span> {
-                    <span class="ident">STATES</span>[<span class="self">self</span>.<span class="ident">channel</span>.<span class="ident">index</span>()] <span class="op">=</span> (<span class="ident">State</span>::<span class="ident">Pending</span>, <span class="prelude-val">Some</span>(<span class="ident">cx</span>.<span class="ident">waker</span>().<span class="ident">clone</span>()));
-                }
-                <span class="ident">atomic</span>::<span class="ident">compiler_fence</span>(<span class="ident">atomic</span>::<span class="ident">Ordering</span>::<span class="ident">SeqCst</span>);
-                <span class="ident">ral</span>::<span class="macro">modify_reg</span><span class="macro">!</span>(<span class="ident">register</span>, <span class="self">self</span>.<span class="ident">channel</span>, <span class="ident">TCTRL</span>, <span class="ident">TIE</span>: <span class="number">1</span>);
-                <span class="ident">ral</span>::<span class="macro">modify_reg</span><span class="macro">!</span>(<span class="ident">register</span>, <span class="self">self</span>.<span class="ident">channel</span>, <span class="ident">TCTRL</span>, <span class="ident">TEN</span>: <span class="number">1</span>);
-                <span class="ident">Poll</span>::<span class="ident">Pending</span>
+        <span class="kw">if</span> <span class="ident">ral</span>::<span class="macro">read_reg</span><span class="macro">!</span>(<span class="ident">register</span>, <span class="self">self</span>.<span class="ident">channel</span>, <span class="ident">TFLG</span>, <span class="ident">TIF</span> <span class="op">=</span><span class="op">=</span> <span class="number">1</span>) {
+            <span class="comment">// Complete! W1C</span>
+            <span class="ident">ral</span>::<span class="macro">write_reg</span><span class="macro">!</span>(<span class="ident">register</span>, <span class="self">self</span>.<span class="ident">channel</span>, <span class="ident">TFLG</span>, <span class="ident">TIF</span>: <span class="number">1</span>);
+            <span class="ident">Poll</span>::<span class="ident">Ready</span>(())
+        } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">ral</span>::<span class="macro">read_reg</span><span class="macro">!</span>(<span class="ident">register</span>, <span class="self">self</span>.<span class="ident">channel</span>, <span class="ident">TCTRL</span>) <span class="op">!</span><span class="op">=</span> <span class="number">0</span> {
+            <span class="comment">// We&#39;re active; do nothing</span>
+            <span class="ident">Poll</span>::<span class="ident">Pending</span>
+        } <span class="kw">else</span> {
+            <span class="comment">// Neither complete nor active; prepare to run</span>
+            <span class="kw">let</span> <span class="ident">period_ns</span> <span class="op">=</span> <span class="number">1_000_000_000</span> <span class="op">/</span> <span class="self">self</span>.<span class="ident">hz</span>;
+            <span class="kw">let</span> <span class="ident">ticks</span> <span class="op">=</span> <span class="self">self</span>
+                .<span class="ident">delay_ns</span>
+                .<span class="ident">checked_div</span>(<span class="ident">period_ns</span>)
+                .<span class="ident">unwrap_or</span>(<span class="number">0</span>)
+                .<span class="ident">saturating_sub</span>(<span class="number">1</span>);
+            <span class="ident">ral</span>::<span class="macro">write_reg</span><span class="macro">!</span>(<span class="ident">register</span>, <span class="self">self</span>.<span class="ident">channel</span>, <span class="ident">LDVAL</span>, <span class="ident">ticks</span>);
+            <span class="kw">unsafe</span> {
+                <span class="ident">WAKERS</span>[<span class="self">self</span>.<span class="ident">channel</span>.<span class="ident">index</span>()] <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">cx</span>.<span class="ident">waker</span>().<span class="ident">clone</span>());
             }
-            <span class="ident">State</span>::<span class="ident">Pending</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Poll</span>::<span class="ident">Pending</span>,
-            <span class="ident">State</span>::<span class="ident">Complete</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Poll</span>::<span class="ident">Ready</span>(()),
-            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">unreachable</span><span class="macro">!</span>(),
+            <span class="ident">atomic</span>::<span class="ident">compiler_fence</span>(<span class="ident">atomic</span>::<span class="ident">Ordering</span>::<span class="ident">SeqCst</span>);
+            <span class="ident">ral</span>::<span class="macro">modify_reg</span><span class="macro">!</span>(<span class="ident">register</span>, <span class="self">self</span>.<span class="ident">channel</span>, <span class="ident">TCTRL</span>, <span class="ident">TIE</span>: <span class="number">1</span>);
+            <span class="ident">ral</span>::<span class="macro">modify_reg</span><span class="macro">!</span>(<span class="ident">register</span>, <span class="self">self</span>.<span class="ident">channel</span>, <span class="ident">TCTRL</span>, <span class="ident">TEN</span>: <span class="number">1</span>);
+            <span class="ident">Poll</span>::<span class="ident">Pending</span>
         }
     }
 }
@@ -567,13 +543,11 @@
             <span class="ident">ChannelInstance</span>::<span class="ident">three</span>(),
         ]
             .<span class="ident">iter_mut</span>()
-            .<span class="ident">zip</span>(<span class="ident">STATES</span>.<span class="ident">iter_mut</span>())
+            .<span class="ident">zip</span>(<span class="ident">WAKERS</span>.<span class="ident">iter_mut</span>())
             .<span class="ident">filter</span>(<span class="op">|</span>(<span class="ident">channel</span>, <span class="kw">_</span>)<span class="op">|</span> <span class="ident">ral</span>::<span class="macro">read_reg</span><span class="macro">!</span>(<span class="ident">register</span>, <span class="ident">channel</span>, <span class="ident">TFLG</span>, <span class="ident">TIF</span> <span class="op">=</span><span class="op">=</span> <span class="number">1</span>))
-            .<span class="ident">for_each</span>(<span class="op">|</span>(<span class="ident">channel</span>, <span class="ident">state</span>)<span class="op">|</span> {
-                <span class="ident">ral</span>::<span class="macro">write_reg</span><span class="macro">!</span>(<span class="ident">register</span>, <span class="ident">channel</span>, <span class="ident">TFLG</span>, <span class="ident">TIF</span>: <span class="number">1</span>);
+            .<span class="ident">for_each</span>(<span class="op">|</span>(<span class="ident">channel</span>, <span class="ident">waker</span>)<span class="op">|</span> {
                 <span class="ident">ral</span>::<span class="macro">write_reg</span><span class="macro">!</span>(<span class="ident">register</span>, <span class="ident">channel</span>, <span class="ident">TCTRL</span>, <span class="number">0</span>);
-                <span class="ident">state</span>.<span class="number">0</span> <span class="op">=</span> <span class="ident">State</span>::<span class="ident">Complete</span>;
-                <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">waker</span>) <span class="op">=</span> <span class="ident">state</span>.<span class="number">1</span>.<span class="ident">take</span>() {
+                <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">waker</span>) <span class="op">=</span> <span class="ident">waker</span>.<span class="ident">take</span>() {
                     <span class="ident">waker</span>.<span class="ident">wake</span>();
                 }
             });
