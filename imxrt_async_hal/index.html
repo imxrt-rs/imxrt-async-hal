@@ -78,7 +78,7 @@ feature. Otherwise, when developing libraries against the crate, you may skip th
 <span class="comment">// Enable the periodic clock for the GPT</span>
 <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">perclock</span> <span class="op">=</span> <span class="ident">perclock</span>.<span class="ident">enable</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">handle</span>);
 <span class="ident">perclock</span>.<span class="ident">set_clock_gate_gpt</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">gpt</span>, <span class="ident">hal</span>::<span class="ident">ccm</span>::<span class="ident">ClockGate</span>::<span class="ident">On</span>);
-<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">timer</span> <span class="op">=</span> <span class="ident">hal</span>::<span class="ident">GPT</span>::<span class="ident">new</span>(<span class="ident">gpt</span>, <span class="kw-2">&amp;</span><span class="ident">perclock</span>);
+<span class="kw">let</span> (<span class="kw-2">mut</span> <span class="ident">timer</span>, <span class="kw">_</span>, <span class="kw">_</span>) <span class="op">=</span> <span class="ident">hal</span>::<span class="ident">GPT</span>::<span class="ident">new</span>(<span class="ident">gpt</span>, <span class="kw-2">&amp;</span><span class="ident">perclock</span>);
 
 <span class="comment">// Acquire DMA channels, which are used to schedule UART transfers</span>
 <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">channels</span> <span class="op">=</span> <span class="ident">hal</span>::<span class="ident">dma</span>::<span class="ident">channels</span>(
@@ -130,8 +130,8 @@ feature. Otherwise, when developing libraries against the crate, you may skip th
 <h2 id="license" class="section-header"><a href="#license">License</a></h2>
 <p>Licensed under either of</p>
 <ul>
-<li><a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a> (<a href="./LICENSE-APACHE">LICENSE-APACHE</a>)</li>
-<li><a href="http://opensource.org/licenses/MIT">MIT License</a> (<a href="./LICENSE-MIT">LICENSE-MIT</a>)</li>
+<li><a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a></li>
+<li><a href="http://opensource.org/licenses/MIT">MIT License</a></li>
 </ul>
 <p>at your option.</p>
 <p>Unless you explicitly state otherwise, any contribution intentionally submitted

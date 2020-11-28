@@ -382,7 +382,7 @@
 <span class="doccomment">//!</span>
 <span class="doccomment">//! let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();</span>
 <span class="doccomment">//! let mut perclock = ccm.perclock.enable(&amp;mut ccm.handle);</span>
-<span class="doccomment">//! let mut gpt = GPT1::take()</span>
+<span class="doccomment">//! let (_, mut gpt, _) = GPT1::take()</span>
 <span class="doccomment">//!     .map(|mut inst| {</span>
 <span class="doccomment">//!         perclock.set_clock_gate_gpt(&amp;mut inst, ClockGate::On);</span>
 <span class="doccomment">//!         hal::GPT::new(inst, &amp;mut perclock)</span>
