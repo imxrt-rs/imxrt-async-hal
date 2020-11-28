@@ -97,8 +97,6 @@ pub struct I2C<SCL, SDA> {
     scl: SCL,
     sda: SDA,
     hz: u32,
-    /// `Some(state)` means that there's an ongoing operation
-    state: Option<State>,
 }
 
 impl<SCL, SDA, M> I2C<SCL, SDA>
@@ -151,8 +149,6 @@ where
             scl,
             sda,
             hz: clock.frequency(),
-
-            state: None,
         }
     }
 }
@@ -211,26 +207,18 @@ impl<SCL, SDA> I2C<SCL, SDA> {
         address: u8,
         output: &'a [u8],
         input: &'a mut [u8],
-    ) -> write_read::WriteRead<'a, SCL, SDA> {
-        write_read::WriteRead::new(self, address, output, input)
-    }
-
-    /// Reset any outstanding 'poll' operations
-    ///
-    /// `poll_cancel` resets internal state so that you can call other 'poll' methods.
-    pub fn poll_cancel(&mut self) {
-        disable_interrupts(&self.i2c);
-        self.state = None;
+    ) -> write_read::WriteRead<'a> {
+        write_read::WriteRead::new(&self.i2c, address, output, input)
     }
 
     /// Perform an I2C write, sending `buffer` to the I2C device identified by `address`
-    pub fn write<'a>(&'a mut self, address: u8, buffer: &'a [u8]) -> write::Write<'a, SCL, SDA> {
-        write::Write::new(self, address, buffer)
+    pub fn write<'a>(&'a mut self, address: u8, buffer: &'a [u8]) -> write::Write<'a> {
+        write::Write::new(&self.i2c, address, buffer)
     }
 
     /// Request a `buffer` of data from an I2C device identified by `address`
-    pub fn read<'a>(&'a mut self, address: u8, buffer: &'a mut [u8]) -> read::Read<'a, SCL, SDA> {
-        read::Read::new(self, address, buffer)
+    pub fn read<'a>(&'a mut self, address: u8, buffer: &'a mut [u8]) -> read::Read<'a> {
+        read::Read::new(&self.i2c, address, buffer)
     }
 }
 

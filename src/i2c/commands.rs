@@ -22,7 +22,7 @@ use core::{
 };
 
 /// Resolves when there's space in the transmit FIFO
-fn poll_transmit_ready(i2c: &mut Instance, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
+fn poll_transmit_ready(i2c: &Instance, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
     if let Err(err) = super::check_errors(&i2c) {
         Poll::Ready(Err(err))
     } else if ral::read_reg!(ral::lpi2c, i2c, MSR, TDF == TDF_1) {
@@ -37,7 +37,7 @@ fn poll_transmit_ready(i2c: &mut Instance, cx: &mut Context<'_>) -> Poll<Result<
 
 /// Command a write to `address`
 pub fn poll_start_write(
-    i2c: &mut Instance,
+    i2c: &Instance,
     cx: &mut Context<'_>,
     address: u8,
 ) -> Poll<Result<(), Error>> {
@@ -48,7 +48,7 @@ pub fn poll_start_write(
 
 /// Command a read from `address`
 pub fn poll_start_read(
-    i2c: &mut Instance,
+    i2c: &Instance,
     cx: &mut Context<'_>,
     address: u8,
 ) -> Poll<Result<(), Error>> {
@@ -58,14 +58,14 @@ pub fn poll_start_read(
 }
 
 /// Send `value` to the I2C device
-pub fn poll_send(i2c: &mut Instance, cx: &mut Context<'_>, value: u8) -> Poll<Result<(), Error>> {
+pub fn poll_send(i2c: &Instance, cx: &mut Context<'_>, value: u8) -> Poll<Result<(), Error>> {
     poll_transmit_ready(i2c, cx).map_ok(|_| {
         ral::write_reg!(ral::lpi2c, i2c, MTDR, CMD: CMD_0, DATA: value as u32);
     })
 }
 
 /// Resolves when we acknowledge and end of packet (repeated start, or stop condition)
-pub fn poll_end_of_packet(i2c: &mut Instance, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
+pub fn poll_end_of_packet(i2c: &Instance, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
     if let Err(err) = super::check_errors(&i2c) {
         Poll::Ready(Err(err))
     } else if ral::read_reg!(ral::lpi2c, i2c, MSR, EPF == EPF_1) {
@@ -82,7 +82,7 @@ pub fn poll_end_of_packet(i2c: &mut Instance, cx: &mut Context<'_>) -> Poll<Resu
 
 /// Prepare to receive `len` bytes from the I2C device
 pub fn poll_receive_length(
-    i2c: &mut Instance,
+    i2c: &Instance,
     cx: &mut Context<'_>,
     len: usize,
 ) -> Poll<Result<(), Error>> {
@@ -91,7 +91,7 @@ pub fn poll_receive_length(
 }
 
 /// Receive a byte from the I2C device
-pub fn poll_receive(i2c: &mut Instance, cx: &mut Context<'_>) -> Poll<Result<u8, Error>> {
+pub fn poll_receive(i2c: &Instance, cx: &mut Context<'_>) -> Poll<Result<u8, Error>> {
     if let Err(err) = super::check_errors(&i2c) {
         Poll::Ready(Err(err))
     } else if ral::read_reg!(ral::lpi2c, i2c, MSR, RDF == RDF_1) {
@@ -106,14 +106,14 @@ pub fn poll_receive(i2c: &mut Instance, cx: &mut Context<'_>) -> Poll<Result<u8,
 }
 
 /// Command a stop, resolving once the command is enqueued
-pub fn poll_stop_setup(i2c: &mut Instance, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
+pub fn poll_stop_setup(i2c: &Instance, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
     poll_transmit_ready(i2c, cx).map_ok(|_| {
         ral::write_reg!(ral::lpi2c, i2c, MTDR, CMD: CMD_2);
     })
 }
 
 /// Resolves when the stop condition generates an interrupt
-pub fn poll_stop(i2c: &mut Instance, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
+pub fn poll_stop(i2c: &Instance, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
     if let Err(err) = super::check_errors(&i2c) {
         Poll::Ready(Err(err))
     } else if ral::read_reg!(ral::lpi2c, i2c, MSR, SDF == SDF_1) {
