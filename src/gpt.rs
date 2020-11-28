@@ -12,6 +12,9 @@ use core::{
 /// The timer **divides the input clock by 5**. This may affect very precise
 /// timing. For a more precise timer, see [`PIT`](crate::PIT).
 ///
+/// Each GPT instance turns into three GPT timers. Use [`new`](crate::GPT::new)
+/// to acquire the three timers.
+///
 /// # Example
 ///
 /// Use GPT1 to block for 250ms.
@@ -23,7 +26,7 @@ use core::{
 ///
 /// let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();
 /// let mut perclock = ccm.perclock.enable(&mut ccm.handle);
-/// let mut gpt = gpt::GPT1::take().map(|mut gpt| {
+/// let (mut gpt, _, _) = gpt::GPT1::take().map(|mut gpt| {
 ///     perclock.set_clock_gate_gpt(&mut gpt, ClockGate::On);
 ///     GPT::new(gpt, &perclock)
 /// }).unwrap();
@@ -50,9 +53,21 @@ pub struct GPT {
 /// Can't find anything in the errata...
 const DIVIDER: u32 = 5;
 
+fn steal(gpt: &ral::gpt::Instance) -> ral::gpt::Instance {
+    // Safety: we already have a GPT instance, so users won't notice
+    // that we're stealing the instance again...
+    unsafe {
+        match &**gpt as *const _ {
+            ral::gpt::GPT1 => ral::gpt::GPT1::steal(),
+            ral::gpt::GPT2 => ral::gpt::GPT2::steal(),
+            _ => unreachable!("There are only two GPTs"),
+        }
+    }
+}
+
 impl GPT {
     /// Create a new `GPT` from a RAL GPT instance
-    pub fn new(gpt: ral::gpt::Instance, clock: &crate::ccm::PerClock) -> Self {
+    pub fn new(gpt: ral::gpt::Instance, clock: &crate::ccm::PerClock) -> (Self, Self, Self) {
         let irq = match &*gpt as *const _ {
             ral::gpt::GPT1 => ral::interrupt::GPT1,
             ral::gpt::GPT2 => ral::interrupt::GPT2,
@@ -83,11 +98,24 @@ impl GPT {
         );
 
         unsafe { cortex_m::peripheral::NVIC::unmask(irq) };
-        GPT {
-            gpt,
-            hz: clock.frequency() / DIVIDER,
-            output_compare: OutputCompare::Channel1,
-        }
+        let hz = clock.frequency() / DIVIDER;
+        (
+            GPT {
+                gpt: steal(&gpt),
+                hz,
+                output_compare: OutputCompare::Channel1,
+            },
+            GPT {
+                gpt: steal(&gpt),
+                hz,
+                output_compare: OutputCompare::Channel2,
+            },
+            GPT {
+                gpt,
+                hz,
+                output_compare: OutputCompare::Channel3,
+            },
+        )
     }
 
     /// Wait for the specified `duration` to elapse

@@ -39,7 +39,7 @@ fn main() -> ! {
     let mut perclock = perclock.enable(&mut handle);
     perclock.set_clock_gate_gpt(&mut gpt, hal::ccm::ClockGate::On);
 
-    let mut timer = hal::GPT::new(gpt, &perclock);
+    let (mut timer, _, _) = hal::GPT::new(gpt, &perclock);
     let mut channels = hal::dma::channels(
         hal::ral::dma0::DMA0::take()
             .map(|mut dma| {
