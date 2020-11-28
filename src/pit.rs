@@ -1,3 +1,32 @@
+//! Periodic interrupt timer (PIT) driver and futures
+//!
+//! The PIT timer channels are the most precise timers in the HAL. PIT timers run on the periodic clock
+//! frequency.
+//!
+//! A single hardware PIT instance has four PIT channels. Use [`new`](crate::pit::PIT::new) to acquire these four
+//! channels.
+//!
+//! # Example
+//!
+//! Delay for 100us using PIT channel 3.
+//!
+//! ```no_run
+//! use imxrt_async_hal as hal;
+//! use hal::ral::{ccm, pit};
+//! use hal::{ccm::{CCM, ClockGate}, PIT};
+//!
+//! let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();
+//! let mut perclock = ccm.perclock.enable(&mut ccm.handle);
+//! let (_, _, _, mut pit) = pit::PIT::take().map(|mut pit| {
+//!     perclock.set_clock_gate_pit(&mut pit, ClockGate::On);
+//!     PIT::new(pit, &perclock)
+//! }).unwrap();
+//!
+//! # async {
+//! pit.delay_us(100).await;
+//! # };
+//! ```
+
 use crate::ral;
 
 use core::{
@@ -10,44 +39,16 @@ use core::{
 
 /// Periodic interrupt timer (PIT)
 ///
-/// The PIT timer channels are the most precise timers in the HAL. PIT timers run on the periodic clock
-/// frequency.
-///
-/// A single hardware PIT instance has four PIT channels. Use [`new`](#method.new) to acquire these four
-/// channels.
-///
-/// # Example
-///
-/// Delay for 100us using PIT channel 3.
-///
-/// ```no_run
-/// use imxrt_async_hal as hal;
-/// use hal::ral::{ccm, pit};
-/// use hal::{ccm::{CCM, ClockGate}, PIT};
-///
-/// let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();
-/// let mut perclock = ccm.perclock.enable(&mut ccm.handle);
-/// let (_, _, _, mut pit) = pit::PIT::take().map(|mut pit| {
-///     perclock.set_clock_gate_pit(&mut pit, ClockGate::On);
-///     PIT::new(pit, &perclock)
-/// }).unwrap();
-///
-/// # async {
-/// pit.delay_us(100).await;
-/// # };
-/// ```
+/// See the [module-level documentation](crate::pit) for more information.
 #[cfg_attr(docsrs, doc(cfg(feature = "pit")))]
-pub struct PeriodicTimer {
+pub struct PIT {
     channel: register::ChannelInstance,
     hz: u32,
 }
 
-impl PeriodicTimer {
+impl PIT {
     /// Acquire four PIT channels from the RAL's PIT instance
-    pub fn new(
-        pit: ral::pit::Instance,
-        clock: &crate::ccm::PerClock,
-    ) -> (PeriodicTimer, PeriodicTimer, PeriodicTimer, PeriodicTimer) {
+    pub fn new(pit: ral::pit::Instance, clock: &crate::ccm::PerClock) -> (PIT, PIT, PIT, PIT) {
         ral::write_reg!(ral::pit, pit, MCR, MDIS: MDIS_0);
         // Reset all PIT channels
         //
@@ -62,19 +63,19 @@ impl PeriodicTimer {
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::PIT);
             let hz = clock.frequency();
             (
-                PeriodicTimer {
+                PIT {
                     channel: register::ChannelInstance::zero(),
                     hz,
                 },
-                PeriodicTimer {
+                PIT {
                     channel: register::ChannelInstance::one(),
                     hz,
                 },
-                PeriodicTimer {
+                PIT {
                     channel: register::ChannelInstance::two(),
                     hz,
                 },
-                PeriodicTimer {
+                PIT {
                     channel: register::ChannelInstance::three(),
                     hz,
                 },
@@ -82,37 +83,20 @@ impl PeriodicTimer {
         }
     }
     /// Wait for `microseconds` to elapse
-    pub async fn delay_us(&mut self, microseconds: u32) {
+    pub fn delay_us(&mut self, microseconds: u32) -> Delay<'_> {
         Delay {
             channel: &mut self.channel,
             ticks: ticks(microseconds, self.hz),
         }
-        .await
     }
 
     /// Wait for the specified `duration` to elapse
     ///
     /// If the microseconds represented by the duration cannot be represented by a `u32`, the
     /// delay will saturate at `u32::max_value()` microseconds.
-    pub async fn delay(&mut self, duration: Duration) {
+    pub fn delay(&mut self, duration: Duration) -> Delay<'_> {
         use core::convert::TryFrom;
         self.delay_us(u32::try_from(duration.as_micros()).unwrap_or(u32::max_value()))
-            .await
-    }
-
-    /// Manually poll the timer until `microseconds` expire
-    ///
-    /// Once you call this, you must continue calling it until it returns `Poll::Ready`. The context must
-    /// stay active between the first call, and the return of `Poll::Ready`.
-    ///
-    /// To cancel any outstanding calls, use [`poll_cancel`].
-    pub unsafe fn poll_delays_us(&mut self, cx: &mut Context<'_>, microseconds: u32) -> Poll<()> {
-        poll_delay(&mut self.channel, cx, ticks(microseconds, self.hz))
-    }
-
-    /// Cancel any outstanding 'poll' calls
-    pub fn poll_cancel(&mut self) {
-        poll_cancel(&mut self.channel);
     }
 
     /// Returns the PIT clock period
@@ -123,7 +107,10 @@ impl PeriodicTimer {
 
 static mut WAKERS: [Option<Waker>; 4] = [None, None, None, None];
 
-struct Delay<'a> {
+/// A future that yields once the PIT timer elapses
+///
+/// Use [`delay_us`](crate::pit::PIT::delay_us) to create a `Delay`.
+pub struct Delay<'a> {
     channel: &'a mut register::ChannelInstance,
     ticks: u32,
 }

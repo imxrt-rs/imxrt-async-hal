@@ -275,7 +275,7 @@ mod gpt;
 pub mod i2c;
 pub mod instance;
 #[cfg(feature = "pit")]
-mod pit;
+pub mod pit;
 #[cfg(feature = "spi")]
 mod spi;
 #[cfg(feature = "uart")]
@@ -294,7 +294,7 @@ pub use gpt::GeneralPurposeTimer as GPT;
 #[cfg(feature = "i2c")]
 pub use i2c::{ClockSpeed as I2CClockSpeed, Error as I2CError, I2C};
 #[cfg(feature = "pit")]
-pub use pit::PeriodicTimer as PIT;
+pub use pit::PIT;
 #[cfg(feature = "spi")]
 pub use spi::{Error as SPIError, Pins as SPIPins, SPI};
 #[cfg(feature = "uart")]
