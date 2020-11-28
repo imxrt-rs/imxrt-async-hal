@@ -1,12 +1,12 @@
 //! Direct Memory Access (DMA) for async I/O
 //!
-//! DMA [`Channel`s](struct.Channel.html) power some asynchronous I/O operations.
-//! Use [`channels`](fn.channels.html) to acquire all of the processor's DMA channels.
+//! DMA [`Channel`s](Channel) power some asynchronous I/O operations.
+//! Use [`channels`](channels()) to acquire all of the processor's DMA channels.
 //! Then, use the `Channel`s in APIs that require them. The implementation handles
 //! DMA receive and transfer operations, and ensures that the lifetime of your buffers
 //! is correct.
 //!
-//! The implementation also provides a [`pipe`](pipe/index.html), a hardware-backed
+//! The implementation also provides a [`pipe`], a hardware-backed
 //! communication channels (not to be confused with DMA `Channel`s). Use `pipe` senders
 //! and receivers to synchronize tasks, and transmit `Copy` data between tasks using
 //! DMA hardware.
@@ -43,18 +43,18 @@ pub enum Error {
     Setup(ErrorStatus),
     /// The operation was cancelled
     ///
-    /// `Cancelled` is the return from a [`pipe`](pipe/index.html) sender or
+    /// `Cancelled` is the return from a [`pipe`] sender or
     /// receiver when the other half is dropped.
     Cancelled,
 }
 
 /// Initialize and acquire the DMA channels
 ///
-/// The return is 32 channels. However, **only the first [`CHANNEL_COUNT`](constant.CHANNEL_COUNT.html) channels
+/// The return is 32 channels. However, **only the first [`CHANNEL_COUNT`] channels
 /// are initialized to `Some(channel)`. The rest are `None`**.
 ///
 /// You should enable the clock gates before calling `channels`. See
-/// [`ccm::Handle::clock_gate_dma`](../ccm/struct.Handle.html#method.set_clock_gate_dma) for more information.
+/// [`ccm::Handle::clock_gate_dma`](super::ccm::Handle::set_clock_gate_dma()) for more information.
 ///
 /// # Example
 ///

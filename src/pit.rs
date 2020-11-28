@@ -13,7 +13,7 @@ use core::{
 /// The PIT timer channels are the most precise timers in the HAL. PIT timers run on the periodic clock
 /// frequency.
 ///
-/// A single hardware PIT instance has four PIT channels. Use [`new`](#method.new) to acquire these four
+/// A single hardware PIT instance has four PIT channels. Use [`new`](PeriodicTimer::new()) to acquire these four
 /// channels.
 ///
 /// # Example

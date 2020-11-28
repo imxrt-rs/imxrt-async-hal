@@ -10,7 +10,7 @@ use core::{
 /// General purpose timers (GPT)
 ///
 /// The timer **divides the input clock by 5**. This may affect very precise
-/// timing. For a more precise timer, see [`PIT`](struct.PIT.html).
+/// timing. For a more precise timer, see [`PIT`](crate::PIT).
 ///
 /// # Example
 ///

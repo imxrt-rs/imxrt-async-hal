@@ -25,7 +25,7 @@ use crate::{
 ///
 /// The driver also yields when waiting for stop and repeated start conditions.
 ///
-/// The I2C clock speed is unspecified out of construction. Use [`set_clock_speed`](#method.set_clock_speed)
+/// The I2C clock speed is unspecified out of construction. Use [`set_clock_speed`](I2C::set_clock_speed())
 /// to select a valid I2C clock speed.
 ///
 /// The RAL instances are available in `ral::lpi2c`.
@@ -100,7 +100,7 @@ where
     /// Create an I2C driver from an I2C instance and a pair of I2C pins
     ///
     /// The I2C clock speed of the returned `I2C` driver is unspecified and may not be valid.
-    /// Use [`set_clock_speed`](#method.set_clock_speed) to select a valid I2C clock speed.
+    /// Use [`set_clock_speed`](I2C::set_clock_speed()) to select a valid I2C clock speed.
     pub fn new(
         i2c: crate::instance::I2C<M>,
         mut scl: SCL,
@@ -145,14 +145,14 @@ where
     }
 }
 
-/// Errors propagated from an [`I2C`](struct.I2C.html) device
+/// Errors propagated from an [`I2C`] device
 #[non_exhaustive]
 #[derive(Debug)]
 #[cfg_attr(docsrs, doc(cfg(feature = "i2c")))]
 pub enum Error {
     /// There was an issue when setting the clock speed
     ///
-    /// Only returned from [`set_clock_speed`](struct.I2C.html#method.set_clock_speed).
+    /// Only returned from [`set_clock_speed`](I2C::set_clock_speed()).
     ClockSpeed,
     /// Master has lost arbitration
     LostBusArbitration,
@@ -182,7 +182,7 @@ impl<SCL, SDA> I2C<SCL, SDA> {
 
     /// Set the I2C clock speed
     ///
-    /// If there is an error, error variant is [`I2CError::ClockSpeed`](enum.I2CError.html#variant.ClockSpeed).
+    /// If there is an error, error variant is [`crate::i2c::Error::ClockSpeed`].
     pub fn set_clock_speed(&mut self, clock_speed: ClockSpeed) -> Result<(), Error> {
         while_disabled(&self.i2c, |i2c| {
             clock::set_speed(clock_speed, self.hz, i2c);

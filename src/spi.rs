@@ -2,7 +2,7 @@ use crate::{dma, instance, iomuxc, ral};
 
 /// Pins for a SPI device
 ///
-/// Consider using type aliases to simplify your [`SPI`](struct.SPI.html) usage:
+/// Consider using type aliases to simplify your [`SPI`] usage:
 ///
 /// ```no_run
 /// use imxrt_async_hal as hal;
@@ -42,7 +42,7 @@ pub struct Pins<SDO, SDI, SCK, PCS0> {
 /// A `SPI` peripheral uses DMA for asynchronous I/O. Using up to two DMA channels, `SPI` peripherals
 /// can perform SPI device reads, writes, and full-duplex transfers with `u8` and `u16` elements.
 ///
-/// The SPI serial clock speed after construction is unspecified. Use [`set_clock_speed`](#method.set_clock_speed)
+/// The SPI serial clock speed after construction is unspecified. Use [`set_clock_speed`](SPI::set_clock_speed())
 /// to choose your SPI serial clock speed.
 ///
 /// The RAL instances are available in `ral::lpspi`.
@@ -114,7 +114,7 @@ where
 {
     /// Create a `SPI` from a set of pins, a SPI peripheral instance, and two DMA channels
     ///
-    /// See the [`instance` module](instance/index.html) for more information on SPI peripheral
+    /// See the [`instance` module](instance) for more information on SPI peripheral
     /// instances.
     pub fn new(
         mut pins: Pins<SDO, SDI, SCK, PCS0>,
@@ -159,7 +159,7 @@ where
     }
 }
 
-/// Errors propagated from a [`SPI`](struct.SPI.html) device
+/// Errors propagated from a [`SPI`] device
 #[non_exhaustive]
 #[derive(Debug)]
 #[cfg_attr(docsrs, doc(cfg(feature = "spi")))]
@@ -190,7 +190,7 @@ impl<Pins> SPI<Pins> {
     /// Consider calling `set_clock_speed` after creating a `SPI`, since the clock speed after
     /// construction is unspecified.
     ///
-    /// If an error occurs, it's an [`SPIError::ClockSpeed`](enum.SPIError.html#variant.ClockSpeed).
+    /// If an error occurs, it's an [`crate::spi::Error::ClockSpeed`].
     pub fn set_clock_speed(&mut self, hz: u32) -> Result<(), Error> {
         self.with_master_disabled(|| {
             // Safety: master is disabled

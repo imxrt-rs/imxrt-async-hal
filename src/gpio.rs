@@ -1,7 +1,7 @@
 //! GPIOs
 //!
-//! [`GPIO`s](struct.GPIO.html) can be in either input or output states. GPIO inputs can
-//! read the high / low status of physical pins. Based on a [`Trigger`](enum.Trigger.html)
+//! [`GPIO`s](GPIO) can be in either input or output states. GPIO inputs can
+//! read the high / low status of physical pins. Based on a [`Trigger`]
 //! selection, GPIO inputs can wait for transitions on the input pin.
 //!
 //! ```no_run
@@ -75,9 +75,8 @@ pub enum Output {}
 
 /// A wrapper around an i.MX RT processor pad, supporting simple I/O
 ///
-/// Use [`new`](#method.new) with a pad from the [`iomuxc`](../iomuxc/index.html)
-/// module, or a Teensy 4 [`pin`](../pins/index.html). All GPIOs start in the input state. Use
-/// [`output`](#method.output) to become an output pin.
+/// Use [`new`](GPIO::new()) with a pad from the [`iomuxc`](super::iomuxc)
+/// module. All GPIOs start in the input state. Use [`output`](GPIO::output()) to become an output pin.
 ///
 /// ```no_run
 /// use imxrt_async_hal as hal;
@@ -90,7 +89,7 @@ pub enum Output {}
 /// led.set();
 /// ```
 ///
-/// When using a `GPIO` as an input, you can wait for transitions using [`wait_for`](#method.wait_for).
+/// When using a `GPIO` as an input, you can wait for transitions using [`wait_for`](GPIO::wait_for()).
 #[cfg_attr(docsrs, doc(cfg(feature = "gpio")))]
 pub struct GPIO<P, D> {
     pin: P,
@@ -299,7 +298,7 @@ where
 
     /// Alternate the state of the pin
     ///
-    /// Using `toggle` will be more efficient than checking [`is_set`](#method.is_set)
+    /// Using `toggle` will be more efficient than checking [`is_set`](GPIO::is_set())
     /// and then selecting the opposite state.
     pub fn toggle(&mut self) {
         // Safety: atomic write
@@ -309,7 +308,7 @@ where
 
 /// Input interrupt triggers
 ///
-/// See [`GPIO::wait_for`](#method.wait_for) for more information.
+/// See [`GPIO::wait_for`](GPIO::wait_for()) for more information.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(docsrs, doc(cfg(feature = "gpio")))]
 pub enum Trigger {
