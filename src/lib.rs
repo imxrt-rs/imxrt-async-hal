@@ -142,8 +142,8 @@
 //!
 //! Licensed under either of
 //!
-//! - [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0) ([LICENSE-APACHE](./LICENSE-APACHE))
-//! - [MIT License](http://opensource.org/licenses/MIT) ([LICENSE-MIT](./LICENSE-MIT))
+//! - [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
+//! - [MIT License](http://opensource.org/licenses/MIT)
 //!
 //! at your option.
 //!
