@@ -290,7 +290,7 @@ use cortex_m_rt as rt;
 // Module re-exports
 //
 #[cfg(feature = "gpt")]
-pub use gpt::GeneralPurposeTimer as GPT;
+pub use gpt::GPT;
 #[cfg(feature = "i2c")]
 pub use i2c::{ClockSpeed as I2CClockSpeed, Error as I2CError, I2C};
 #[cfg(feature = "pit")]

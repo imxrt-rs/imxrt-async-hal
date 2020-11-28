@@ -34,7 +34,7 @@ use core::{
 /// # };
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "gpt")))]
-pub struct GeneralPurposeTimer {
+pub struct GPT {
     gpt: ral::gpt::Instance,
     hz: u32,
 }
@@ -49,7 +49,7 @@ pub struct GeneralPurposeTimer {
 /// Can't find anything in the errata...
 const DIVIDER: u32 = 5;
 
-impl GeneralPurposeTimer {
+impl GPT {
     /// Create a new `GPT` from a RAL GPT instance
     pub fn new(gpt: ral::gpt::Instance, clock: &crate::ccm::PerClock) -> Self {
         let irq = match &*gpt as *const _ {
@@ -82,7 +82,7 @@ impl GeneralPurposeTimer {
         );
 
         unsafe { cortex_m::peripheral::NVIC::unmask(irq) };
-        GeneralPurposeTimer {
+        GPT {
             gpt,
             hz: clock.frequency() / DIVIDER,
         }
