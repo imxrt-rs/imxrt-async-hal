@@ -294,7 +294,7 @@ pub use gpt::GPT;
 #[cfg(feature = "i2c")]
 pub use i2c::{ClockSpeed as I2CClockSpeed, Error as I2CError, I2C};
 #[cfg(feature = "pit")]
-pub use pit::PeriodicTimer as PIT;
+pub use pit::PIT;
 #[cfg(feature = "spi")]
 pub use spi::{Error as SPIError, Pins as SPIPins, SPI};
 #[cfg(feature = "uart")]

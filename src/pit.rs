@@ -13,7 +13,7 @@ use core::{
 /// The PIT timer channels are the most precise timers in the HAL. PIT timers run on the periodic clock
 /// frequency.
 ///
-/// A single hardware PIT instance has four PIT channels. Use [`new`](PeriodicTimer::new()) to acquire these four
+/// A single hardware PIT instance has four PIT channels. Use [`new`](PIT::new()) to acquire these four
 /// channels.
 ///
 /// # Example
@@ -37,17 +37,14 @@ use core::{
 /// # };
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "pit")))]
-pub struct PeriodicTimer {
+pub struct PIT {
     channel: register::ChannelInstance,
     hz: u32,
 }
 
-impl PeriodicTimer {
+impl PIT {
     /// Acquire four PIT channels from the RAL's PIT instance
-    pub fn new(
-        pit: ral::pit::Instance,
-        clock: &crate::ccm::PerClock,
-    ) -> (PeriodicTimer, PeriodicTimer, PeriodicTimer, PeriodicTimer) {
+    pub fn new(pit: ral::pit::Instance, clock: &crate::ccm::PerClock) -> (PIT, PIT, PIT, PIT) {
         ral::write_reg!(ral::pit, pit, MCR, MDIS: MDIS_0);
         // Reset all PIT channels
         //
@@ -62,19 +59,19 @@ impl PeriodicTimer {
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::PIT);
             let hz = clock.frequency();
             (
-                PeriodicTimer {
+                PIT {
                     channel: register::ChannelInstance::zero(),
                     hz,
                 },
-                PeriodicTimer {
+                PIT {
                     channel: register::ChannelInstance::one(),
                     hz,
                 },
-                PeriodicTimer {
+                PIT {
                     channel: register::ChannelInstance::two(),
                     hz,
                 },
-                PeriodicTimer {
+                PIT {
                     channel: register::ChannelInstance::three(),
                     hz,
                 },
