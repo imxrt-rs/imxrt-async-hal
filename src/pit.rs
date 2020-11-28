@@ -31,6 +31,7 @@ use crate::ral;
 
 use core::{
     future::Future,
+    marker::PhantomPinned,
     pin::Pin,
     sync::atomic,
     task::{Context, Poll, Waker},
@@ -87,6 +88,7 @@ impl PIT {
         Delay {
             channel: &mut self.channel,
             ticks: ticks(microseconds, self.hz),
+            _pin: PhantomPinned,
         }
     }
 
@@ -113,14 +115,17 @@ static mut WAKERS: [Option<Waker>; 4] = [None, None, None, None];
 pub struct Delay<'a> {
     channel: &'a mut register::ChannelInstance,
     ticks: u32,
+    _pin: PhantomPinned,
 }
 
 impl<'a> Future for Delay<'a> {
     type Output = ();
 
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let ticks = self.ticks;
-        poll_delay(&mut self.channel, cx, ticks)
+        // Safety: future is safely Unpin; only exposed as !Unpin, just in case.
+        let this = unsafe { Pin::into_inner_unchecked(self) };
+        poll_delay(&mut this.channel, cx, ticks)
     }
 }
 
