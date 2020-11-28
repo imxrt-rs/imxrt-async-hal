@@ -218,7 +218,7 @@ pub mod ccm {
     //! Clock control module (CCM)
     //!
     //! The clocks and types exposed in `ccm` support clock control and peripheral clock
-    //! gating. Use [`CCM::from_ral`](type.CCM.html) to acquire the clock roots and the
+    //! gating. Use [`CCM::from_ral`](CCM) to acquire the clock roots and the
     //! CCM handle. Then, enable your clocks.
     //!
     //! ```no_run
@@ -257,7 +257,7 @@ pub mod ccm {
 
     pub use imxrt_ccm::{
         ral::{I2CClock, PerClock, SPIClock, UARTClock, CCM},
-        ClockGate,
+        ClockGate, Handle,
     };
 }
 #[cfg(any(feature = "pipe", feature = "spi", feature = "uart"))]
@@ -324,8 +324,8 @@ mod once {
 ///
 /// The `iomuxc` module is a re-export of the [`imxrt-iomuxc`] crate. It combines
 /// the i.MX RT processor-specific components with the `imxrt-iomuxc` general API.
-/// It then adds a safe function, [`take`](fn.take.html), which lets you convert
-/// the RAL's `iomuxc::Instance` into all of the processor [`Pads`](struct.Pads.html).
+/// It then adds a safe function, `take`, which lets you convert
+/// the RAL's `iomuxc::Instance` into all of the processor [`Pads`](crate::iomuxc::pads::Pads).
 ///
 /// ```no_run
 /// use imxrt_async_hal as hal;

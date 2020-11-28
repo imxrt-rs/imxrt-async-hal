@@ -3,10 +3,10 @@
 //! _(Note: this API is similar to typical 'channels' that you'll find in the Rust ecosystem. We
 //! use 'pipe' to disambiguate between this software channel and a hardware DMA channel.)_
 //!
-//! `pipe` provides a mechanism for sending data across tasks. The [`Sender`](struct.Sender.html)
-//! half can send `Copy` data, and the [`Receiver`](struct.Receiver.html)
+//! `pipe` provides a mechanism for sending data across tasks. The [`Sender`]
+//! half can send `Copy` data, and the [`Receiver`]
 //! half can receive that same data. The tasks use a DMA channel to transfer the data across tasks.
-//! Use [`new`](fn.new.html) to create both halves of a pipe.
+//! Use [`new`](new()) to create both halves of a pipe.
 //!
 //! A `Sender` blocks until the `Receiver` is ready to receive data. Likewise, the `Receiver` blocks until
 //! the `Sender` is ready to send data. This creates a synchronization point for the two tasks. When the transfer
@@ -17,7 +17,7 @@
 //! task.
 //!
 //! To cancel a transfer, drop either the `Sender` or the `Receiver`. When one half is dropped, the remaining half will
-//! immediately return an [`Error::Cancelled`](../enum.Error.html#variant.Cancelled). The remaining half can never be used
+//! immediately return an [`Error::Cancelled`](super::Error::Cancelled). The remaining half can never be used
 //! again, as it will always, immediately return `Error::Cancelled`.
 //!
 //! # Example
@@ -81,14 +81,14 @@ use core::{
 const SENDER_STATE: usize = 0;
 const RECEIVER_STATE: usize = 1;
 
-/// Alias for a `Result` that might return an [`Error`](../enum.Error.html).
+/// Alias for a `Result` that might return an [`Error`](super::Error).
 pub type Result<T> = core::result::Result<T, dma::Error>;
 
 /// The sending half of a pipe
 ///
-/// Use [`new`](fn.new.html) to create both halves of a pipe.
+/// Use [`new`](new()) to create both halves of a pipe.
 ///
-/// Once `Sender` is dropped, the associated [`Receiver`](struct.Receiver.html) will never block,
+/// Once `Sender` is dropped, the associated [`Receiver`] will never block,
 /// and always return an error.
 pub struct Sender<E> {
     /// Aliased in Receiver
@@ -107,9 +107,9 @@ impl<E> Sender<E> {
 
 /// The receiving half of a pipe
 ///
-/// Use [`new`](fn.new.html) to create both halves of a pipe.
+/// Use [`new`](new()) to create both halves of a pipe.
 ///
-/// Once `Receiver` is dropped, the associated [`Sender`](struct.Sender.html) will never block,
+/// Once `Receiver` is dropped, the associated [`Sender`] will never block,
 /// and always return an error.
 pub struct Receiver<E> {
     /// Aliased in Sender
@@ -131,7 +131,7 @@ impl<E> Receiver<E> {
 /// # Example
 ///
 /// Demonstrate pipe construction, and how to send and receive data. For a larger example, see the
-/// [module-level documentation](index.html).
+/// [module-level documentation](self).
 /// ```no_run
 /// use imxrt_async_hal as hal;
 /// use hal::{ccm::{CCM, ClockGate}, dma};
@@ -171,7 +171,7 @@ struct Send<'t, E> {
 impl<E: Copy> Sender<E> {
     /// Await the receive half, and transmit `value` once the receiver is ready
     ///
-    /// Returns nothing if the transfer was successful, or an [`Error`](../enum.Error.html)
+    /// Returns nothing if the transfer was successful, or an [`Error`](super::Error)
     /// if the transfer failed.
     pub async fn send<'t>(&'t mut self, value: &'t E) -> Result<()> {
         unsafe {
@@ -257,7 +257,7 @@ struct Receive<'t, E> {
 impl<E: Copy + Unpin> Receiver<E> {
     /// Await the sender to send data, unblocking once the transfer completes
     ///
-    /// Returns the transmitted data, or an [`Error`](../enum.Error.html) if the transfer failed.
+    /// Returns the transmitted data, or an [`Error`](super::Error) if the transfer failed.
     pub async fn receive(&mut self) -> Result<E> {
         unsafe {
             shared_mut(&mut self.channel)[RECEIVER_STATE].set_state(state::READY);

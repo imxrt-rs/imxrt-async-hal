@@ -6,7 +6,7 @@ use core::fmt;
 /// UART Serial driver
 ///
 /// `UART` can send and receive byte buffers using a transfer / receive two-wire interface.
-/// After constructing a `UART`, the baud rate is unspecified. Use [`set_baud`](#method.set_baud)
+/// After constructing a `UART`, the baud rate is unspecified. Use [`set_baud`](UART::set_baud())
 /// to configure your serial device.
 ///
 /// The RAL instances are available in `ral::lpuart`.
@@ -78,7 +78,7 @@ where
 {
     /// Create a new `UART` from a UART instance, TX and RX pins, and a DMA channel
     ///
-    /// The baud rate of the returned `UART` is unspecified. Make sure you use [`set_baud`](#method.set_baud)
+    /// The baud rate of the returned `UART` is unspecified. Make sure you use [`set_baud`](UART::set_baud())
     /// to properly configure the driver.
     pub fn new(
         uart: crate::instance::UART<M>,
@@ -108,7 +108,7 @@ where
 impl<TX, RX> UART<TX, RX> {
     /// Set the serial baud rate
     ///
-    /// If there is an error, the error is [`Error::Clock`](enum.UARTError.html#variant.Clock).
+    /// If there is an error, the error is [`Error::Clock`](Error::Clock).
     pub fn set_baud(&mut self, baud: u32) -> Result<(), Error> {
         let timings = timings(self.hz, baud)?;
         self.while_disabled(|this| {
@@ -172,7 +172,7 @@ struct Timings {
     sbr: u16,
 }
 
-/// Errors propagated from a [`UART`](struct.UART.html) device
+/// Errors propagated from a [`UART`] device
 #[non_exhaustive]
 #[derive(Debug)]
 #[cfg_attr(docsrs, doc(cfg(feature = "uart")))]

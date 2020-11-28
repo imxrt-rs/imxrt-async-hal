@@ -4,13 +4,13 @@
 //! type system. For instance, an `LPUART2` peripheral and an `LPUART3` peripheral
 //! are represented by the same Rust type, `ral::lpuart::Instance`.
 //!
-//! However, the [`iomuxc` APIs](../iomuxc/index.html) work with strongly-typed peripheral
+//! However, the [`iomuxc` APIs](super::iomuxc) work with strongly-typed peripheral
 //! instances, which are identified by a type-level constant. This interface expects `LPUART2`
 //! and `LPUART3` to be unique types. To bridge these APIs,
 //! and ensure that your peripheral instances work with your pin selections,
 //! use the `instance` interface.
 //!
-//! An [`Instance`](struct.Instance.html) wraps a RAL peripheral instance, requiring that the
+//! An [`Instance`] wraps a RAL peripheral instance, requiring that the
 //! peripheral instance matches its type-level constant. The interface ensures that your
 //! RAL instance matches the type-level constant:
 //!
@@ -47,7 +47,7 @@ use crate::{iomuxc::consts, ral};
 
 /// A trait implemented on RAL instances
 ///
-/// [`inst`](#method.inst) returns the peripheral instance as a run-time value.
+/// [`inst`](Inst::inst()) returns the peripheral instance as a run-time value.
 ///
 /// ```no_run
 /// use imxrt_async_hal as hal;
@@ -149,7 +149,7 @@ impl private::Sealed for ral::lpuart::Instance {}
 
 /// Alias for an `Instance` around a `ral::lpuart::Instance`
 ///
-/// See [`uart`](fn.uart.html) to acquire a `UART` instance.
+/// See [`uart`](uart()) to acquire a `UART` instance.
 #[cfg(feature = "uart")]
 #[cfg_attr(docsrs, doc(cfg(feature = "uart")))]
 pub type UART<M> = Instance<ral::lpuart::Instance, M>;
@@ -195,7 +195,7 @@ impl private::Sealed for ral::lpspi::Instance {}
 
 /// Alias for an `Instance` around a `ral::lpspi::Instance`
 ///
-/// See [`spi`](fn.spi.html) to acquire a `SPI` instance.
+/// See [`spi`](spi()) to acquire a `SPI` instance.
 #[cfg(feature = "spi")]
 #[cfg_attr(docsrs, doc(cfg(feature = "spi")))]
 pub type SPI<M> = Instance<ral::lpspi::Instance, M>;
@@ -241,7 +241,7 @@ impl private::Sealed for ral::lpi2c::Instance {}
 
 /// Alias for an `Instance` around a `ral::lpi2c::Instance`
 ///
-/// See [`i2c`](fn.i2c.html) to acquire an `I2C` instance.
+/// See [`i2c`](i2c()) to acquire an `I2C` instance.
 #[cfg(feature = "i2c")]
 #[cfg_attr(docsrs, doc(cfg(feature = "i2c")))]
 pub type I2C<M> = Instance<ral::lpi2c::Instance, M>;

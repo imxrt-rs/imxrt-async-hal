@@ -14,7 +14,12 @@ jobs:
     - uses: actions-rs/toolchain@v1
       name: Install toolchain
       with:
-        toolchain: nightly
+        # Targeting LKG nightly toolchain to produce documentation
+        #
+        # See https://github.com/imxrt-rs/imxrt-async-hal/runs/1465617955?check_suite_focus=true
+        # for an example of a failing documentation run on a more-recent nightly
+        # toolchain. TODO make sure that this doesn't become too stale!
+        toolchain: nightly-2020-11-24
         target: thumbv7em-none-eabihf
         override: true
 
