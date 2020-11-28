@@ -383,7 +383,7 @@
 <span class="doccomment">/// UART Serial driver</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// `UART` can send and receive byte buffers using a transfer / receive two-wire interface.</span>
-<span class="doccomment">/// After constructing a `UART`, the baud rate is unspecified. Use [`set_baud`](#method.set_baud)</span>
+<span class="doccomment">/// After constructing a `UART`, the baud rate is unspecified. Use [`set_baud`](UART::set_baud())</span>
 <span class="doccomment">/// to configure your serial device.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// The RAL instances are available in `ral::lpuart`.</span>
@@ -455,7 +455,7 @@
 {
     <span class="doccomment">/// Create a new `UART` from a UART instance, TX and RX pins, and a DMA channel</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// The baud rate of the returned `UART` is unspecified. Make sure you use [`set_baud`](#method.set_baud)</span>
+    <span class="doccomment">/// The baud rate of the returned `UART` is unspecified. Make sure you use [`set_baud`](UART::set_baud())</span>
     <span class="doccomment">/// to properly configure the driver.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(
         <span class="ident">uart</span>: <span class="kw">crate</span>::<span class="ident">instance</span>::<span class="ident">UART</span><span class="op">&lt;</span><span class="ident">M</span><span class="op">&gt;</span>,
@@ -485,7 +485,7 @@
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">TX</span>, <span class="ident">RX</span><span class="op">&gt;</span> <span class="ident">UART</span><span class="op">&lt;</span><span class="ident">TX</span>, <span class="ident">RX</span><span class="op">&gt;</span> {
     <span class="doccomment">/// Set the serial baud rate</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// If there is an error, the error is [`Error::Clock`](enum.UARTError.html#variant.Clock).</span>
+    <span class="doccomment">/// If there is an error, the error is [`Error::Clock`](Error::Clock).</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">set_baud</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">baud</span>: <span class="ident">u32</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">timings</span> <span class="op">=</span> <span class="ident">timings</span>(<span class="self">self</span>.<span class="ident">hz</span>, <span class="ident">baud</span>)<span class="question-mark">?</span>;
         <span class="self">self</span>.<span class="ident">while_disabled</span>(<span class="op">|</span><span class="ident">this</span><span class="op">|</span> {
@@ -549,7 +549,7 @@
     <span class="ident">sbr</span>: <span class="ident">u16</span>,
 }
 
-<span class="doccomment">/// Errors propagated from a [`UART`](struct.UART.html) device</span>
+<span class="doccomment">/// Errors propagated from a [`UART`] device</span>
 <span class="attribute">#[<span class="ident">non_exhaustive</span>]</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
 <span class="attribute">#[<span class="ident">cfg_attr</span>(<span class="ident">docsrs</span>, <span class="ident">doc</span>(<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;uart&quot;</span>)))]</span>

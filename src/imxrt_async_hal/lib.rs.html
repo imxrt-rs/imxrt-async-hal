@@ -593,7 +593,7 @@
     <span class="doccomment">//! Clock control module (CCM)</span>
     <span class="doccomment">//!</span>
     <span class="doccomment">//! The clocks and types exposed in `ccm` support clock control and peripheral clock</span>
-    <span class="doccomment">//! gating. Use [`CCM::from_ral`](type.CCM.html) to acquire the clock roots and the</span>
+    <span class="doccomment">//! gating. Use [`CCM::from_ral`](CCM) to acquire the clock roots and the</span>
     <span class="doccomment">//! CCM handle. Then, enable your clocks.</span>
     <span class="doccomment">//!</span>
     <span class="doccomment">//! ```no_run</span>
@@ -632,7 +632,7 @@
 
     <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">imxrt_ccm</span>::{
         <span class="ident">ral</span>::{<span class="ident">I2CClock</span>, <span class="ident">PerClock</span>, <span class="ident">SPIClock</span>, <span class="ident">UARTClock</span>, <span class="ident">CCM</span>},
-        <span class="ident">ClockGate</span>,
+        <span class="ident">ClockGate</span>, <span class="ident">Handle</span>,
     };
 }
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">any</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;pipe&quot;</span>, <span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;spi&quot;</span>, <span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;uart&quot;</span>))]</span>
@@ -699,8 +699,8 @@
 <span class="doccomment">///</span>
 <span class="doccomment">/// The `iomuxc` module is a re-export of the [`imxrt-iomuxc`] crate. It combines</span>
 <span class="doccomment">/// the i.MX RT processor-specific components with the `imxrt-iomuxc` general API.</span>
-<span class="doccomment">/// It then adds a safe function, [`take`](fn.take.html), which lets you convert</span>
-<span class="doccomment">/// the RAL&#39;s `iomuxc::Instance` into all of the processor [`Pads`](struct.Pads.html).</span>
+<span class="doccomment">/// It then adds a safe function, `take`, which lets you convert</span>
+<span class="doccomment">/// the RAL&#39;s `iomuxc::Instance` into all of the processor [`Pads`](crate::iomuxc::pads::Pads).</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// ```no_run</span>
 <span class="doccomment">/// use imxrt_async_hal as hal;</span>

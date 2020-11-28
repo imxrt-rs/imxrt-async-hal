@@ -5,12 +5,12 @@
 <p>Peripheral instances from the RAL do not carry their peripheral identification in the
 type system. For instance, an <code>LPUART2</code> peripheral and an <code>LPUART3</code> peripheral
 are represented by the same Rust type, <code>ral::lpuart::Instance</code>.</p>
-<p>However, the <a href="../iomuxc/index.html"><code>iomuxc</code> APIs</a> work with strongly-typed peripheral
+<p>However, the <a href="../../imxrt_async_hal/iomuxc/index.html"><code>iomuxc</code> APIs</a> work with strongly-typed peripheral
 instances, which are identified by a type-level constant. This interface expects <code>LPUART2</code>
 and <code>LPUART3</code> to be unique types. To bridge these APIs,
 and ensure that your peripheral instances work with your pin selections,
 use the <code>instance</code> interface.</p>
-<p>An <a href="struct.Instance.html"><code>Instance</code></a> wraps a RAL peripheral instance, requiring that the
+<p>An <a href="../../imxrt_async_hal/instance/struct.Instance.html" title="Instance"><code>Instance</code></a> wraps a RAL peripheral instance, requiring that the
 peripheral instance matches its type-level constant. The interface ensures that your
 RAL instance matches the type-level constant:</p>
 

@@ -4,10 +4,10 @@
                 <a id="settings-menu" href="../../../settings.html"><img src="../../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class="fqn"><span class="out-of-band"><span id="render-detail"><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span><a class="srclink" href="../../../src/imxrt_async_hal/dma/pipe.rs.html#1-346" title="goto source code">[src]</a></span><span class="in-band">Module <a href="../../index.html">imxrt_async_hal</a>::<wbr><a href="../index.html">dma</a>::<wbr><a class="mod" href="">pipe</a></span></h1><div class="stability"><div class="stab portability">This is supported on <strong>(crate features <code>pipe</code> or <code>spi</code> or <code>uart</code>) and crate feature <code>pipe</code></strong> only.</div></div><div class="docblock"><p>Cross-task communication with DMA channels</p>
 <p><em>(Note: this API is similar to typical 'channels' that you'll find in the Rust ecosystem. We
 use 'pipe' to disambiguate between this software channel and a hardware DMA channel.)</em></p>
-<p><code>pipe</code> provides a mechanism for sending data across tasks. The <a href="struct.Sender.html"><code>Sender</code></a>
-half can send <code>Copy</code> data, and the <a href="struct.Receiver.html"><code>Receiver</code></a>
+<p><code>pipe</code> provides a mechanism for sending data across tasks. The <a href="../../../imxrt_async_hal/dma/pipe/struct.Sender.html" title="Sender"><code>Sender</code></a>
+half can send <code>Copy</code> data, and the <a href="../../../imxrt_async_hal/dma/pipe/struct.Receiver.html" title="Receiver"><code>Receiver</code></a>
 half can receive that same data. The tasks use a DMA channel to transfer the data across tasks.
-Use <a href="fn.new.html"><code>new</code></a> to create both halves of a pipe.</p>
+Use <a href="../../../imxrt_async_hal/dma/pipe/fn.new.html"><code>new</code></a> to create both halves of a pipe.</p>
 <p>A <code>Sender</code> blocks until the <code>Receiver</code> is ready to receive data. Likewise, the <code>Receiver</code> blocks until
 the <code>Sender</code> is ready to send data. This creates a synchronization point for the two tasks. When the transfer
 completes, the data will have been transferred from the sender to the receiver.</p>
@@ -15,7 +15,7 @@ completes, the data will have been transferred from the sender to the receiver.<
 completes, the sender task may wake before the receiver task; or, the receiver task may wake before the sender
 task.</p>
 <p>To cancel a transfer, drop either the <code>Sender</code> or the <code>Receiver</code>. When one half is dropped, the remaining half will
-immediately return an <a href="../enum.Error.html#variant.Cancelled"><code>Error::Cancelled</code></a>. The remaining half can never be used
+immediately return an <a href="../../../imxrt_async_hal/dma/enum.Error.html#variant.Cancelled"><code>Error::Cancelled</code></a>. The remaining half can never be used
 again, as it will always, immediately return <code>Error::Cancelled</code>.</p>
 <h1 id="example" class="section-header"><a href="#example">Example</a></h1>
 <p>Transmit an incrementing counter every 100ms using DMA channel 13. The sender is delayed by a GPT timer, which delays
@@ -67,5 +67,5 @@ the receiver.</p>
 </td></tr></table><h2 id="functions" class="section-header"><a href="#functions">Functions</a></h2>
 <table><tr class="module-item"><td><a class="fn" href="fn.new.html" title="imxrt_async_hal::dma::pipe::new fn">new</a></td><td class="docblock-short"><p>Create a pipe for sending and receiving data</p>
 </td></tr></table><h2 id="types" class="section-header"><a href="#types">Type Definitions</a></h2>
-<table><tr class="module-item"><td><a class="type" href="type.Result.html" title="imxrt_async_hal::dma::pipe::Result type">Result</a></td><td class="docblock-short"><p>Alias for a <code>Result</code> that might return an <a href="../enum.Error.html"><code>Error</code></a>.</p>
+<table><tr class="module-item"><td><a class="type" href="type.Result.html" title="imxrt_async_hal::dma::pipe::Result type">Result</a></td><td class="docblock-short"><p>Alias for a <code>Result</code> that might return an <a href="../../../imxrt_async_hal/dma/enum.Error.html"><code>Error</code></a>.</p>
 </td></tr></table></section><section id="search" class="content hidden"></section><section class="footer"></section><script>window.rootPath = "../../../";window.currentCrate = "imxrt_async_hal";</script><script src="../../../main.js"></script><script defer src="../../../search-index.js"></script></body></html>

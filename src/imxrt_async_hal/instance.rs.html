@@ -268,13 +268,13 @@
 <span class="doccomment">//! type system. For instance, an `LPUART2` peripheral and an `LPUART3` peripheral</span>
 <span class="doccomment">//! are represented by the same Rust type, `ral::lpuart::Instance`.</span>
 <span class="doccomment">//!</span>
-<span class="doccomment">//! However, the [`iomuxc` APIs](../iomuxc/index.html) work with strongly-typed peripheral</span>
+<span class="doccomment">//! However, the [`iomuxc` APIs](super::iomuxc) work with strongly-typed peripheral</span>
 <span class="doccomment">//! instances, which are identified by a type-level constant. This interface expects `LPUART2`</span>
 <span class="doccomment">//! and `LPUART3` to be unique types. To bridge these APIs,</span>
 <span class="doccomment">//! and ensure that your peripheral instances work with your pin selections,</span>
 <span class="doccomment">//! use the `instance` interface.</span>
 <span class="doccomment">//!</span>
-<span class="doccomment">//! An [`Instance`](struct.Instance.html) wraps a RAL peripheral instance, requiring that the</span>
+<span class="doccomment">//! An [`Instance`] wraps a RAL peripheral instance, requiring that the</span>
 <span class="doccomment">//! peripheral instance matches its type-level constant. The interface ensures that your</span>
 <span class="doccomment">//! RAL instance matches the type-level constant:</span>
 <span class="doccomment">//!</span>
@@ -311,7 +311,7 @@
 
 <span class="doccomment">/// A trait implemented on RAL instances</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// [`inst`](#method.inst) returns the peripheral instance as a run-time value.</span>
+<span class="doccomment">/// [`inst`](Inst::inst()) returns the peripheral instance as a run-time value.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// ```no_run</span>
 <span class="doccomment">/// use imxrt_async_hal as hal;</span>
@@ -413,7 +413,7 @@
 
 <span class="doccomment">/// Alias for an `Instance` around a `ral::lpuart::Instance`</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// See [`uart`](fn.uart.html) to acquire a `UART` instance.</span>
+<span class="doccomment">/// See [`uart`](uart()) to acquire a `UART` instance.</span>
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;uart&quot;</span>)]</span>
 <span class="attribute">#[<span class="ident">cfg_attr</span>(<span class="ident">docsrs</span>, <span class="ident">doc</span>(<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;uart&quot;</span>)))]</span>
 <span class="kw">pub</span> <span class="kw">type</span> <span class="ident">UART</span><span class="op">&lt;</span><span class="ident">M</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">Instance</span><span class="op">&lt;</span><span class="ident">ral</span>::<span class="ident">lpuart</span>::<span class="ident">Instance</span>, <span class="ident">M</span><span class="op">&gt;</span>;
@@ -459,7 +459,7 @@
 
 <span class="doccomment">/// Alias for an `Instance` around a `ral::lpspi::Instance`</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// See [`spi`](fn.spi.html) to acquire a `SPI` instance.</span>
+<span class="doccomment">/// See [`spi`](spi()) to acquire a `SPI` instance.</span>
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;spi&quot;</span>)]</span>
 <span class="attribute">#[<span class="ident">cfg_attr</span>(<span class="ident">docsrs</span>, <span class="ident">doc</span>(<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;spi&quot;</span>)))]</span>
 <span class="kw">pub</span> <span class="kw">type</span> <span class="ident">SPI</span><span class="op">&lt;</span><span class="ident">M</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">Instance</span><span class="op">&lt;</span><span class="ident">ral</span>::<span class="ident">lpspi</span>::<span class="ident">Instance</span>, <span class="ident">M</span><span class="op">&gt;</span>;
@@ -505,7 +505,7 @@
 
 <span class="doccomment">/// Alias for an `Instance` around a `ral::lpi2c::Instance`</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// See [`i2c`](fn.i2c.html) to acquire an `I2C` instance.</span>
+<span class="doccomment">/// See [`i2c`](i2c()) to acquire an `I2C` instance.</span>
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;i2c&quot;</span>)]</span>
 <span class="attribute">#[<span class="ident">cfg_attr</span>(<span class="ident">docsrs</span>, <span class="ident">doc</span>(<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;i2c&quot;</span>)))]</span>
 <span class="kw">pub</span> <span class="kw">type</span> <span class="ident">I2C</span><span class="op">&lt;</span><span class="ident">M</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">Instance</span><span class="op">&lt;</span><span class="ident">ral</span>::<span class="ident">lpi2c</span>::<span class="ident">Instance</span>, <span class="ident">M</span><span class="op">&gt;</span>;

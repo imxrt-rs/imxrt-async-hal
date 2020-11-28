@@ -393,7 +393,7 @@
 <span class="doccomment">///</span>
 <span class="doccomment">/// The driver also yields when waiting for stop and repeated start conditions.</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// The I2C clock speed is unspecified out of construction. Use [`set_clock_speed`](#method.set_clock_speed)</span>
+<span class="doccomment">/// The I2C clock speed is unspecified out of construction. Use [`set_clock_speed`](I2C::set_clock_speed())</span>
 <span class="doccomment">/// to select a valid I2C clock speed.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// The RAL instances are available in `ral::lpi2c`.</span>
@@ -468,7 +468,7 @@
     <span class="doccomment">/// Create an I2C driver from an I2C instance and a pair of I2C pins</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// The I2C clock speed of the returned `I2C` driver is unspecified and may not be valid.</span>
-    <span class="doccomment">/// Use [`set_clock_speed`](#method.set_clock_speed) to select a valid I2C clock speed.</span>
+    <span class="doccomment">/// Use [`set_clock_speed`](I2C::set_clock_speed()) to select a valid I2C clock speed.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(
         <span class="ident">i2c</span>: <span class="kw">crate</span>::<span class="ident">instance</span>::<span class="ident">I2C</span><span class="op">&lt;</span><span class="ident">M</span><span class="op">&gt;</span>,
         <span class="kw-2">mut</span> <span class="ident">scl</span>: <span class="ident">SCL</span>,
@@ -513,14 +513,14 @@
     }
 }
 
-<span class="doccomment">/// Errors propagated from an [`I2C`](struct.I2C.html) device</span>
+<span class="doccomment">/// Errors propagated from an [`I2C`] device</span>
 <span class="attribute">#[<span class="ident">non_exhaustive</span>]</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
 <span class="attribute">#[<span class="ident">cfg_attr</span>(<span class="ident">docsrs</span>, <span class="ident">doc</span>(<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;i2c&quot;</span>)))]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">Error</span> {
     <span class="doccomment">/// There was an issue when setting the clock speed</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// Only returned from [`set_clock_speed`](struct.I2C.html#method.set_clock_speed).</span>
+    <span class="doccomment">/// Only returned from [`set_clock_speed`](I2C::set_clock_speed()).</span>
     <span class="ident">ClockSpeed</span>,
     <span class="doccomment">/// Master has lost arbitration</span>
     <span class="ident">LostBusArbitration</span>,
@@ -550,7 +550,7 @@
 
     <span class="doccomment">/// Set the I2C clock speed</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// If there is an error, error variant is [`I2CError::ClockSpeed`](enum.I2CError.html#variant.ClockSpeed).</span>
+    <span class="doccomment">/// If there is an error, error variant is [`crate::i2c::Error::ClockSpeed`].</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">set_clock_speed</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">clock_speed</span>: <span class="ident">ClockSpeed</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
         <span class="ident">while_disabled</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">i2c</span>, <span class="op">|</span><span class="ident">i2c</span><span class="op">|</span> {
             <span class="ident">clock</span>::<span class="ident">set_speed</span>(<span class="ident">clock_speed</span>, <span class="self">self</span>.<span class="ident">hz</span>, <span class="ident">i2c</span>);

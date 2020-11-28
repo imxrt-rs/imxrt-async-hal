@@ -443,12 +443,11 @@
 <span id="440">440</span>
 <span id="441">441</span>
 <span id="442">442</span>
-<span id="443">443</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! GPIOs</span>
 <span class="doccomment">//!</span>
-<span class="doccomment">//! [`GPIO`s](struct.GPIO.html) can be in either input or output states. GPIO inputs can</span>
-<span class="doccomment">//! read the high / low status of physical pins. Based on a [`Trigger`](enum.Trigger.html)</span>
+<span class="doccomment">//! [`GPIO`s](GPIO) can be in either input or output states. GPIO inputs can</span>
+<span class="doccomment">//! read the high / low status of physical pins. Based on a [`Trigger`]</span>
 <span class="doccomment">//! selection, GPIO inputs can wait for transitions on the input pin.</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! ```no_run</span>
@@ -522,9 +521,8 @@
 
 <span class="doccomment">/// A wrapper around an i.MX RT processor pad, supporting simple I/O</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// Use [`new`](#method.new) with a pad from the [`iomuxc`](../iomuxc/index.html)</span>
-<span class="doccomment">/// module, or a Teensy 4 [`pin`](../pins/index.html). All GPIOs start in the input state. Use</span>
-<span class="doccomment">/// [`output`](#method.output) to become an output pin.</span>
+<span class="doccomment">/// Use [`new`](GPIO::new()) with a pad from the [`iomuxc`](super::iomuxc)</span>
+<span class="doccomment">/// module. All GPIOs start in the input state. Use [`output`](GPIO::output()) to become an output pin.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// ```no_run</span>
 <span class="doccomment">/// use imxrt_async_hal as hal;</span>
@@ -537,7 +535,7 @@
 <span class="doccomment">/// led.set();</span>
 <span class="doccomment">/// ```</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// When using a `GPIO` as an input, you can wait for transitions using [`wait_for`](#method.wait_for).</span>
+<span class="doccomment">/// When using a `GPIO` as an input, you can wait for transitions using [`wait_for`](GPIO::wait_for()).</span>
 <span class="attribute">#[<span class="ident">cfg_attr</span>(<span class="ident">docsrs</span>, <span class="ident">doc</span>(<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;gpio&quot;</span>)))]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">GPIO</span><span class="op">&lt;</span><span class="ident">P</span>, <span class="ident">D</span><span class="op">&gt;</span> {
     <span class="ident">pin</span>: <span class="ident">P</span>,
@@ -746,7 +744,7 @@
 
     <span class="doccomment">/// Alternate the state of the pin</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// Using `toggle` will be more efficient than checking [`is_set`](#method.is_set)</span>
+    <span class="doccomment">/// Using `toggle` will be more efficient than checking [`is_set`](GPIO::is_set())</span>
     <span class="doccomment">/// and then selecting the opposite state.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">toggle</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
         <span class="comment">// Safety: atomic write</span>
@@ -756,7 +754,7 @@
 
 <span class="doccomment">/// Input interrupt triggers</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// See [`GPIO::wait_for`](#method.wait_for) for more information.</span>
+<span class="doccomment">/// See [`GPIO::wait_for`](GPIO::wait_for()) for more information.</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>, <span class="ident">Copy</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>)]</span>
 <span class="attribute">#[<span class="ident">cfg_attr</span>(<span class="ident">docsrs</span>, <span class="ident">doc</span>(<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;gpio&quot;</span>)))]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">Trigger</span> {

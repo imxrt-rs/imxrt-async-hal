@@ -9,11 +9,11 @@
     FIFO,
     RequestTooMuchData,
     BusyIsBusy,
-}</pre></div><div class="stability"><div class="stab portability">This is supported on <strong>crate feature <code>i2c</code></strong> only.</div></div><div class="docblock"><p>Errors propagated from an <a href="struct.I2C.html"><code>I2C</code></a> device</p>
+}</pre></div><div class="stability"><div class="stab portability">This is supported on <strong>crate feature <code>i2c</code></strong> only.</div></div><div class="docblock"><p>Errors propagated from an <a href="../imxrt_async_hal/struct.I2C.html" title="I2C"><code>I2C</code></a> device</p>
 </div><h2 id="variants" class="variants small-section-header">
                    Variants (Non-exhaustive)<a href="#variants" class="anchor"></a></h2>
 <div class="docblock non-exhaustive non-exhaustive-enum">Non-exhaustive enums could have additional variants added in future. Therefore, when matching against variants of non-exhaustive enums, an extra wildcard arm must be added to account for any future variants.</div><div id="variant.ClockSpeed" class="variant small-section-header"><a href="#variant.ClockSpeed" class="anchor field"></a><code>ClockSpeed</code></div><div class="docblock"><p>There was an issue when setting the clock speed</p>
-<p>Only returned from <a href="struct.I2C.html#method.set_clock_speed"><code>set_clock_speed</code></a>.</p>
+<p>Only returned from <a href="../imxrt_async_hal/struct.I2C.html#method.set_clock_speed"><code>set_clock_speed</code></a>.</p>
 </div><div id="variant.LostBusArbitration" class="variant small-section-header"><a href="#variant.LostBusArbitration" class="anchor field"></a><code>LostBusArbitration</code></div><div class="docblock"><p>Master has lost arbitration</p>
 </div><div id="variant.PinLowTimeout" class="variant small-section-header"><a href="#variant.PinLowTimeout" class="anchor field"></a><code>PinLowTimeout</code></div><div class="docblock"><p>SCL and / or SDA went low for too long</p>
 </div><div id="variant.UnexpectedNACK" class="variant small-section-header"><a href="#variant.UnexpectedNACK" class="anchor field"></a><code>UnexpectedNACK</code></div><div class="docblock"><p>Detected a NACK when sending an address or data</p>
