@@ -20,16 +20,6 @@ the `imxrt1060` chip variant for documentation tests,
 cargo test --features imxrt1060
 ```
 
-## Update the README
-
-We generate the README from the top-level library documentation. We can feel
-confident that the examples in the README will compile.
-
-```
-cargo install cargo-readme
-cargo readme > README.md
-```
-
 ## Generate docs
 
 Use the typical `cargo doc` to locally browse API docs. You must specify
