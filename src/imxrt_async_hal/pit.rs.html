@@ -374,9 +374,6 @@
 <span id="371">371</span>
 <span id="372">372</span>
 <span id="373">373</span>
-<span id="374">374</span>
-<span id="375">375</span>
-<span id="376">376</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">ral</span>;
 
@@ -393,7 +390,7 @@
 <span class="doccomment">/// The PIT timer channels are the most precise timers in the HAL. PIT timers run on the periodic clock</span>
 <span class="doccomment">/// frequency.</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// A single hardware PIT instance has four PIT channels. Use [`new`](PeriodicTimer::new()) to acquire these four</span>
+<span class="doccomment">/// A single hardware PIT instance has four PIT channels. Use [`new`](PIT::new()) to acquire these four</span>
 <span class="doccomment">/// channels.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// # Example</span>
@@ -417,17 +414,14 @@
 <span class="doccomment">/// # };</span>
 <span class="doccomment">/// ```</span>
 <span class="attribute">#[<span class="ident">cfg_attr</span>(<span class="ident">docsrs</span>, <span class="ident">doc</span>(<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;pit&quot;</span>)))]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">PeriodicTimer</span> {
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">PIT</span> {
     <span class="ident">channel</span>: <span class="ident">register</span>::<span class="ident">ChannelInstance</span>,
     <span class="ident">hz</span>: <span class="ident">u32</span>,
 }
 
-<span class="kw">impl</span> <span class="ident">PeriodicTimer</span> {
+<span class="kw">impl</span> <span class="ident">PIT</span> {
     <span class="doccomment">/// Acquire four PIT channels from the RAL&#39;s PIT instance</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(
-        <span class="ident">pit</span>: <span class="ident">ral</span>::<span class="ident">pit</span>::<span class="ident">Instance</span>,
-        <span class="ident">clock</span>: <span class="kw-2">&amp;</span><span class="kw">crate</span>::<span class="ident">ccm</span>::<span class="ident">PerClock</span>,
-    ) <span class="op">-</span><span class="op">&gt;</span> (<span class="ident">PeriodicTimer</span>, <span class="ident">PeriodicTimer</span>, <span class="ident">PeriodicTimer</span>, <span class="ident">PeriodicTimer</span>) {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">pit</span>: <span class="ident">ral</span>::<span class="ident">pit</span>::<span class="ident">Instance</span>, <span class="ident">clock</span>: <span class="kw-2">&amp;</span><span class="kw">crate</span>::<span class="ident">ccm</span>::<span class="ident">PerClock</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="ident">PIT</span>, <span class="ident">PIT</span>, <span class="ident">PIT</span>, <span class="ident">PIT</span>) {
         <span class="ident">ral</span>::<span class="macro">write_reg</span><span class="macro">!</span>(<span class="ident">ral</span>::<span class="ident">pit</span>, <span class="ident">pit</span>, <span class="ident">MCR</span>, <span class="ident">MDIS</span>: <span class="ident">MDIS_0</span>);
         <span class="comment">// Reset all PIT channels</span>
         <span class="comment">//</span>
@@ -442,19 +436,19 @@
             <span class="ident">cortex_m</span>::<span class="ident">peripheral</span>::<span class="ident">NVIC</span>::<span class="ident">unmask</span>(<span class="kw">crate</span>::<span class="ident">ral</span>::<span class="ident">interrupt</span>::<span class="ident">PIT</span>);
             <span class="kw">let</span> <span class="ident">hz</span> <span class="op">=</span> <span class="ident">clock</span>.<span class="ident">frequency</span>();
             (
-                <span class="ident">PeriodicTimer</span> {
+                <span class="ident">PIT</span> {
                     <span class="ident">channel</span>: <span class="ident">register</span>::<span class="ident">ChannelInstance</span>::<span class="ident">zero</span>(),
                     <span class="ident">hz</span>,
                 },
-                <span class="ident">PeriodicTimer</span> {
+                <span class="ident">PIT</span> {
                     <span class="ident">channel</span>: <span class="ident">register</span>::<span class="ident">ChannelInstance</span>::<span class="ident">one</span>(),
                     <span class="ident">hz</span>,
                 },
-                <span class="ident">PeriodicTimer</span> {
+                <span class="ident">PIT</span> {
                     <span class="ident">channel</span>: <span class="ident">register</span>::<span class="ident">ChannelInstance</span>::<span class="ident">two</span>(),
                     <span class="ident">hz</span>,
                 },
-                <span class="ident">PeriodicTimer</span> {
+                <span class="ident">PIT</span> {
                     <span class="ident">channel</span>: <span class="ident">register</span>::<span class="ident">ChannelInstance</span>::<span class="ident">three</span>(),
                     <span class="ident">hz</span>,
                 },
