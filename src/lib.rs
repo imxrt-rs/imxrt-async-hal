@@ -270,7 +270,7 @@ pub mod dma;
 #[cfg_attr(docsrs, doc(cfg(feature = "gpio")))]
 pub mod gpio;
 #[cfg(feature = "gpt")]
-mod gpt;
+pub mod gpt;
 #[cfg(feature = "i2c")]
 pub mod i2c;
 pub mod instance;

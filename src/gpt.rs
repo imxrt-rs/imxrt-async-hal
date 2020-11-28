@@ -1,41 +1,46 @@
+//! General purpose timers (GPT)
+//!
+//! The timer **divides the input clock by 5**. This may affect very precise
+//! timing. For a more precise timer, see [`PIT`](crate::pit::PIT).
+//!
+//! Each GPT instance turns into three GPT timers. Use [`new`](crate::gpt::GPT::new)
+//! to acquire the three timers.
+//!
+//! # Example
+//!
+//! Use GPT1 to block for 250ms.
+//!
+//! ```no_run
+//! use imxrt_async_hal as hal;
+//! use hal::ral::{ccm, gpt};
+//! use hal::{ccm::{CCM, ClockGate}, GPT};
+//!
+//! let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();
+//! let mut perclock = ccm.perclock.enable(&mut ccm.handle);
+//! let (mut gpt, _, _) = gpt::GPT1::take().map(|mut gpt| {
+//!     perclock.set_clock_gate_gpt(&mut gpt, ClockGate::On);
+//!     GPT::new(gpt, &perclock)
+//! }).unwrap();
+//!
+//! # async {
+//! gpt.delay_us(250_000u32).await;
+//! gpt.delay(core::time::Duration::from_millis(250)).await; // Equivalent
+//! # };
+//! ```
+
 use crate::ral;
 use core::{
     future::Future,
+    marker::PhantomPinned,
     pin::Pin,
     sync::atomic,
     task::{Context, Poll, Waker},
     time::Duration,
 };
 
-/// General purpose timers (GPT)
+/// The GPT timer
 ///
-/// The timer **divides the input clock by 5**. This may affect very precise
-/// timing. For a more precise timer, see [`PIT`](crate::PIT).
-///
-/// Each GPT instance turns into three GPT timers. Use [`new`](crate::GPT::new)
-/// to acquire the three timers.
-///
-/// # Example
-///
-/// Use GPT1 to block for 250ms.
-///
-/// ```no_run
-/// use imxrt_async_hal as hal;
-/// use hal::ral::{ccm, gpt};
-/// use hal::{ccm::{CCM, ClockGate}, GPT};
-///
-/// let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();
-/// let mut perclock = ccm.perclock.enable(&mut ccm.handle);
-/// let (mut gpt, _, _) = gpt::GPT1::take().map(|mut gpt| {
-///     perclock.set_clock_gate_gpt(&mut gpt, ClockGate::On);
-///     GPT::new(gpt, &perclock)
-/// }).unwrap();
-///
-/// # async {
-/// gpt.delay_us(250_000u32).await;
-/// gpt.delay(core::time::Duration::from_millis(250)).await; // Equivalent
-/// # };
-/// ```
+/// See the [module-level documentation](mod@crate::gpt) for more information.
 #[cfg_attr(docsrs, doc(cfg(feature = "gpt")))]
 pub struct GPT {
     gpt: ral::gpt::Instance,
@@ -122,20 +127,19 @@ impl GPT {
     ///
     /// If the microseconds represented by the duration cannot fit in a `u32`, the
     /// delay will saturate at `u32::max_value()` microseconds.
-    pub async fn delay(&mut self, duration: Duration) {
+    pub fn delay(&mut self, duration: Duration) -> Delay<'_> {
         use core::convert::TryFrom;
         self.delay_us(u32::try_from(duration.as_micros()).unwrap_or(u32::max_value()))
-            .await
     }
     /// Wait for `microseconds` to elapse
-    pub async fn delay_us(&mut self, microseconds: u32) {
+    pub fn delay_us(&mut self, microseconds: u32) -> Delay<'_> {
         Delay {
             gpt: &self.gpt,
             delay_ns: microseconds.saturating_mul(1_000),
             hz: self.hz,
             output_compare: self.output_compare,
+            _pin: PhantomPinned,
         }
-        .await
     }
 
     /// Returns the `GPT` clock period
@@ -204,12 +208,15 @@ fn waker(gpt: &ral::gpt::Instance, output_compare: OutputCompare) -> &'static mu
     }
 }
 
-/// A future that waits for the timer to elapse
-struct Delay<'a> {
+/// A future that waits for the GPT timer to elapse
+///
+/// Use [`delay_us`](crate::gpt::GPT::delay_us) to create a `Delay`.
+pub struct Delay<'a> {
     gpt: &'a ral::gpt::Instance,
     output_compare: OutputCompare,
     hz: u32,
     delay_ns: u32,
+    _pin: PhantomPinned,
 }
 
 impl<'a> Future for Delay<'a> {
