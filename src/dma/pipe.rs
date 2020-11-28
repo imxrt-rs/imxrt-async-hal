@@ -32,7 +32,7 @@
 //!
 //! let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();
 //! let mut perclock = ccm.perclock.enable(&mut ccm.handle);
-//! let mut gpt = GPT1::take()
+//! let (_, mut gpt, _) = GPT1::take()
 //!     .map(|mut inst| {
 //!         perclock.set_clock_gate_gpt(&mut inst, ClockGate::On);
 //!         hal::GPT::new(inst, &mut perclock)

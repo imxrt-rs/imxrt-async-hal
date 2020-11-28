@@ -12,6 +12,9 @@ use core::{
 /// The timer **divides the input clock by 5**. This may affect very precise
 /// timing. For a more precise timer, see [`PIT`](crate::PIT).
 ///
+/// Each GPT instance turns into three GPT timers. Use [`new`](crate::GPT::new)
+/// to acquire the three timers.
+///
 /// # Example
 ///
 /// Use GPT1 to block for 250ms.
@@ -23,7 +26,7 @@ use core::{
 ///
 /// let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();
 /// let mut perclock = ccm.perclock.enable(&mut ccm.handle);
-/// let mut gpt = gpt::GPT1::take().map(|mut gpt| {
+/// let (mut gpt, _, _) = gpt::GPT1::take().map(|mut gpt| {
 ///     perclock.set_clock_gate_gpt(&mut gpt, ClockGate::On);
 ///     GPT::new(gpt, &perclock)
 /// }).unwrap();
@@ -34,9 +37,10 @@ use core::{
 /// # };
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "gpt")))]
-pub struct GeneralPurposeTimer {
+pub struct GPT {
     gpt: ral::gpt::Instance,
     hz: u32,
+    output_compare: OutputCompare,
 }
 
 /// GPT clock divider
@@ -49,9 +53,21 @@ pub struct GeneralPurposeTimer {
 /// Can't find anything in the errata...
 const DIVIDER: u32 = 5;
 
-impl GeneralPurposeTimer {
+fn steal(gpt: &ral::gpt::Instance) -> ral::gpt::Instance {
+    // Safety: we already have a GPT instance, so users won't notice
+    // that we're stealing the instance again...
+    unsafe {
+        match &**gpt as *const _ {
+            ral::gpt::GPT1 => ral::gpt::GPT1::steal(),
+            ral::gpt::GPT2 => ral::gpt::GPT2::steal(),
+            _ => unreachable!("There are only two GPTs"),
+        }
+    }
+}
+
+impl GPT {
     /// Create a new `GPT` from a RAL GPT instance
-    pub fn new(gpt: ral::gpt::Instance, clock: &crate::ccm::PerClock) -> Self {
+    pub fn new(gpt: ral::gpt::Instance, clock: &crate::ccm::PerClock) -> (Self, Self, Self) {
         let irq = match &*gpt as *const _ {
             ral::gpt::GPT1 => ral::interrupt::GPT1,
             ral::gpt::GPT2 => ral::interrupt::GPT2,
@@ -82,10 +98,24 @@ impl GeneralPurposeTimer {
         );
 
         unsafe { cortex_m::peripheral::NVIC::unmask(irq) };
-        GeneralPurposeTimer {
-            gpt,
-            hz: clock.frequency() / DIVIDER,
-        }
+        let hz = clock.frequency() / DIVIDER;
+        (
+            GPT {
+                gpt: steal(&gpt),
+                hz,
+                output_compare: OutputCompare::Channel1,
+            },
+            GPT {
+                gpt: steal(&gpt),
+                hz,
+                output_compare: OutputCompare::Channel2,
+            },
+            GPT {
+                gpt,
+                hz,
+                output_compare: OutputCompare::Channel3,
+            },
+        )
     }
 
     /// Wait for the specified `duration` to elapse
@@ -103,6 +133,7 @@ impl GeneralPurposeTimer {
             gpt: &self.gpt,
             delay_ns: microseconds.saturating_mul(1_000),
             hz: self.hz,
+            output_compare: self.output_compare,
         }
         .await
     }
@@ -115,32 +146,60 @@ impl GeneralPurposeTimer {
 
 /// Clear the output compare flag
 #[inline(always)]
-fn clear_trigger(gpt: &ral::gpt::Instance) {
-    ral::modify_reg!(ral::gpt, gpt, SR, OF1: 1);
+fn clear_trigger(gpt: &ral::gpt::Instance, output_compare: OutputCompare) {
+    match output_compare {
+        OutputCompare::Channel1 => ral::modify_reg!(ral::gpt, gpt, SR, OF1: 1),
+        OutputCompare::Channel2 => ral::modify_reg!(ral::gpt, gpt, SR, OF2: 1),
+        OutputCompare::Channel3 => ral::modify_reg!(ral::gpt, gpt, SR, OF3: 1),
+    }
 }
 #[inline(always)]
-fn is_triggered(gpt: &ral::gpt::Instance) -> bool {
-    ral::read_reg!(ral::gpt, gpt, SR, OF1 == 1)
+fn is_triggered(gpt: &ral::gpt::Instance, output_compare: OutputCompare) -> bool {
+    match output_compare {
+        OutputCompare::Channel1 => ral::read_reg!(ral::gpt, gpt, SR, OF1 == 1),
+        OutputCompare::Channel2 => ral::read_reg!(ral::gpt, gpt, SR, OF2 == 1),
+        OutputCompare::Channel3 => ral::read_reg!(ral::gpt, gpt, SR, OF3 == 1),
+    }
 }
 #[inline(always)]
-fn enable_interrupt(gpt: &ral::gpt::Instance) {
-    ral::modify_reg!(ral::gpt, gpt, IR, OF1IE: 1);
+fn enable_interrupt(gpt: &ral::gpt::Instance, output_compare: OutputCompare) {
+    match output_compare {
+        OutputCompare::Channel1 => ral::modify_reg!(ral::gpt, gpt, IR, OF1IE: 1),
+        OutputCompare::Channel2 => ral::modify_reg!(ral::gpt, gpt, IR, OF2IE: 1),
+        OutputCompare::Channel3 => ral::modify_reg!(ral::gpt, gpt, IR, OF3IE: 1),
+    }
 }
 #[inline(always)]
-fn disable_interrupt(gpt: &ral::gpt::Instance) {
-    ral::modify_reg!(ral::gpt, gpt, IR, OF1IE: 0);
+fn disable_interrupt(gpt: &ral::gpt::Instance, output_compare: OutputCompare) {
+    match output_compare {
+        OutputCompare::Channel1 => ral::modify_reg!(ral::gpt, gpt, IR, OF1IE: 0),
+        OutputCompare::Channel2 => ral::modify_reg!(ral::gpt, gpt, IR, OF2IE: 0),
+        OutputCompare::Channel3 => ral::modify_reg!(ral::gpt, gpt, IR, OF3IE: 0),
+    }
 }
 #[inline(always)]
-fn interrupt_enabled(gpt: &ral::gpt::Instance) -> bool {
-    ral::read_reg!(ral::gpt, gpt, IR, OF1IE == 1)
+fn interrupt_enabled(gpt: &ral::gpt::Instance, output_compare: OutputCompare) -> bool {
+    match output_compare {
+        OutputCompare::Channel1 => ral::read_reg!(ral::gpt, gpt, IR, OF1IE == 1),
+        OutputCompare::Channel2 => ral::read_reg!(ral::gpt, gpt, IR, OF2IE == 1),
+        OutputCompare::Channel3 => ral::read_reg!(ral::gpt, gpt, IR, OF3IE == 1),
+    }
+}
+#[inline(always)]
+fn set_ticks(gpt: &ral::gpt::Instance, output_compare: OutputCompare, ticks: u32) {
+    match output_compare {
+        OutputCompare::Channel1 => ral::write_reg!(ral::gpt, gpt, OCR1, ticks),
+        OutputCompare::Channel2 => ral::write_reg!(ral::gpt, gpt, OCR2, ticks),
+        OutputCompare::Channel3 => ral::write_reg!(ral::gpt, gpt, OCR3, ticks),
+    }
 }
 
 #[inline(always)]
-fn waker(gpt: &ral::gpt::Instance) -> &'static mut Option<Waker> {
-    static mut WAKERS: [Option<Waker>; 2] = [None, None];
+fn waker(gpt: &ral::gpt::Instance, output_compare: OutputCompare) -> &'static mut Option<Waker> {
+    static mut WAKERS: [[Option<Waker>; 3]; 2] = [[None, None, None], [None, None, None]];
     match &**gpt as *const _ {
-        ral::gpt::GPT1 => unsafe { &mut WAKERS[0] },
-        ral::gpt::GPT2 => unsafe { &mut WAKERS[1] },
+        ral::gpt::GPT1 => unsafe { &mut WAKERS[0][output_compare as usize] },
+        ral::gpt::GPT2 => unsafe { &mut WAKERS[1][output_compare as usize] },
         _ => unreachable!("There are only two GPTs"),
     }
 }
@@ -148,6 +207,7 @@ fn waker(gpt: &ral::gpt::Instance) -> &'static mut Option<Waker> {
 /// A future that waits for the timer to elapse
 struct Delay<'a> {
     gpt: &'a ral::gpt::Instance,
+    output_compare: OutputCompare,
     hz: u32,
     delay_ns: u32,
 }
@@ -155,13 +215,13 @@ struct Delay<'a> {
 impl<'a> Future for Delay<'a> {
     type Output = ();
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        if is_triggered(&self.gpt) {
-            clear_trigger(&self.gpt);
+        if is_triggered(&self.gpt, self.output_compare) {
+            clear_trigger(&self.gpt, self.output_compare);
             Poll::Ready(())
-        } else if interrupt_enabled(&self.gpt) {
+        } else if interrupt_enabled(&self.gpt, self.output_compare) {
             Poll::Pending
         } else {
-            *waker(&self.gpt) = Some(cx.waker().clone());
+            *waker(&self.gpt, self.output_compare) = Some(cx.waker().clone());
             let period_ns = 1_000_000_000 / self.hz;
             let ticks = self
                 .delay_ns
@@ -170,9 +230,9 @@ impl<'a> Future for Delay<'a> {
                 .saturating_sub(1);
             let current_tick = ral::read_reg!(ral::gpt, self.gpt, CNT);
             let next_tick = current_tick.wrapping_add(ticks);
-            ral::write_reg!(ral::gpt, self.gpt, OCR1, next_tick);
+            set_ticks(&self.gpt, self.output_compare, next_tick);
             atomic::compiler_fence(atomic::Ordering::Release);
-            enable_interrupt(&self.gpt);
+            enable_interrupt(&self.gpt, self.output_compare);
             Poll::Pending
         }
     }
@@ -180,33 +240,49 @@ impl<'a> Future for Delay<'a> {
 
 impl<'a> Drop for Delay<'a> {
     fn drop(&mut self) {
-        disable_interrupt(&self.gpt);
-        clear_trigger(&self.gpt);
+        disable_interrupt(&self.gpt, self.output_compare);
+        clear_trigger(&self.gpt, self.output_compare);
     }
 }
 
 #[inline(always)]
 #[cfg_attr(not(target_arch = "arm"), allow(unused))]
-fn on_interrupt(gpt: &ral::gpt::Instance, waker: &mut Option<Waker>) {
-    if is_triggered(gpt) {
-        disable_interrupt(gpt);
+fn on_interrupt(gpt: &ral::gpt::Instance) {
+    [
+        OutputCompare::Channel1,
+        OutputCompare::Channel2,
+        OutputCompare::Channel3,
+    ]
+    .iter()
+    .copied()
+    .filter(|&output_compare| is_triggered(&gpt, output_compare))
+    .for_each(|output_compare| {
+        disable_interrupt(gpt, output_compare);
+        let waker = waker(&gpt, output_compare);
         if let Some(waker) = waker.take() {
             waker.wake();
-        } else {
-            panic!("Cannot expire a timer that's not waiting!");
         }
-    }
+    });
 }
 
 interrupts! {
     handler!{unsafe fn GPT1() {
         let gpt = ral::gpt::GPT1::steal();
-        on_interrupt(&gpt, waker(&gpt));
+        on_interrupt(&gpt);
     }}
 
 
     handler!{unsafe fn GPT2() {
         let gpt = ral::gpt::GPT2::steal();
-        on_interrupt(&gpt, waker(&gpt));
+        on_interrupt(&gpt);
     }}
+}
+
+/// Output compare channels
+#[derive(Clone, Copy)]
+#[repr(usize)]
+enum OutputCompare {
+    Channel1 = 0,
+    Channel2 = 1,
+    Channel3 = 2,
 }

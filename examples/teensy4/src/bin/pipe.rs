@@ -36,7 +36,7 @@ fn main() -> ! {
         .map(hal::ccm::CCM::from_ral)
         .unwrap();
     let mut perclock = perclock.enable(&mut handle);
-    let mut timer = hal::GPT::new(
+    let (_, mut timer, _) = hal::GPT::new(
         hal::ral::gpt::GPT1::take()
             .map(|mut inst| {
                 perclock.set_clock_gate_gpt(&mut inst, hal::ccm::ClockGate::On);

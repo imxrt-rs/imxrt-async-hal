@@ -62,7 +62,7 @@ fn main() -> ! {
         ..
     } = CCM::take().map(ccm::CCM::from_ral).unwrap();
     let mut perclock = perclock.enable(&mut handle);
-    let mut timer = GPT1::take()
+    let (mut timer, _, _) = GPT1::take()
         .map(|mut inst| {
             perclock.set_clock_gate_gpt(&mut inst, ccm::ClockGate::On);
             GPT::new(inst, &perclock)

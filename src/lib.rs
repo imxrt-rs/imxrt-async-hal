@@ -87,7 +87,7 @@
 //! // Enable the periodic clock for the GPT
 //! let mut perclock = perclock.enable(&mut handle);
 //! perclock.set_clock_gate_gpt(&mut gpt, hal::ccm::ClockGate::On);
-//! let mut timer = hal::GPT::new(gpt, &perclock);
+//! let (mut timer, _, _) = hal::GPT::new(gpt, &perclock);
 //!
 //! // Acquire DMA channels, which are used to schedule UART transfers
 //! let mut channels = hal::dma::channels(
@@ -142,8 +142,8 @@
 //!
 //! Licensed under either of
 //!
-//! - [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0) ([LICENSE-APACHE](./LICENSE-APACHE))
-//! - [MIT License](http://opensource.org/licenses/MIT) ([LICENSE-MIT](./LICENSE-MIT))
+//! - [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
+//! - [MIT License](http://opensource.org/licenses/MIT)
 //!
 //! at your option.
 //!
@@ -290,7 +290,7 @@ use cortex_m_rt as rt;
 // Module re-exports
 //
 #[cfg(feature = "gpt")]
-pub use gpt::GeneralPurposeTimer as GPT;
+pub use gpt::GPT;
 #[cfg(feature = "i2c")]
 pub use i2c::{ClockSpeed as I2CClockSpeed, Error as I2CError, I2C};
 #[cfg(feature = "pit")]
