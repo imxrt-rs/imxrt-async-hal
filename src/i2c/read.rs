@@ -1,6 +1,6 @@
 //! I2C read implementation
 
-use super::{commands, Error, Instance, State};
+use super::{commands, Error, RegisterBlock, State};
 
 use core::{
     future::Future,
@@ -13,7 +13,7 @@ use core::{
 ///
 /// Use [`read`](crate::I2C::read) to create this future.
 pub struct Read<'a> {
-    i2c: &'a Instance,
+    i2c: &'a RegisterBlock,
     address: u8,
     buffer: &'a mut [u8],
     state: Option<State>,
@@ -21,7 +21,7 @@ pub struct Read<'a> {
 }
 
 impl<'a> Read<'a> {
-    pub(super) fn new(i2c: &'a Instance, address: u8, buffer: &'a mut [u8]) -> Self {
+    pub(super) fn new(i2c: &'a RegisterBlock, address: u8, buffer: &'a mut [u8]) -> Self {
         Read {
             i2c,
             address,

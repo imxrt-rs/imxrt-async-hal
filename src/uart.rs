@@ -1,6 +1,6 @@
 //! UART serial driver
 
-use crate::{dma, instance::Inst, iomuxc, ral};
+use crate::{dma, iomuxc, ral};
 use core::fmt;
 
 /// UART Serial driver
@@ -63,19 +63,19 @@ use core::fmt;
 /// # };
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "uart")))]
-pub struct UART<TX, RX> {
-    uart: ral::lpuart::Instance,
+pub struct UART<N, TX, RX> {
+    uart: ral::lpuart::Instance<N>,
     tx: TX,
     rx: RX,
 }
 
-impl<TX, RX> fmt::Debug for UART<TX, RX> {
+impl<N: iomuxc::consts::Unsigned, TX, RX> fmt::Debug for UART<N, TX, RX> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "UART{}", self.uart.inst())
+        write!(f, "UART{}", N::USIZE)
     }
 }
 
-impl<TX, RX, M> UART<TX, RX>
+impl<M, TX, RX> UART<M, TX, RX>
 where
     TX: iomuxc::uart::Pin<Direction = iomuxc::uart::TX, Module = M>,
     RX: iomuxc::uart::Pin<Direction = iomuxc::uart::RX, Module = M>,
@@ -85,21 +85,17 @@ where
     ///
     /// The baud rate of the returned `UART` is unspecified. Make sure you use [`set_baud`](UART::set_baud())
     /// to properly configure the driver.
-    pub fn new(uart: crate::instance::UART<M>, mut tx: TX, mut rx: RX) -> UART<TX, RX> {
+    pub fn new(uart: crate::ral::lpuart::Instance<M>, mut tx: TX, mut rx: RX) -> Self {
         crate::iomuxc::uart::prepare(&mut tx);
         crate::iomuxc::uart::prepare(&mut rx);
 
-        let uart = UART {
-            uart: uart.release(),
-            tx,
-            rx,
-        };
+        let uart = UART { uart, tx, rx };
         ral::modify_reg!(ral::lpuart, uart.uart, CTRL, TE: TE_1, RE: RE_1);
         uart
     }
 }
 
-impl<TX, RX> UART<TX, RX> {
+impl<N, TX, RX> UART<N, TX, RX> {
     /// Set the serial baud rate
     ///
     /// If there is an error, the error is [`Error::Clock`](Error::Clock).
@@ -134,7 +130,7 @@ impl<TX, RX> UART<TX, RX> {
     }
 
     /// Return the pins and RAL instance that comprise the UART driver
-    pub fn release(self) -> (TX, RX, ral::lpuart::Instance) {
+    pub fn release(self) -> (TX, RX, ral::lpuart::Instance<N>) {
         (self.tx, self.rx, self.uart)
     }
 
@@ -223,7 +219,7 @@ fn timings(effective_clock: u32, baud: u32) -> Result<Timings, Error> {
     })
 }
 
-unsafe impl<TX, RX> dma::Destination<u8> for UART<TX, RX> {
+unsafe impl<N, TX, RX> dma::Destination<u8> for UART<N, TX, RX> {
     fn destination_signal(&self) -> u32 {
         use dma::Source;
         self.source_signal() - 1
@@ -241,7 +237,7 @@ unsafe impl<TX, RX> dma::Destination<u8> for UART<TX, RX> {
     }
 }
 
-unsafe impl<TX, RX> dma::Source<u8> for UART<TX, RX> {
+unsafe impl<N, TX, RX> dma::Source<u8> for UART<N, TX, RX> {
     fn source_signal(&self) -> u32 {
         // Make sure that the match expression will never hit the unreachable!() case.
         // The comments and conditional compiles show what we're currently considering in

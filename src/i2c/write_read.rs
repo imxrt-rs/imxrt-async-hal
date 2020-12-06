@@ -1,6 +1,6 @@
 //! I2C write_read implementation
 
-use super::{commands, Error, Instance, State};
+use super::{commands, Error, RegisterBlock, State};
 
 use core::{
     future::Future,
@@ -13,7 +13,7 @@ use core::{
 ///
 /// Use [`write_read`](crate::I2C::write_read) to create this future.
 pub struct WriteRead<'a> {
-    i2c: &'a Instance,
+    i2c: &'a RegisterBlock,
     address: u8,
     output: &'a [u8],
     input: &'a mut [u8],
@@ -23,7 +23,7 @@ pub struct WriteRead<'a> {
 
 impl<'a> WriteRead<'a> {
     pub(super) fn new(
-        i2c: &'a Instance,
+        i2c: &'a RegisterBlock,
         address: u8,
         output: &'a [u8],
         input: &'a mut [u8],

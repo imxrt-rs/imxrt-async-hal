@@ -61,3 +61,7 @@ default-target = "thumbv7em-none-eabihf"
 [patch.crates-io.imxrt-iomuxc]
 git = "https://github.com/imxrt-rs/imxrt-iomuxc"
 branch = "v0.1-imxrt101x"
+
+[patch.crates-io.imxrt-ral]
+git = "https://github.com/imxrt-rs/imxrt-ral"
+branch = "typenum-instances"

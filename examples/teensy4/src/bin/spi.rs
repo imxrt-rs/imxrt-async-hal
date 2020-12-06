@@ -56,9 +56,7 @@ fn main() -> ! {
         hal::ral::dmamux::DMAMUX::take().unwrap(),
     );
 
-    let spi4 = hal::ral::lpspi::LPSPI4::take()
-        .and_then(hal::instance::spi)
-        .unwrap();
+    let spi4 = hal::ral::lpspi::LPSPI4::take().unwrap();
     let pins = hal::SPIPins {
         sdo: pins.p11,
         sdi: pins.p12,

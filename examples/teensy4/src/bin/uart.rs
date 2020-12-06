@@ -46,9 +46,7 @@ fn main() -> ! {
         hal::ral::dmamux::DMAMUX::take().unwrap(),
     );
 
-    let uart2 = hal::ral::lpuart::LPUART2::take()
-        .and_then(hal::instance::uart)
-        .unwrap();
+    let uart2 = hal::ral::lpuart::LPUART2::take().unwrap();
     let mut uart = hal::UART::new(uart2, pins.p14, pins.p15);
     let mut channel = channels[7].take().unwrap();
     channel.set_interrupt_on_completion(true);

@@ -31,8 +31,8 @@ unsafe fn pre_init() {
 ///
 /// See the gpt example for more information on GPT timer
 /// configuration.
-pub fn new_gpt(
-    gpt: ral::gpt::Instance,
+pub fn new_gpt<N>(
+    gpt: ral::gpt::Instance<N>,
     ccm: &ral::ccm::Instance,
 ) -> (hal::GPT, hal::GPT, hal::GPT) {
     // Select 24MHz crystal oscillator, divide by 24 == 1MHz clock

@@ -52,25 +52,13 @@ use core::{
 /// See the [module-level documentation](mod@crate::gpt) for more information.
 #[cfg_attr(docsrs, doc(cfg(feature = "gpt")))]
 pub struct GPT {
-    gpt: ral::gpt::Instance,
+    gpt: *const ral::gpt::RegisterBlock,
     output_compare: OutputCompare,
-}
-
-fn steal(gpt: &ral::gpt::Instance) -> ral::gpt::Instance {
-    // Safety: we already have a GPT instance, so users won't notice
-    // that we're stealing the instance again...
-    unsafe {
-        match &**gpt as *const _ {
-            ral::gpt::GPT1 => ral::gpt::GPT1::steal(),
-            ral::gpt::GPT2 => ral::gpt::GPT2::steal(),
-            _ => unreachable!("There are only two GPTs"),
-        }
-    }
 }
 
 impl GPT {
     /// Create a new `GPT` from a RAL GPT instance
-    pub fn new(gpt: ral::gpt::Instance) -> (Self, Self, Self) {
+    pub fn new<N>(gpt: ral::gpt::Instance<N>) -> (Self, Self, Self) {
         let irq = match &*gpt as *const _ {
             ral::gpt::GPT1 => ral::interrupt::GPT1,
             ral::gpt::GPT2 => ral::interrupt::GPT2,
@@ -94,15 +82,15 @@ impl GPT {
         unsafe { cortex_m::peripheral::NVIC::unmask(irq) };
         (
             GPT {
-                gpt: steal(&gpt),
+                gpt: &*gpt,
                 output_compare: OutputCompare::Channel1,
             },
             GPT {
-                gpt: steal(&gpt),
+                gpt: &*gpt,
                 output_compare: OutputCompare::Channel2,
             },
             GPT {
-                gpt,
+                gpt: &*gpt,
                 output_compare: OutputCompare::Channel3,
             },
         )
@@ -113,7 +101,7 @@ impl GPT {
     /// The elapsed time depends on your clock configuration.
     pub fn delay(&mut self, ticks: u32) -> Delay<'_> {
         Delay {
-            gpt: &self.gpt,
+            gpt: unsafe { &*self.gpt },
             ticks,
             output_compare: self.output_compare,
             _pin: PhantomPinned,
@@ -123,7 +111,7 @@ impl GPT {
 
 /// Clear the output compare flag
 #[inline(always)]
-fn clear_trigger(gpt: &ral::gpt::Instance, output_compare: OutputCompare) {
+fn clear_trigger(gpt: &ral::gpt::RegisterBlock, output_compare: OutputCompare) {
     match output_compare {
         OutputCompare::Channel1 => ral::modify_reg!(ral::gpt, gpt, SR, OF1: 1),
         OutputCompare::Channel2 => ral::modify_reg!(ral::gpt, gpt, SR, OF2: 1),
@@ -131,7 +119,7 @@ fn clear_trigger(gpt: &ral::gpt::Instance, output_compare: OutputCompare) {
     }
 }
 #[inline(always)]
-fn is_triggered(gpt: &ral::gpt::Instance, output_compare: OutputCompare) -> bool {
+fn is_triggered(gpt: &ral::gpt::RegisterBlock, output_compare: OutputCompare) -> bool {
     match output_compare {
         OutputCompare::Channel1 => ral::read_reg!(ral::gpt, gpt, SR, OF1 == 1),
         OutputCompare::Channel2 => ral::read_reg!(ral::gpt, gpt, SR, OF2 == 1),
@@ -139,7 +127,7 @@ fn is_triggered(gpt: &ral::gpt::Instance, output_compare: OutputCompare) -> bool
     }
 }
 #[inline(always)]
-fn enable_interrupt(gpt: &ral::gpt::Instance, output_compare: OutputCompare) {
+fn enable_interrupt(gpt: &ral::gpt::RegisterBlock, output_compare: OutputCompare) {
     match output_compare {
         OutputCompare::Channel1 => ral::modify_reg!(ral::gpt, gpt, IR, OF1IE: 1),
         OutputCompare::Channel2 => ral::modify_reg!(ral::gpt, gpt, IR, OF2IE: 1),
@@ -147,7 +135,7 @@ fn enable_interrupt(gpt: &ral::gpt::Instance, output_compare: OutputCompare) {
     }
 }
 #[inline(always)]
-fn disable_interrupt(gpt: &ral::gpt::Instance, output_compare: OutputCompare) {
+fn disable_interrupt(gpt: &ral::gpt::RegisterBlock, output_compare: OutputCompare) {
     match output_compare {
         OutputCompare::Channel1 => ral::modify_reg!(ral::gpt, gpt, IR, OF1IE: 0),
         OutputCompare::Channel2 => ral::modify_reg!(ral::gpt, gpt, IR, OF2IE: 0),
@@ -155,7 +143,7 @@ fn disable_interrupt(gpt: &ral::gpt::Instance, output_compare: OutputCompare) {
     }
 }
 #[inline(always)]
-fn interrupt_enabled(gpt: &ral::gpt::Instance, output_compare: OutputCompare) -> bool {
+fn interrupt_enabled(gpt: &ral::gpt::RegisterBlock, output_compare: OutputCompare) -> bool {
     match output_compare {
         OutputCompare::Channel1 => ral::read_reg!(ral::gpt, gpt, IR, OF1IE == 1),
         OutputCompare::Channel2 => ral::read_reg!(ral::gpt, gpt, IR, OF2IE == 1),
@@ -163,7 +151,7 @@ fn interrupt_enabled(gpt: &ral::gpt::Instance, output_compare: OutputCompare) ->
     }
 }
 #[inline(always)]
-fn set_ticks(gpt: &ral::gpt::Instance, output_compare: OutputCompare, ticks: u32) {
+fn set_ticks(gpt: &ral::gpt::RegisterBlock, output_compare: OutputCompare, ticks: u32) {
     match output_compare {
         OutputCompare::Channel1 => ral::write_reg!(ral::gpt, gpt, OCR1, ticks),
         OutputCompare::Channel2 => ral::write_reg!(ral::gpt, gpt, OCR2, ticks),
@@ -172,18 +160,21 @@ fn set_ticks(gpt: &ral::gpt::Instance, output_compare: OutputCompare, ticks: u32
 }
 
 #[inline(always)]
-fn waker(gpt: &ral::gpt::Instance, output_compare: OutputCompare) -> &'static mut Option<Waker> {
+fn waker(
+    gpt: &ral::gpt::RegisterBlock,
+    output_compare: OutputCompare,
+) -> &'static mut Option<Waker> {
     static mut WAKERS: [[Option<Waker>; 3]; 2] = [[None, None, None], [None, None, None]];
-    match &**gpt as *const _ {
+    match &*gpt as *const _ {
         ral::gpt::GPT1 => unsafe { &mut WAKERS[0][output_compare as usize] },
         ral::gpt::GPT2 => unsafe { &mut WAKERS[1][output_compare as usize] },
         _ => unreachable!("There are only two GPTs"),
     }
 }
 
-/// A future that waits for the GPT timer to elapse
+/// A future that waits for the timer to elapse
 pub struct Delay<'a> {
-    gpt: &'a ral::gpt::Instance,
+    gpt: &'a ral::gpt::RegisterBlock,
     output_compare: OutputCompare,
     _pin: PhantomPinned,
     ticks: u32,
@@ -218,7 +209,7 @@ impl<'a> Drop for Delay<'a> {
 
 #[inline(always)]
 #[cfg_attr(not(target_arch = "arm"), allow(unused))]
-fn on_interrupt(gpt: &ral::gpt::Instance) {
+fn on_interrupt(gpt: &ral::gpt::RegisterBlock) {
     [
         OutputCompare::Channel1,
         OutputCompare::Channel2,

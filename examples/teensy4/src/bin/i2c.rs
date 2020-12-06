@@ -63,7 +63,7 @@ fn main() -> ! {
 
     let mut led = GPIO::new(pins.p13).output();
 
-    let i2c3 = LPI2C3::take().and_then(hal::instance::i2c).unwrap();
+    let i2c3 = LPI2C3::take().unwrap();
     let mut i2c = I2C::new(i2c3, pins.p16, pins.p17);
     i2c.set_clock_speed(CLOCK_SPEED, SOURCE_CLOCK_HZ / SOURCE_CLOCK_DIVIDER)
         .unwrap();

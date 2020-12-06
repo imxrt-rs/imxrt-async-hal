@@ -1,4 +1,4 @@
-use crate::{dma, instance, iomuxc, ral};
+use crate::{dma, iomuxc, ral};
 
 /// Pins for a SPI device
 ///
@@ -112,12 +112,12 @@ pub struct Pins<SDO, SDI, SCK, PCS0> {
 /// # };
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "spi")))]
-pub struct SPI<Pins> {
+pub struct SPI<N, Pins> {
     pins: Pins,
-    spi: ral::lpspi::Instance,
+    spi: ral::lpspi::Instance<N>,
 }
 
-impl<SDO, SDI, SCK, PCS0, M> SPI<Pins<SDO, SDI, SCK, PCS0>>
+impl<SDO, SDI, SCK, PCS0, M> SPI<M, Pins<SDO, SDI, SCK, PCS0>>
 where
     SDO: iomuxc::spi::Pin<Module = M, Signal = iomuxc::spi::SDO>,
     SDI: iomuxc::spi::Pin<Module = M, Signal = iomuxc::spi::SDI>,
@@ -131,13 +131,11 @@ where
     /// instances.
     ///
     /// The clock speed is unspecified. Make sure you change your clock speed with `set_clock_speed`.
-    pub fn new(mut pins: Pins<SDO, SDI, SCK, PCS0>, spi: instance::SPI<M>) -> Self {
+    pub fn new(mut pins: Pins<SDO, SDI, SCK, PCS0>, spi: ral::lpspi::Instance<M>) -> Self {
         iomuxc::spi::prepare(&mut pins.sdo);
         iomuxc::spi::prepare(&mut pins.sdi);
         iomuxc::spi::prepare(&mut pins.sck);
         iomuxc::spi::prepare(&mut pins.pcs0);
-
-        let spi = spi.release();
 
         ral::write_reg!(ral::lpspi, spi, CR, RST: RST_1);
         ral::write_reg!(ral::lpspi, spi, CR, RST: RST_0);
@@ -150,10 +148,10 @@ where
     }
 }
 
-impl<Pins> SPI<Pins> {
+impl<Pins, M> SPI<M, Pins> {
     /// Return the pins and SPI instance that are used in this `SPI`
     /// driver
-    pub fn release(self) -> (Pins, ral::lpspi::Instance) {
+    pub fn release(self) -> (Pins, ral::lpspi::Instance<M>) {
         (self.pins, self.spi)
     }
 
@@ -199,7 +197,7 @@ pub enum Error {
     ClockSpeed,
 }
 
-impl<Pins> SPI<Pins> {
+impl<N, Pins> SPI<N, Pins> {
     fn with_master_disabled<F: FnMut() -> R, R>(&self, mut act: F) -> R {
         let men = ral::read_reg!(ral::lpspi, self.spi, CR, MEN == MEN_1);
         ral::modify_reg!(ral::lpspi, self.spi, CR, MEN: MEN_0);
@@ -224,7 +222,7 @@ impl<Pins> SPI<Pins> {
 }
 
 /// Must be called while SPI is disabled
-fn set_clock_speed(spi: &ral::lpspi::Instance, base: u32, hz: u32) {
+fn set_clock_speed(spi: &ral::lpspi::RegisterBlock, base: u32, hz: u32) {
     let mut div = base / hz;
     if base / div > hz {
         div += 1;
@@ -243,7 +241,7 @@ fn set_clock_speed(spi: &ral::lpspi::Instance, base: u32, hz: u32) {
     );
 }
 
-unsafe impl<E: dma::Element, Pins> dma::Source<E> for SPI<Pins> {
+unsafe impl<E: dma::Element, Pins, N> dma::Source<E> for SPI<N, Pins> {
     fn source_signal(&self) -> u32 {
         match &*self.spi as *const _ {
             // imxrt1010, imxrt1060
@@ -272,7 +270,7 @@ unsafe impl<E: dma::Element, Pins> dma::Source<E> for SPI<Pins> {
     }
 }
 
-unsafe impl<E: dma::Element, Pins> dma::Destination<E> for SPI<Pins> {
+unsafe impl<E: dma::Element, Pins, N> dma::Destination<E> for SPI<N, Pins> {
     fn destination_signal(&self) -> u32 {
         <Self as dma::Source<E>>::source_signal(self) + 1
     }
@@ -291,4 +289,4 @@ unsafe impl<E: dma::Element, Pins> dma::Destination<E> for SPI<Pins> {
     }
 }
 
-unsafe impl<E: dma::Element, Pins> dma::Bidirectional<E> for SPI<Pins> {}
+unsafe impl<E: dma::Element, Pins, N> dma::Bidirectional<E> for SPI<N, Pins> {}
