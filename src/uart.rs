@@ -17,7 +17,7 @@ use core::fmt;
 ///
 /// ```no_run
 /// use imxrt_async_hal as hal;
-/// use hal::{dma, iomuxc, UART, instance};
+/// use hal::{dma, iomuxc, UART};
 /// use hal::ral::{self,
 ///     ccm::CCM, lpuart::LPUART2,
 ///     dma0::DMA0, dmamux::DMAMUX,
@@ -43,7 +43,7 @@ use core::fmt;
 ///     dma,
 ///     DMAMUX::take().unwrap(),
 /// );
-/// let uart2 = LPUART2::take().and_then(instance::uart).unwrap();
+/// let uart2 = LPUART2::take().unwrap();
 ///
 /// let mut uart = UART::new(
 ///     uart2,

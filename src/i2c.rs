@@ -65,7 +65,7 @@
 //! iomuxc::configure(&mut pads.ad_b1.p07, PINCONFIG);
 //! iomuxc::configure(&mut pads.ad_b1.p06, PINCONFIG);
 //!
-//! let mut i2c3 = LPI2C3::take().and_then(hal::instance::i2c).unwrap();
+//! let mut i2c3 = LPI2C3::take().unwrap();
 //!
 //! let mut i2c = I2C::new(i2c3, pads.ad_b1.p07, pads.ad_b1.p06);
 //! i2c.set_clock_speed(I2CClockSpeed::KHz400, SOURCE_CLOCK_HZ / SOURCE_CLOCK_DIVIDER).unwrap();

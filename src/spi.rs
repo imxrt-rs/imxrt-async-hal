@@ -17,7 +17,7 @@ use crate::{dma, iomuxc, ral};
 /// >;
 ///
 /// // Helper type for your SPI peripheral
-/// type SPI = hal::SPI<SPIPins>;
+/// type SPI<N> = hal::SPI<N, SPIPins>;
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "spi")))]
 pub struct Pins<SDO, SDI, SCK, PCS0> {
@@ -53,7 +53,7 @@ pub struct Pins<SDO, SDI, SCK, PCS0> {
 ///
 /// ```no_run
 /// use imxrt_async_hal as hal;
-/// use hal::{dma, instance, iomuxc, SPI, SPIPins};
+/// use hal::{dma, iomuxc, SPI, SPIPins};
 /// use hal::ral::{self,
 ///     ccm::CCM, dma0::DMA0, dmamux::DMAMUX,
 ///     iomuxc::IOMUXC, lpspi::LPSPI4,
@@ -92,7 +92,7 @@ pub struct Pins<SDO, SDI, SCK, PCS0> {
 ///     sck: pads.b0.p03,
 ///     pcs0: pads.b0.p00,
 /// };
-/// let spi4 = LPSPI4::take().and_then(instance::spi).unwrap();
+/// let spi4 = LPSPI4::take().unwrap();
 /// let mut spi = SPI::new(
 ///     spi_pins,
 ///     spi4,
