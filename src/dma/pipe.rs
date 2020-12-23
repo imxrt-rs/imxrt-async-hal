@@ -30,17 +30,17 @@
 //! use hal::{ccm::{CCM, ClockGate}, dma};
 //! use hal::ral::{ccm, dma0, dmamux, gpt::GPT1};
 //!
-//! let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();
-//! let mut perclock = ccm.perclock.enable(&mut ccm.handle);
+//! let CCM { mut handle, perclock, .. } = ccm::CCM::take().map(CCM::from_ral).unwrap();
+//! let mut perclock = perclock.enable(&mut handle);
 //! let (_, mut gpt, _) = GPT1::take()
 //!     .map(|mut inst| {
 //!         perclock.set_clock_gate_gpt(&mut inst, ClockGate::On);
-//!         hal::GPT::new(inst, &mut perclock)
+//!         hal::GPT::new(inst, &perclock, &handle)
 //!     })
 //!     .unwrap();
 //!
 //! let mut dma = dma0::DMA0::take().unwrap();
-//! ccm.handle.set_clock_gate_dma(&mut dma, ClockGate::On);
+//! handle.set_clock_gate_dma(&mut dma, ClockGate::On);
 //!
 //! let mut channels = dma::channels(
 //!     dma,

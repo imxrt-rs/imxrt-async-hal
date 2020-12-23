@@ -16,15 +16,19 @@ fn main() -> ! {
     let pins = teensy4_pins::t40::into_pins(pads);
     let mut led = hal::gpio::GPIO::new(pins.p13).output();
 
-    let mut ccm = hal::ral::ccm::CCM::take()
+    let hal::ccm::CCM {
+        mut handle,
+        perclock,
+        ..
+    } = hal::ral::ccm::CCM::take()
         .map(hal::ccm::CCM::from_ral)
         .unwrap();
-    let mut perclock = ccm.perclock.enable(&mut ccm.handle);
+    let mut perclock = perclock.enable(&mut handle);
 
     let mut pit = hal::ral::pit::PIT::take().unwrap();
     perclock.set_clock_gate_pit(&mut pit, hal::ccm::ClockGate::On);
 
-    let (mut pit, _, _, _) = hal::PIT::new(pit, &perclock);
+    let (mut pit, _, _, _) = hal::PIT::new(pit, &perclock, &handle);
     let blink_loop = async {
         loop {
             pit.delay(core::time::Duration::from_millis(250)).await;

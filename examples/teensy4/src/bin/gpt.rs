@@ -18,15 +18,19 @@ fn main() -> ! {
     let mut led = hal::gpio::GPIO::new(pins.p13).output();
     let mut pin14 = hal::gpio::GPIO::new(pins.p14).output();
 
-    let mut ccm = hal::ral::ccm::CCM::take()
+    let hal::ccm::CCM {
+        mut handle,
+        perclock,
+        ..
+    } = hal::ral::ccm::CCM::take()
         .map(hal::ccm::CCM::from_ral)
         .unwrap();
-    let mut perclock = ccm.perclock.enable(&mut ccm.handle);
+    let mut perclock = perclock.enable(&mut handle);
 
     let mut gpt = hal::ral::gpt::GPT1::take().unwrap();
     perclock.set_clock_gate_gpt(&mut gpt, hal::ccm::ClockGate::On);
 
-    let (mut blink_timer, mut gpio_timer, _) = hal::GPT::new(gpt, &perclock);
+    let (mut blink_timer, mut gpio_timer, _) = hal::GPT::new(gpt, &perclock, &handle);
     let blink_loop = async {
         loop {
             blink_timer.delay(Duration::from_millis(250)).await;

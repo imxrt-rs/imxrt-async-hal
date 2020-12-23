@@ -24,11 +24,11 @@ use core::{
 /// use hal::ral::{ccm, gpt};
 /// use hal::{ccm::{CCM, ClockGate}, GPT};
 ///
-/// let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();
-/// let mut perclock = ccm.perclock.enable(&mut ccm.handle);
+/// let CCM { mut handle, perclock, .. } = ccm::CCM::take().map(CCM::from_ral).unwrap();
+/// let mut perclock = perclock.enable(&mut handle);
 /// let (mut gpt, _, _) = gpt::GPT1::take().map(|mut gpt| {
 ///     perclock.set_clock_gate_gpt(&mut gpt, ClockGate::On);
-///     GPT::new(gpt, &perclock)
+///     GPT::new(gpt, &perclock, &handle)
 /// }).unwrap();
 ///
 /// # async {
@@ -67,7 +67,11 @@ fn steal(gpt: &ral::gpt::Instance) -> ral::gpt::Instance {
 
 impl GPT {
     /// Create a new `GPT` from a RAL GPT instance
-    pub fn new(gpt: ral::gpt::Instance, clock: &crate::ccm::PerClock) -> (Self, Self, Self) {
+    pub fn new(
+        gpt: ral::gpt::Instance,
+        clock: &crate::ccm::PerClock,
+        handle: &crate::ccm::Handle,
+    ) -> (Self, Self, Self) {
         let irq = match &*gpt as *const _ {
             ral::gpt::GPT1 => ral::interrupt::GPT1,
             ral::gpt::GPT2 => ral::interrupt::GPT2,
@@ -98,7 +102,7 @@ impl GPT {
         );
 
         unsafe { cortex_m::peripheral::NVIC::unmask(irq) };
-        let hz = clock.frequency() / DIVIDER;
+        let hz = clock.frequency(handle) / DIVIDER;
         (
             GPT {
                 gpt: steal(&gpt),

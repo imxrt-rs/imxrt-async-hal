@@ -44,6 +44,7 @@ fn main() -> ! {
             })
             .unwrap(),
         &perclock,
+        &handle,
     );
 
     let mut dmas = hal::dma::channels(

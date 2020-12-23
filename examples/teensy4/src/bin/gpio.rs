@@ -55,7 +55,7 @@ fn main() -> ! {
     let (_, _, mut blink_timer) = hal::ral::gpt::GPT1::take()
         .map(|mut inst| {
             perclock.set_clock_gate_gpt(&mut inst, hal::ccm::ClockGate::On);
-            hal::GPT::new(inst, &perclock)
+            hal::GPT::new(inst, &perclock, &handle)
         })
         .unwrap();
     let ones = async {

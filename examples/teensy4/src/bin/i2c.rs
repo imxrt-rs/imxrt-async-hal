@@ -65,7 +65,7 @@ fn main() -> ! {
     let (mut timer, _, _) = GPT1::take()
         .map(|mut inst| {
             perclock.set_clock_gate_gpt(&mut inst, ccm::ClockGate::On);
-            GPT::new(inst, &perclock)
+            GPT::new(inst, &perclock, &handle)
         })
         .unwrap();
     let mut i2c_clock = i2c_clock.enable(&mut handle);

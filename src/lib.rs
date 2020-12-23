@@ -87,7 +87,7 @@
 //! // Enable the periodic clock for the GPT
 //! let mut perclock = perclock.enable(&mut handle);
 //! perclock.set_clock_gate_gpt(&mut gpt, hal::ccm::ClockGate::On);
-//! let (mut timer, _, _) = hal::GPT::new(gpt, &perclock);
+//! let (mut timer, _, _) = hal::GPT::new(gpt, &perclock, &handle);
 //!
 //! // Acquire DMA channels, which are used to schedule UART transfers
 //! let mut channels = hal::dma::channels(

@@ -16,8 +16,7 @@ cortex-m = "0.6"
 
 [dependencies.imxrt-ccm]
 features = ["imxrt-ral"]
-git = "https://github.com/imxrt-rs/imxrt-ccm.git"
-rev = "0c93478"
+path = "../ccm"
 
 [dependencies.imxrt-dma]
 git = "https://github.com/imxrt-rs/imxrt-dma"

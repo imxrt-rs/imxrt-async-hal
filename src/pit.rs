@@ -25,11 +25,11 @@ use core::{
 /// use hal::ral::{ccm, pit};
 /// use hal::{ccm::{CCM, ClockGate}, PIT};
 ///
-/// let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();
-/// let mut perclock = ccm.perclock.enable(&mut ccm.handle);
+/// let CCM { mut handle, perclock, .. } = ccm::CCM::take().map(CCM::from_ral).unwrap();
+/// let mut perclock = perclock.enable(&mut handle);
 /// let (_, _, _, mut pit) = pit::PIT::take().map(|mut pit| {
 ///     perclock.set_clock_gate_pit(&mut pit, ClockGate::On);
-///     PIT::new(pit, &perclock)
+///     PIT::new(pit, &perclock, &handle)
 /// }).unwrap();
 ///
 /// # async {
@@ -44,7 +44,11 @@ pub struct PIT {
 
 impl PIT {
     /// Acquire four PIT channels from the RAL's PIT instance
-    pub fn new(pit: ral::pit::Instance, clock: &crate::ccm::PerClock) -> (PIT, PIT, PIT, PIT) {
+    pub fn new(
+        pit: ral::pit::Instance,
+        clock: &crate::ccm::PerClock,
+        handle: &crate::ccm::Handle,
+    ) -> (PIT, PIT, PIT, PIT) {
         ral::write_reg!(ral::pit, pit, MCR, MDIS: MDIS_0);
         // Reset all PIT channels
         //
@@ -57,7 +61,7 @@ impl PIT {
 
         unsafe {
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::PIT);
-            let hz = clock.frequency();
+            let hz = clock.frequency(handle);
             (
                 PIT {
                     channel: register::ChannelInstance::zero(),
