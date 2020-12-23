@@ -25,7 +25,11 @@ fn main() -> ! {
     } = hal::ral::ccm::CCM::take()
         .map(hal::ccm::CCM::from_ral)
         .unwrap();
-    let mut perclock = perclock.enable(&mut handle);
+    let (arm, ipg) = handle.set_frequency_arm(600_000_000);
+    assert_eq!(arm.0, 600_000_000);
+    assert_eq!(ipg.0, 150_000_000);
+    let mut perclock =
+        perclock.enable_selection_divider(&mut handle, hal::ccm::perclock::Selection::IPG, 15);
 
     let mut gpt = hal::ral::gpt::GPT1::take().unwrap();
     perclock.set_clock_gate_gpt(&mut gpt, hal::ccm::ClockGate::On);

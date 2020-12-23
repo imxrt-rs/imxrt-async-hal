@@ -1,4 +1,4 @@
-use crate::ral;
+use crate::{ccm::perclock::Selection, ral};
 use core::{
     future::Future,
     pin::Pin,
@@ -78,14 +78,28 @@ impl GPT {
             _ => unreachable!("There are only two GPTs"),
         };
 
-        ral::write_reg!(
-            ral::gpt,
-            gpt,
-            CR,
-            EN_24M: 1, // Enable crystal oscillator
-            CLKSRC: 0b101 // Crystal Oscillator
-        );
-        ral::write_reg!(ral::gpt, gpt, PR, PRESCALER24M: DIVIDER - 1);
+        match clock.selection() {
+            Selection::Oscillator => {
+                ral::write_reg!(
+                    ral::gpt,
+                    gpt,
+                    CR,
+                    EN_24M: 1, // Enable crystal oscillator
+                    CLKSRC: 0b101 // Crystal Oscillator
+                );
+                ral::write_reg!(ral::gpt, gpt, PR, PRESCALER24M: DIVIDER - 1);
+            }
+            Selection::IPG => {
+                ral::write_reg!(
+                    ral::gpt,
+                    gpt,
+                    CR,
+                    EN_24M: 0, // No crystal oscillator
+                    CLKSRC: 0b001 // Peripheral Clock
+                );
+                ral::write_reg!(ral::gpt, gpt, PR, PRESCALER: DIVIDER - 1);
+            }
+        }
 
         // Clear all statuses
         ral::write_reg!(ral::gpt, gpt, SR, 0b11_1111);
@@ -283,7 +297,7 @@ interrupts! {
 }
 
 /// Output compare channels
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 #[repr(usize)]
 enum OutputCompare {
     Channel1 = 0,
