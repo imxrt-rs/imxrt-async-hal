@@ -8,6 +8,7 @@ extern crate panic_halt;
 #[cfg(target_arch = "arm")]
 extern crate t4_startup;
 
+use hal::ral;
 use imxrt_async_hal as hal;
 
 #[cortex_m_rt::entry]
@@ -16,18 +17,18 @@ fn main() -> ! {
     let pins = teensy4_pins::t40::into_pins(pads);
     let mut led = hal::gpio::GPIO::new(pins.p13).output();
 
-    let mut ccm = hal::ral::ccm::CCM::take()
-        .map(hal::ccm::CCM::from_ral)
-        .unwrap();
-    let mut perclock = ccm.perclock.enable(&mut ccm.handle);
+    let ccm = ral::ccm::CCM::take().unwrap();
+    // Select 24MHz crystal oscillator, divide by 24 == 1MHz clock
+    ral::modify_reg!(ral::ccm, ccm, CSCMR1, PERCLK_PODF: DIVIDE_24, PERCLK_CLK_SEL: 1);
+    // Enable PIT clock gate
+    ral::modify_reg!(ral::ccm, ccm, CCGR1, CG6: 0b11);
+    ral::ccm::CCM::release(ccm);
 
-    let mut pit = hal::ral::pit::PIT::take().unwrap();
-    perclock.set_clock_gate_pit(&mut pit, hal::ccm::ClockGate::On);
-
-    let (mut pit, _, _, _) = hal::PIT::new(pit, &perclock);
+    let (mut pit, _, _, _) = ral::pit::PIT::take().map(hal::PIT::new).unwrap();
     let blink_loop = async {
         loop {
-            pit.delay(core::time::Duration::from_millis(250)).await;
+            const DELAY_MS: u32 = 250_000; // 1MHz clock, 1us period
+            pit.delay(DELAY_MS).await;
             led.toggle();
         }
     };
