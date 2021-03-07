@@ -8,7 +8,7 @@ extern crate panic_halt;
 #[cfg(target_arch = "arm")]
 extern crate t4_startup;
 
-use core::time::Duration;
+use hal::ral;
 use imxrt_async_hal as hal;
 
 #[cortex_m_rt::entry]
@@ -18,24 +18,32 @@ fn main() -> ! {
     let mut led = hal::gpio::GPIO::new(pins.p13).output();
     let mut pin14 = hal::gpio::GPIO::new(pins.p14).output();
 
-    let mut ccm = hal::ral::ccm::CCM::take()
-        .map(hal::ccm::CCM::from_ral)
-        .unwrap();
-    let mut perclock = ccm.perclock.enable(&mut ccm.handle);
+    let ccm = ral::ccm::CCM::take().unwrap();
+    // Select 24MHz crystal oscillator, divide by 24 == 1MHz clock
+    ral::modify_reg!(ral::ccm, ccm, CSCMR1, PERCLK_PODF: DIVIDE_24, PERCLK_CLK_SEL: 1);
+    // Enable GPT1 clock gate
+    ral::modify_reg!(ral::ccm, ccm, CCGR1, CG10: 0b11, CG11: 0b11);
 
-    let mut gpt = hal::ral::gpt::GPT1::take().unwrap();
-    perclock.set_clock_gate_gpt(&mut gpt, hal::ccm::ClockGate::On);
+    let gpt = hal::ral::gpt::GPT1::take().unwrap();
+    ral::write_reg!(
+        ral::gpt,
+        gpt,
+        CR,
+        EN_24M: 1, // Enable crystal oscillator
+        CLKSRC: 0b101 // Crystal oscillator clock source
+    );
+    ral::write_reg!(ral::gpt, gpt, PR, PRESCALER24M: 4); // 1MHz / 5 == 200KHz
 
-    let (mut blink_timer, mut gpio_timer, _) = hal::GPT::new(gpt, &perclock);
+    let (mut blink_timer, mut gpio_timer, _) = hal::GPT::new(gpt);
     let blink_loop = async {
         loop {
-            blink_timer.delay(Duration::from_millis(250)).await;
+            blink_timer.delay(250_000u32 / 5).await;
             led.toggle();
         }
     };
     let gpio_loop = async {
         loop {
-            gpio_timer.delay_us(333_000).await;
+            gpio_timer.delay(333_000u32 / 5).await;
             pin14.toggle();
         }
     };

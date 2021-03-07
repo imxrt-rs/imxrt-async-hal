@@ -26,7 +26,7 @@ use hal::{
     gpio::GPIO,
     iomuxc,
     ral::{ccm::CCM, gpt::GPT1, iomuxc::IOMUXC, lpi2c::LPI2C3},
-    GPT, I2C,
+    I2C,
 };
 use imxrt_async_hal as hal;
 
@@ -54,20 +54,18 @@ fn main() -> ! {
     iomuxc::configure(&mut pins.p16, PINCONFIG);
     iomuxc::configure(&mut pins.p17, PINCONFIG);
 
+    let ccm = CCM::take().unwrap();
+    let (mut timer, _, _) = t4_startup::new_gpt(GPT1::take().unwrap(), &ccm);
+
     let mut led = GPIO::new(pins.p13).output();
     let ccm::CCM {
         mut handle,
-        perclock,
         i2c_clock,
         ..
-    } = CCM::take().map(ccm::CCM::from_ral).unwrap();
-    let mut perclock = perclock.enable(&mut handle);
-    let (mut timer, _, _) = GPT1::take()
-        .map(|mut inst| {
-            perclock.set_clock_gate_gpt(&mut inst, ccm::ClockGate::On);
-            GPT::new(inst, &perclock)
-        })
+    } = unsafe { Some(CCM::steal()) }
+        .map(ccm::CCM::from_ral)
         .unwrap();
+
     let mut i2c_clock = i2c_clock.enable(&mut handle);
     let mut i2c3 = LPI2C3::take().and_then(hal::instance::i2c).unwrap();
     i2c_clock.set_clock_gate(&mut i2c3, hal::ccm::ClockGate::On);
@@ -83,19 +81,19 @@ fn main() -> ! {
             if i2c.write(MPU9250_ADDRESS, &[WHO_AM_I]).await.is_err() {
                 loop {
                     led.toggle();
-                    timer.delay_us(1_000_000).await;
+                    t4_startup::gpt_delay_us(&mut timer, 1_000_000).await;
                 }
             }
-            timer.delay_us(1_000).await;
+            t4_startup::gpt_delay_us(&mut timer, 1_000).await;
             if i2c.read(MPU9250_ADDRESS, &mut input).await.is_err() || input[0] != 0x71 {
                 loop {
                     led.toggle();
-                    timer.delay_us(1_000_000).await;
+                    t4_startup::gpt_delay_us(&mut timer, 1_000_000).await;
                 }
             }
 
             led.toggle();
-            timer.delay_us(250_000).await;
+            t4_startup::gpt_delay_us(&mut timer, 250_000).await;
 
             let mut buffer = [0u8; 14];
             if i2c
@@ -105,12 +103,12 @@ fn main() -> ! {
             {
                 loop {
                     led.toggle();
-                    timer.delay_us(1_000_000).await;
+                    t4_startup::gpt_delay_us(&mut timer, 1_000_000).await;
                 }
             }
 
             led.toggle();
-            timer.delay_us(250_000).await;
+            t4_startup::gpt_delay_us(&mut timer, 250_000).await;
         }
     };
     async_embedded::task::block_on(task);

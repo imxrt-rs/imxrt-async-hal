@@ -26,20 +26,19 @@ fn main() -> ! {
     let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
     let pins = teensy4_pins::t40::into_pins(pads);
     let mut led = hal::gpio::GPIO::new(pins.p13).output();
-    let mut gpt = hal::ral::gpt::GPT2::take().unwrap();
+    let gpt = hal::ral::gpt::GPT2::take().unwrap();
+
+    let ccm = hal::ral::ccm::CCM::take().unwrap();
+    let (mut timer, _, _) = t4_startup::new_gpt(gpt, &ccm);
 
     let hal::ccm::CCM {
         mut handle,
-        perclock,
         uart_clock,
         ..
-    } = hal::ral::ccm::CCM::take()
+    } = unsafe { Some(hal::ral::ccm::CCM::steal()) }
         .map(hal::ccm::CCM::from_ral)
         .unwrap();
-    let mut perclock = perclock.enable(&mut handle);
-    perclock.set_clock_gate_gpt(&mut gpt, hal::ccm::ClockGate::On);
 
-    let (mut timer, _, _) = hal::GPT::new(gpt, &perclock);
     let mut channels = hal::dma::channels(
         hal::ral::dma0::DMA0::take()
             .map(|mut dma| {
@@ -69,7 +68,7 @@ fn main() -> ! {
 
     let blinking_loop = async {
         loop {
-            timer.delay_us(250_000).await;
+            t4_startup::gpt_delay_ms(&mut timer, 250).await;
             led.toggle();
         }
     };

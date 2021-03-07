@@ -28,23 +28,13 @@ fn main() -> ! {
     let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
     let pins = teensy4_pins::t40::into_pins(pads);
     let mut led = hal::gpio::GPIO::new(pins.p13).output();
-    let hal::ccm::CCM {
-        mut handle,
-        perclock,
-        ..
-    } = hal::ral::ccm::CCM::take()
+
+    let ccm = hal::ral::ccm::CCM::take().unwrap();
+    let (_, mut timer, _) = t4_startup::new_gpt(hal::ral::gpt::GPT1::take().unwrap(), &ccm);
+
+    let hal::ccm::CCM { mut handle, .. } = unsafe { Some(hal::ral::ccm::CCM::steal()) }
         .map(hal::ccm::CCM::from_ral)
         .unwrap();
-    let mut perclock = perclock.enable(&mut handle);
-    let (_, mut timer, _) = hal::GPT::new(
-        hal::ral::gpt::GPT1::take()
-            .map(|mut inst| {
-                perclock.set_clock_gate_gpt(&mut inst, hal::ccm::ClockGate::On);
-                inst
-            })
-            .unwrap(),
-        &perclock,
-    );
 
     let mut dmas = hal::dma::channels(
         hal::ral::dma0::DMA0::take()
@@ -63,24 +53,24 @@ fn main() -> ! {
         let mut counter: i32 = 0;
         loop {
             tx.send(&counter).await.unwrap();
-            timer.delay_us(100_000).await;
+            t4_startup::gpt_delay_us(&mut timer, 100_000).await;
             counter = counter.wrapping_add(1);
             if counter == 20 {
                 drop(tx);
                 break;
             }
         }
-        timer.delay_us(500_000).await;
+        t4_startup::gpt_delay_us(&mut timer, 500_000).await;
         loop {
             let actual: i32 = rx2.receive().await.unwrap();
             if actual == 118 {
                 drop(rx2);
                 break;
             }
-            timer.delay_us(250_000).await;
+            t4_startup::gpt_delay_us(&mut timer, 250_000).await;
         }
         loop {
-            timer.delay_us(1_000_000).await;
+            t4_startup::gpt_delay_us(&mut timer, 1_000_000).await;
             tx3.send(&0i32).await.unwrap();
         }
     };

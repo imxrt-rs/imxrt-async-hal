@@ -29,20 +29,19 @@ fn main() -> ! {
     let mut hardware_flag = hal::gpio::GPIO::new(pins.p14).output();
     hardware_flag.clear();
 
+    let ccm = hal::ral::ccm::CCM::take().unwrap();
+
     let hal::ccm::CCM {
         mut handle,
-        perclock,
         spi_clock,
         ..
-    } = hal::ral::ccm::CCM::take()
+    } = unsafe { Some(hal::ral::ccm::CCM::steal()) }
         .map(hal::ccm::CCM::from_ral)
         .unwrap();
-    let mut gpt = hal::ral::gpt::GPT2::take().unwrap();
-    let mut perclock = perclock.enable(&mut handle);
+    let gpt = hal::ral::gpt::GPT2::take().unwrap();
     let mut spi_clock = spi_clock.enable(&mut handle);
-    perclock.set_clock_gate_gpt(&mut gpt, hal::ccm::ClockGate::On);
 
-    let (mut timer, _, _) = hal::GPT::new(gpt, &perclock);
+    let (mut timer, _, _) = t4_startup::new_gpt(gpt, &ccm);
     let mut channels = hal::dma::channels(
         hal::ral::dma0::DMA0::take()
             .map(|mut dma| {
@@ -81,7 +80,7 @@ fn main() -> ! {
                     hardware_flag.set();
                 }
             }
-            timer.delay_us(250_000).await;
+            t4_startup::gpt_delay_us(&mut timer, 250_000).await;
             hardware_flag.toggle();
         }
     };
