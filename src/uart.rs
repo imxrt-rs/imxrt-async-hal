@@ -18,7 +18,7 @@ use core::fmt;
 /// ```no_run
 /// use imxrt_async_hal as hal;
 /// use hal::{ccm::{self, ClockGate}, dma, iomuxc, UART, instance};
-/// use hal::ral::{
+/// use hal::ral::{self,
 ///     ccm::CCM, lpuart::LPUART2,
 ///     dma0::DMA0, dmamux::DMAMUX,
 ///     iomuxc::IOMUXC,
@@ -26,7 +26,14 @@ use core::fmt;
 ///
 /// let pads = IOMUXC::take().map(iomuxc::new).unwrap();
 ///
-/// let mut ccm = CCM::take().map(ccm::CCM::from_ral).unwrap();
+/// let ccm = CCM::take().unwrap();
+/// // Select 24MHz XTAL as clock source, no divider...
+/// ral::modify_reg!(ral::ccm, ccm, CSCDR1, UART_CLK_SEL: 1 /* Oscillator */, UART_CLK_PODF: CLOCK_DIVIDER - 1);
+/// // Enable LPUART2 clock gate...
+/// ral::modify_reg!(ral::ccm, ccm, CCGR0, CG14: 0b11);
+/// // TODO remove the DMA modules, and use imxrt-dma. Then,
+/// // Remove the CCM configuration through the imxrt-ccm crate.
+/// // Finally, finish this example.
 /// let mut dma = DMA0::take().unwrap();
 /// ccm.handle.set_clock_gate_dma(&mut dma, ClockGate::On);
 /// let mut channels = dma::channels(
@@ -43,7 +50,6 @@ use core::fmt;
 ///     pads.ad_b1.p02, // TX
 ///     pads.ad_b1.p03, // RX
 ///     channels[7].take().unwrap(),
-///     &uart_clock,
 /// );
 ///
 /// uart.set_baud(9600).unwrap();
@@ -61,7 +67,6 @@ pub struct UART<TX, RX> {
     channel: dma::Channel,
     tx: TX,
     rx: RX,
-    hz: u32,
 }
 
 impl<TX, RX> fmt::Debug for UART<TX, RX> {
@@ -85,21 +90,18 @@ where
         mut tx: TX,
         mut rx: RX,
         channel: dma::Channel,
-        clock: &crate::ccm::UARTClock,
     ) -> UART<TX, RX> {
         crate::iomuxc::uart::prepare(&mut tx);
         crate::iomuxc::uart::prepare(&mut rx);
 
-        let mut uart = UART {
+        let uart = UART {
             uart: DmaCapable {
                 uart: uart.release(),
             },
             tx,
             rx,
             channel,
-            hz: clock.frequency(),
         };
-        let _ = uart.set_baud(9600);
         ral::modify_reg!(ral::lpuart, uart.uart, CTRL, TE: TE_1, RE: RE_1);
         uart
     }
@@ -109,8 +111,8 @@ impl<TX, RX> UART<TX, RX> {
     /// Set the serial baud rate
     ///
     /// If there is an error, the error is [`Error::Clock`](Error::Clock).
-    pub fn set_baud(&mut self, baud: u32) -> Result<(), Error> {
-        let timings = timings(self.hz, baud)?;
+    pub fn set_baud(&mut self, baud: u32, source_clock_hz: u32) -> Result<(), Error> {
+        let timings = timings(source_clock_hz, baud)?;
         self.while_disabled(|this| {
             ral::modify_reg!(
                 ral::lpuart,

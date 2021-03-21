@@ -26,6 +26,7 @@ use core::{
     pin::Pin,
     task::{Context, RawWaker, RawWakerVTable, Waker},
 };
+use hal::ral;
 use imxrt_async_hal as hal;
 use teensy4_pins::common::{P13, P14, P15};
 
@@ -78,11 +79,11 @@ fn main() -> ! {
     let pins = teensy4_pins::t40::into_pins(pads);
     let mut led = hal::gpio::GPIO::new(pins.p13).output();
 
-    let hal::ccm::CCM {
-        mut handle,
-        uart_clock,
-        ..
-    } = hal::ral::ccm::CCM::take()
+    let ccm = hal::ral::ccm::CCM::take().unwrap();
+    ral::modify_reg!(ral::ccm, ccm, CSCDR1, UART_CLK_SEL: 1 /* XTAL */, UART_CLK_PODF: 0);
+    ral::modify_reg!(ral::ccm, ccm, CCGR0, CG14: 0b11);
+
+    let hal::ccm::CCM { mut handle, .. } = unsafe { Some(hal::ral::ccm::CCM::steal()) }
         .map(hal::ccm::CCM::from_ral)
         .unwrap();
 
@@ -96,22 +97,11 @@ fn main() -> ! {
         hal::ral::dmamux::DMAMUX::take().unwrap(),
     );
 
-    let mut uart_clock = uart_clock.enable(&mut handle);
     let uart2 = hal::ral::lpuart::LPUART2::take()
-        .map(|mut inst| {
-            uart_clock.set_clock_gate(&mut inst, hal::ccm::ClockGate::On);
-            inst
-        })
         .and_then(hal::instance::uart)
         .unwrap();
-    let mut uart = hal::UART::new(
-        uart2,
-        pins.p14,
-        pins.p15,
-        channels[7].take().unwrap(),
-        &uart_clock,
-    );
-    uart.set_baud(BAUD).unwrap();
+    let mut uart = hal::UART::new(uart2, pins.p14, pins.p15, channels[7].take().unwrap());
+    uart.set_baud(BAUD, 24_000_000 /* XTAL Hz */).unwrap();
 
     prepare_receive(&mut uart);
     watch_stack(&mut led);
