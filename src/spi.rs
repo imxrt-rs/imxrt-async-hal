@@ -99,10 +99,7 @@ pub struct SPI<Pins> {
     spi: DmaCapable,
     tx_channel: dma::Channel,
     rx_channel: dma::Channel,
-    hz: u32,
 }
-
-const DEFAULT_CLOCK_SPEED_HZ: u32 = 8_000_000;
 
 impl<SDO, SDI, SCK, PCS0, M> SPI<Pins<SDO, SDI, SCK, PCS0>>
 where
@@ -116,11 +113,12 @@ where
     ///
     /// See the [`instance` module](instance) for more information on SPI peripheral
     /// instances.
+    ///
+    /// The clock speed is unspecified. Make sure you change your clock speed with `set_clock_speed`.
     pub fn new(
         mut pins: Pins<SDO, SDI, SCK, PCS0>,
         spi: instance::SPI<M>,
         channels: (dma::Channel, dma::Channel),
-        clock: &crate::ccm::SPIClock,
     ) -> Self {
         iomuxc::spi::prepare(&mut pins.sdo);
         iomuxc::spi::prepare(&mut pins.sdi);
@@ -131,7 +129,6 @@ where
 
         ral::write_reg!(ral::lpspi, spi, CR, RST: RST_1);
         ral::write_reg!(ral::lpspi, spi, CR, RST: RST_0);
-        set_clock_speed(&spi, clock.frequency(), DEFAULT_CLOCK_SPEED_HZ);
         ral::write_reg!(ral::lpspi, spi, CFGR1, MASTER: MASTER_1, SAMPLE: SAMPLE_1);
         // spi.set_mode(embedded_hal::spi::MODE_0).unwrap();
         ral::write_reg!(ral::lpspi, spi, FCR, RXWATER: 0xF, TXWATER: 0xF);
@@ -142,7 +139,6 @@ where
             spi: DmaCapable { spi },
             tx_channel: channels.0,
             rx_channel: channels.1,
-            hz: clock.frequency(),
         }
     }
 
@@ -191,10 +187,10 @@ impl<Pins> SPI<Pins> {
     /// construction is unspecified.
     ///
     /// If an error occurs, it's an [`crate::spi::Error::ClockSpeed`].
-    pub fn set_clock_speed(&mut self, hz: u32) -> Result<(), Error> {
+    pub fn set_clock_speed(&mut self, hz: u32, source_clock_hz: u32) -> Result<(), Error> {
         self.with_master_disabled(|| {
             // Safety: master is disabled
-            set_clock_speed(&self.spi, self.hz, hz);
+            set_clock_speed(&self.spi, source_clock_hz, hz);
             Ok(())
         })
     }
