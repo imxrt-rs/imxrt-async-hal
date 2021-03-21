@@ -47,20 +47,14 @@ fn main() -> ! {
     );
     // Unclock SPI4
     ral::modify_reg!(ral::ccm, ccm, CCGR1, CG3: 0b11);
+    // DMA clock gate on
+    ral::modify_reg!(ral::ccm, ccm, CCGR5, CG3: 0b11);
 
-    let hal::ccm::CCM { mut handle, .. } = unsafe { Some(hal::ral::ccm::CCM::steal()) }
-        .map(hal::ccm::CCM::from_ral)
-        .unwrap();
     let gpt = hal::ral::gpt::GPT2::take().unwrap();
 
     let (mut timer, _, _) = t4_startup::new_gpt(gpt, &ccm);
     let mut channels = hal::dma::channels(
-        hal::ral::dma0::DMA0::take()
-            .map(|mut dma| {
-                handle.set_clock_gate_dma(&mut dma, hal::ccm::ClockGate::On);
-                dma
-            })
-            .unwrap(),
+        hal::ral::dma0::DMA0::take().unwrap(),
         hal::ral::dmamux::DMAMUX::take().unwrap(),
     );
 

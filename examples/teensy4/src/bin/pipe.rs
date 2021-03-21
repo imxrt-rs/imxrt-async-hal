@@ -21,6 +21,7 @@ extern crate panic_halt;
 extern crate t4_startup;
 
 use futures::future;
+use hal::ral;
 use imxrt_async_hal as hal;
 
 #[cortex_m_rt::entry]
@@ -30,19 +31,12 @@ fn main() -> ! {
     let mut led = hal::gpio::GPIO::new(pins.p13).output();
 
     let ccm = hal::ral::ccm::CCM::take().unwrap();
+    // DMA clock gate on
+    ral::modify_reg!(ral::ccm, ccm, CCGR5, CG3: 0b11);
     let (_, mut timer, _) = t4_startup::new_gpt(hal::ral::gpt::GPT1::take().unwrap(), &ccm);
 
-    let hal::ccm::CCM { mut handle, .. } = unsafe { Some(hal::ral::ccm::CCM::steal()) }
-        .map(hal::ccm::CCM::from_ral)
-        .unwrap();
-
     let mut dmas = hal::dma::channels(
-        hal::ral::dma0::DMA0::take()
-            .map(|mut dma| {
-                handle.set_clock_gate_dma(&mut dma, hal::ccm::ClockGate::On);
-                dma
-            })
-            .unwrap(),
+        hal::ral::dma0::DMA0::take().unwrap(),
         hal::ral::dmamux::DMAMUX::take().unwrap(),
     );
 

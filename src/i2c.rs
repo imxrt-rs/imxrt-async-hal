@@ -100,11 +100,7 @@ where
     ///
     /// The I2C clock speed of the returned `I2C` driver is unspecified and may not be valid.
     /// Use [`set_clock_speed`](I2C::set_clock_speed()) to select a valid I2C clock speed.
-    pub fn new(
-        i2c: crate::instance::I2C<M>,
-        mut scl: SCL,
-        mut sda: SDA,
-    ) -> Self {
+    pub fn new(i2c: crate::instance::I2C<M>, mut scl: SCL, mut sda: SDA) -> Self {
         iomuxc::i2c::prepare(&mut scl);
         iomuxc::i2c::prepare(&mut sda);
 
@@ -130,11 +126,7 @@ where
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::LPI2C4);
         });
 
-        I2C {
-            i2c,
-            scl,
-            sda,
-        }
+        I2C { i2c, scl, sda }
     }
 }
 
@@ -176,7 +168,11 @@ impl<SCL, SDA> I2C<SCL, SDA> {
     /// Set the I2C clock speed
     ///
     /// If there is an error, error variant is [`crate::i2c::Error::ClockSpeed`].
-    pub fn set_clock_speed(&mut self, clock_speed: ClockSpeed, source_clock_hz: u32) -> Result<(), Error> {
+    pub fn set_clock_speed(
+        &mut self,
+        clock_speed: ClockSpeed,
+        source_clock_hz: u32,
+    ) -> Result<(), Error> {
         while_disabled(&self.i2c, |i2c| {
             clock::set_speed(clock_speed, source_clock_hz, i2c);
         });
