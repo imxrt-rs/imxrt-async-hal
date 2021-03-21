@@ -62,14 +62,16 @@ pub enum Error {
 ///
 /// ```no_run
 /// use imxrt_async_hal as hal;
-/// use hal::{ccm::{CCM, ClockGate}, dma};
-/// use hal::ral::{dma0, dmamux, ccm};
+/// use hal::dma;
+/// use hal::ral::{self, dma0, dmamux, ccm};
 ///
 /// fn prepare_peripheral(channel: dma::Channel) { /* ... */ }
 ///
-/// let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();
+/// let ccm = ccm::CCM::take().unwrap();
+/// // DMA clock gate on
+/// ral::modify_reg!(ral::ccm, ccm, CCGR5, CG3: 0b11);
+///
 /// let mut dma = dma0::DMA0::take().unwrap();
-/// ccm.handle.set_clock_gate_dma(&mut dma, ClockGate::On);
 /// let mut channels = dma::channels(
 ///     dma,
 ///     dmamux::DMAMUX::take().unwrap(),

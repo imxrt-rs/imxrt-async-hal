@@ -35,8 +35,6 @@ fn main() -> ! {
     hardware_flag.clear();
 
     let ccm = hal::ral::ccm::CCM::take().unwrap();
-    // Set DMA clock gates to ON
-    ral::modify_reg!(ral::ccm, ccm, CCGR5, CG3: 0b11);
     // Enable SPI clocks
     ral::modify_reg!(
         ral::ccm,

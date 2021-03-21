@@ -51,15 +51,24 @@ use crate::{
 ///
 /// # Example
 ///
-/// Prepare the I2C3 peripheral at 400KHz, using Teensy pins 16 and 17.
+/// Prepare the I2C3 peripheral at 400KHz. Note that this example does not demonstrate how
+/// to set up the I2C peripheral clocks, and enable clock gates.
 ///
 /// ```no_run
 /// use imxrt_async_hal as hal;
 /// use hal::{
-///     ccm, iomuxc, I2C, I2CClockSpeed,
-///     ral::{ccm::CCM, iomuxc::IOMUXC, lpi2c::LPI2C3},
+///     iomuxc, I2C, I2CClockSpeed,
+///     ral::{self, ccm::CCM, iomuxc::IOMUXC, lpi2c::LPI2C3},
 /// };
 /// # const PINCONFIG: iomuxc::Config = iomuxc::Config::zero();
+/// const SOURCE_CLOCK_HZ: u32 = 24_000_000;
+/// const SOURCE_CLOCK_DIVIDER: u32 = 3;
+///
+/// let ccm = CCM::take().unwrap();
+/// // LPI2C clock selection: 24MHz XTAL, divide by 3
+/// ral::modify_reg!(ral::ccm, ccm, CSCDR2, LPI2C_CLK_SEL: 1, LPI2C_CLK_PODF: SOURCE_CLOCK_DIVIDER - 1);
+/// // LPI2C3 clock gate on
+/// ral::modify_reg!(ral::ccm, ccm, CCGR2, CG5: 0b11);
 ///
 /// let mut pads = IOMUXC::take()
 ///     .map(iomuxc::new)
@@ -68,13 +77,10 @@ use crate::{
 /// iomuxc::configure(&mut pads.ad_b1.p07, PINCONFIG);
 /// iomuxc::configure(&mut pads.ad_b1.p06, PINCONFIG);
 ///
-/// let mut ccm = CCM::take().map(ccm::CCM::from_ral).unwrap();
-/// let mut i2c_clock = ccm.i2c_clock.enable(&mut ccm.handle);
 /// let mut i2c3 = LPI2C3::take().and_then(hal::instance::i2c).unwrap();
-/// i2c_clock.set_clock_gate(&mut i2c3, ccm::ClockGate::On);
 ///
-/// let mut i2c = I2C::new(i2c3, pads.ad_b1.p07, pads.ad_b1.p06, &i2c_clock);
-/// i2c.set_clock_speed(I2CClockSpeed::KHz400).unwrap();
+/// let mut i2c = I2C::new(i2c3, pads.ad_b1.p07, pads.ad_b1.p06);
+/// i2c.set_clock_speed(I2CClockSpeed::KHz400, SOURCE_CLOCK_HZ / SOURCE_CLOCK_DIVIDER).unwrap();
 ///
 /// # async {
 /// # const DEVICE_ADDRESS: u8 = 0;
@@ -317,37 +323,3 @@ fn check_busy(i2c: &Instance) -> Result<(), Error> {
         Ok(())
     }
 }
-
-/// ```no_run
-/// use imxrt_async_hal as hal;
-/// use hal::ral::{ccm::CCM, lpi2c::LPI2C2};
-///
-/// let hal::ccm::CCM {
-///     mut handle,
-///     i2c_clock,
-///     ..
-/// } = CCM::take().map(hal::ccm::CCM::from_ral).unwrap();
-/// let mut i2c_clock = i2c_clock.enable(&mut handle);
-/// let mut i2c2 = LPI2C2::take().unwrap();
-/// i2c_clock.set_clock_gate(&mut i2c2, hal::ccm::ClockGate::On);
-/// ```
-#[cfg(doctest)]
-struct ClockingWeakRalInstance;
-
-/// ```no_run
-/// use imxrt_async_hal as hal;
-/// use hal::ral::{ccm::CCM, lpi2c::LPI2C2};
-///
-/// let hal::ccm::CCM {
-///     mut handle,
-///     i2c_clock,
-///     ..
-/// } = CCM::take().map(hal::ccm::CCM::from_ral).unwrap();
-/// let mut i2c_clock = i2c_clock.enable(&mut handle);
-/// let mut i2c2: hal::instance::I2C<hal::iomuxc::consts::U2> = LPI2C2::take()
-///     .and_then(hal::instance::i2c)
-///     .unwrap();
-/// i2c_clock.set_clock_gate(&mut i2c2, hal::ccm::ClockGate::On);
-/// ```
-#[cfg(doctest)]
-struct ClockingStrongHalInstance;

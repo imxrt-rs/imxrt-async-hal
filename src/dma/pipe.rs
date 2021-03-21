@@ -26,13 +26,14 @@
 //!
 //! ```no_run
 //! use imxrt_async_hal as hal;
-//! use hal::{ccm::{CCM, ClockGate}, dma};
-//! use hal::ral::{ccm, dma0, dmamux};
+//! use hal::dma;
+//! use hal::ral::{self, ccm, dma0, dmamux};
 //!
-//! let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();
+//! let ccm = ral::ccm::CCM::take().unwrap();
+//! // DMA clock gate on
+//! ral::modify_reg!(ral::ccm, ccm, CCGR5, CG3: 0b11);
 //!
-//! let mut dma = dma0::DMA0::take().unwrap();
-//! ccm.handle.set_clock_gate_dma(&mut dma, ClockGate::On);
+//! let dma = dma0::DMA0::take().unwrap();
 //!
 //! let mut channels = dma::channels(
 //!     dma,
@@ -125,12 +126,14 @@ impl<E> Receiver<E> {
 /// [module-level documentation](self).
 /// ```no_run
 /// use imxrt_async_hal as hal;
-/// use hal::{ccm::{CCM, ClockGate}, dma};
-/// use hal::ral::{dma0, dmamux, ccm};
+/// use hal::dma;
+/// use hal::ral::{self, dma0, dmamux, ccm};
 ///
-/// let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();
-/// let mut dma = dma0::DMA0::take().unwrap();
-/// ccm.handle.set_clock_gate_dma(&mut dma, ClockGate::On);
+/// let ccm = ral::ccm::CCM::take().unwrap();
+/// // DMA clock gate on
+/// ral::modify_reg!(ral::ccm, ccm, CCGR5, CG3: 0b11);
+///
+/// let dma = dma0::DMA0::take().unwrap();
 /// let mut channels = dma::channels(
 ///     dma,
 ///     dmamux::DMAMUX::take().unwrap(),
