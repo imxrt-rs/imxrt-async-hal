@@ -53,8 +53,8 @@ pub enum Error {
 /// The return is 32 channels. However, **only the first [`CHANNEL_COUNT`] channels
 /// are initialized to `Some(channel)`. The rest are `None`**.
 ///
-/// You should enable the clock gates before calling `channels`. See
-/// [`ccm::Handle::clock_gate_dma`](super::ccm::Handle::set_clock_gate_dma()) for more information.
+/// You should enable the clock gates before calling `channels`. See the example for more
+/// information on enabling clock gates.
 ///
 /// # Example
 ///
