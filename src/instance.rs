@@ -28,7 +28,7 @@
 //! A mismatch between the expected instance and the RAL instance will return `None`, or
 //! panic whe `unwrap`ped:
 //!
-//! ```should_panic, note that this actually panics because of an invalid memory access
+//! ```no_run,should_panic, note that this actually panics because of an invalid memory access
 //! # use imxrt_async_hal as hal;
 //! # use hal::{instance, iomuxc::consts};
 //! # use hal::ral::lpuart;
