@@ -18,58 +18,44 @@ extern crate panic_halt;
 extern crate t4_startup;
 
 use futures::future;
+use hal::ral;
 use imxrt_async_hal as hal;
 const BAUD: u32 = 115_200;
+
+const CLOCK_FREQUENCY_HZ: u32 = 24_000_000; // XTAL
+const CLOCK_DIVIDER: u32 = 1;
 
 #[cortex_m_rt::entry]
 fn main() -> ! {
     let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
     let pins = teensy4_pins::t40::into_pins(pads);
     let mut led = hal::gpio::GPIO::new(pins.p13).output();
-    let mut gpt = hal::ral::gpt::GPT2::take().unwrap();
+    let gpt = hal::ral::gpt::GPT2::take().unwrap();
 
-    let hal::ccm::CCM {
-        mut handle,
-        perclock,
-        uart_clock,
-        ..
-    } = hal::ral::ccm::CCM::take()
-        .map(hal::ccm::CCM::from_ral)
-        .unwrap();
-    let mut perclock = perclock.enable(&mut handle);
-    perclock.set_clock_gate_gpt(&mut gpt, hal::ccm::ClockGate::On);
+    let ccm = hal::ral::ccm::CCM::take().unwrap();
+    ral::modify_reg!(ral::ccm, ccm, CSCDR1, UART_CLK_SEL: 1 /* Oscillator */, UART_CLK_PODF: CLOCK_DIVIDER - 1);
+    // LPUART2 clock gate on
+    ral::modify_reg!(ral::ccm, ccm, CCGR0, CG14: 0b11);
+    // DMA clock gate on
+    ral::modify_reg!(ral::ccm, ccm, CCGR5, CG3: 0b11);
 
-    let (mut timer, _, _) = hal::GPT::new(gpt, &perclock);
+    let (mut timer, _, _) = t4_startup::new_gpt(gpt, &ccm);
+
     let mut channels = hal::dma::channels(
-        hal::ral::dma0::DMA0::take()
-            .map(|mut dma| {
-                handle.set_clock_gate_dma(&mut dma, hal::ccm::ClockGate::On);
-                dma
-            })
-            .unwrap(),
+        hal::ral::dma0::DMA0::take().unwrap(),
         hal::ral::dmamux::DMAMUX::take().unwrap(),
     );
 
-    let mut uart_clock = uart_clock.enable(&mut handle);
     let uart2 = hal::ral::lpuart::LPUART2::take()
-        .map(|mut inst| {
-            uart_clock.set_clock_gate(&mut inst, hal::ccm::ClockGate::On);
-            inst
-        })
         .and_then(hal::instance::uart)
         .unwrap();
-    let mut uart = hal::UART::new(
-        uart2,
-        pins.p14,
-        pins.p15,
-        channels[7].take().unwrap(),
-        &uart_clock,
-    );
-    uart.set_baud(BAUD).unwrap();
+    let mut uart = hal::UART::new(uart2, pins.p14, pins.p15, channels[7].take().unwrap());
+    uart.set_baud(BAUD, CLOCK_FREQUENCY_HZ / CLOCK_DIVIDER)
+        .unwrap();
 
     let blinking_loop = async {
         loop {
-            timer.delay_us(250_000).await;
+            t4_startup::gpt_delay_ms(&mut timer, 250).await;
             led.toggle();
         }
     };

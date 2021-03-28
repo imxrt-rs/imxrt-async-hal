@@ -18,9 +18,14 @@ extern crate panic_halt;
 #[cfg(target_arch = "arm")]
 extern crate t4_startup;
 
+use hal::ral;
 use imxrt_async_hal as hal;
 
 const SPI_CLOCK_HZ: u32 = 1_000_000;
+/// Effective LPSPI source clock (PLL2)
+const SOURCE_CLOCK_HZ: u32 = 528_000_000;
+/// Any divider for the source clock
+const SOURCE_CLOCK_DIVIDER: u32 = 5;
 
 #[cortex_m_rt::entry]
 fn main() -> ! {
@@ -29,34 +34,31 @@ fn main() -> ! {
     let mut hardware_flag = hal::gpio::GPIO::new(pins.p14).output();
     hardware_flag.clear();
 
-    let hal::ccm::CCM {
-        mut handle,
-        perclock,
-        spi_clock,
-        ..
-    } = hal::ral::ccm::CCM::take()
-        .map(hal::ccm::CCM::from_ral)
-        .unwrap();
-    let mut gpt = hal::ral::gpt::GPT2::take().unwrap();
-    let mut perclock = perclock.enable(&mut handle);
-    let mut spi_clock = spi_clock.enable(&mut handle);
-    perclock.set_clock_gate_gpt(&mut gpt, hal::ccm::ClockGate::On);
+    let ccm = hal::ral::ccm::CCM::take().unwrap();
+    // Enable SPI clocks
+    ral::modify_reg!(
+        ral::ccm,
+        ccm,
+        CBCMR,
+        LPSPI_CLK_SEL: LPSPI_CLK_SEL_2, /* PLL2 */
+        LPSPI_PODF: SOURCE_CLOCK_DIVIDER - 1
+    );
+    // Unclock SPI4
+    ral::modify_reg!(ral::ccm, ccm, CCGR1, CG3: 0b11);
+    // DMA clock gate on
+    ral::modify_reg!(ral::ccm, ccm, CCGR5, CG3: 0b11);
 
-    let (mut timer, _, _) = hal::GPT::new(gpt, &perclock);
+    let gpt = hal::ral::gpt::GPT2::take().unwrap();
+
+    let (mut timer, _, _) = t4_startup::new_gpt(gpt, &ccm);
     let mut channels = hal::dma::channels(
-        hal::ral::dma0::DMA0::take()
-            .map(|mut dma| {
-                handle.set_clock_gate_dma(&mut dma, hal::ccm::ClockGate::On);
-                dma
-            })
-            .unwrap(),
+        hal::ral::dma0::DMA0::take().unwrap(),
         hal::ral::dmamux::DMAMUX::take().unwrap(),
     );
 
-    let mut spi4 = hal::ral::lpspi::LPSPI4::take()
+    let spi4 = hal::ral::lpspi::LPSPI4::take()
         .and_then(hal::instance::spi)
         .unwrap();
-    spi_clock.set_clock_gate(&mut spi4, hal::ccm::ClockGate::On);
     let pins = hal::SPIPins {
         sdo: pins.p11,
         sdi: pins.p12,
@@ -67,10 +69,10 @@ fn main() -> ! {
         pins,
         spi4,
         (channels[8].take().unwrap(), channels[9].take().unwrap()),
-        &spi_clock,
     );
 
-    spi.set_clock_speed(SPI_CLOCK_HZ).unwrap();
+    spi.set_clock_speed(SPI_CLOCK_HZ, SOURCE_CLOCK_HZ / SOURCE_CLOCK_DIVIDER)
+        .unwrap();
 
     let who_am_i = async {
         loop {
@@ -81,7 +83,7 @@ fn main() -> ! {
                     hardware_flag.set();
                 }
             }
-            timer.delay_us(250_000).await;
+            t4_startup::gpt_delay_us(&mut timer, 250_000).await;
             hardware_flag.toggle();
         }
     };

@@ -4,13 +4,13 @@ use core::{
     pin::Pin,
     sync::atomic,
     task::{Context, Poll, Waker},
-    time::Duration,
 };
 
 /// General purpose timers (GPT)
 ///
-/// The timer **divides the input clock by 5**. This may affect very precise
-/// timing. For a more precise timer, see [`PIT`](crate::PIT).
+/// You're expected to configure your clock selection, and divider. The
+/// driver will make other modifications on the control register to give
+/// the appearance of three, independent timers.
 ///
 /// Each GPT instance turns into three GPT timers. Use [`new`](crate::GPT::new)
 /// to acquire the three timers.
@@ -21,37 +21,37 @@ use core::{
 ///
 /// ```no_run
 /// use imxrt_async_hal as hal;
-/// use hal::ral::{ccm, gpt};
-/// use hal::{ccm::{CCM, ClockGate}, GPT};
+/// use hal::ral as ral;
+/// use ral::{ccm, gpt};
+/// use hal::GPT;
 ///
-/// let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();
-/// let mut perclock = ccm.perclock.enable(&mut ccm.handle);
-/// let (mut gpt, _, _) = gpt::GPT1::take().map(|mut gpt| {
-///     perclock.set_clock_gate_gpt(&mut gpt, ClockGate::On);
-///     GPT::new(gpt, &perclock)
-/// }).unwrap();
+/// let ccm = ccm::CCM::take().unwrap();
+/// // Select 24MHz crystal oscillator, divide by 24 == 1MHz clock
+/// ral::modify_reg!(ral::ccm, ccm, CSCMR1, PERCLK_PODF: DIVIDE_24, PERCLK_CLK_SEL: 1);
+/// // Enable GPT1 clock gate
+/// ral::modify_reg!(ral::ccm, ccm, CCGR1, CG10: 0b11, CG11: 0b11);
+///
+/// let gpt = hal::ral::gpt::GPT1::take().unwrap();
+/// ral::write_reg!(
+///     ral::gpt,
+///     gpt,
+///     CR,
+///     EN_24M: 1, // Enable crystal oscillator
+///     CLKSRC: 0b101 // Crystal oscillator clock source
+/// );
+/// ral::write_reg!(ral::gpt, gpt, PR, PRESCALER24M: 4); // 1MHz / 5 == 200KHz
+
+/// let (mut gpt, _, _) = GPT::new(gpt);
 ///
 /// # async {
-/// gpt.delay_us(250_000u32).await;
-/// gpt.delay(core::time::Duration::from_millis(250)).await; // Equivalent
+/// gpt.delay(250_000u32 / 5).await;
 /// # };
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "gpt")))]
 pub struct GPT {
     gpt: ral::gpt::Instance,
-    hz: u32,
     output_compare: OutputCompare,
 }
-
-/// GPT clock divider
-///
-/// This crystal oscillator is very sensitive. Not all values
-/// seem to work. 5 is one of them that does. So is 3. 10 does
-/// not work. The field is supposed to support values up to 0xF.
-///
-/// The seL4 project also notes issues with this divider value.
-/// Can't find anything in the errata...
-const DIVIDER: u32 = 5;
 
 fn steal(gpt: &ral::gpt::Instance) -> ral::gpt::Instance {
     // Safety: we already have a GPT instance, so users won't notice
@@ -67,21 +67,12 @@ fn steal(gpt: &ral::gpt::Instance) -> ral::gpt::Instance {
 
 impl GPT {
     /// Create a new `GPT` from a RAL GPT instance
-    pub fn new(gpt: ral::gpt::Instance, clock: &crate::ccm::PerClock) -> (Self, Self, Self) {
+    pub fn new(gpt: ral::gpt::Instance) -> (Self, Self, Self) {
         let irq = match &*gpt as *const _ {
             ral::gpt::GPT1 => ral::interrupt::GPT1,
             ral::gpt::GPT2 => ral::interrupt::GPT2,
             _ => unreachable!("There are only two GPTs"),
         };
-
-        ral::write_reg!(
-            ral::gpt,
-            gpt,
-            CR,
-            EN_24M: 1, // Enable crystal oscillator
-            CLKSRC: 0b101 // Crystal Oscillator
-        );
-        ral::write_reg!(ral::gpt, gpt, PR, PRESCALER24M: DIVIDER - 1);
 
         // Clear all statuses
         ral::write_reg!(ral::gpt, gpt, SR, 0b11_1111);
@@ -98,49 +89,32 @@ impl GPT {
         );
 
         unsafe { cortex_m::peripheral::NVIC::unmask(irq) };
-        let hz = clock.frequency() / DIVIDER;
         (
             GPT {
                 gpt: steal(&gpt),
-                hz,
                 output_compare: OutputCompare::Channel1,
             },
             GPT {
                 gpt: steal(&gpt),
-                hz,
                 output_compare: OutputCompare::Channel2,
             },
             GPT {
                 gpt,
-                hz,
                 output_compare: OutputCompare::Channel3,
             },
         )
     }
 
-    /// Wait for the specified `duration` to elapse
+    /// Wait for `ticks` clock counts to elapse
     ///
-    /// If the microseconds represented by the duration cannot fit in a `u32`, the
-    /// delay will saturate at `u32::max_value()` microseconds.
-    pub async fn delay(&mut self, duration: Duration) {
-        use core::convert::TryFrom;
-        self.delay_us(u32::try_from(duration.as_micros()).unwrap_or(u32::max_value()))
-            .await
-    }
-    /// Wait for `microseconds` to elapse
-    pub async fn delay_us(&mut self, microseconds: u32) {
+    /// The elapsed time depends on your clock configuration.
+    pub async fn delay(&mut self, ticks: u32) {
         Delay {
             gpt: &self.gpt,
-            delay_ns: microseconds.saturating_mul(1_000),
-            hz: self.hz,
+            ticks,
             output_compare: self.output_compare,
         }
         .await
-    }
-
-    /// Returns the `GPT` clock period
-    pub fn clock_period(&self) -> Duration {
-        Duration::from_micros((1_000_000 / self.hz) as u64)
     }
 }
 
@@ -208,8 +182,7 @@ fn waker(gpt: &ral::gpt::Instance, output_compare: OutputCompare) -> &'static mu
 struct Delay<'a> {
     gpt: &'a ral::gpt::Instance,
     output_compare: OutputCompare,
-    hz: u32,
-    delay_ns: u32,
+    ticks: u32,
 }
 
 impl<'a> Future for Delay<'a> {
@@ -222,14 +195,8 @@ impl<'a> Future for Delay<'a> {
             Poll::Pending
         } else {
             *waker(&self.gpt, self.output_compare) = Some(cx.waker().clone());
-            let period_ns = 1_000_000_000 / self.hz;
-            let ticks = self
-                .delay_ns
-                .checked_div(period_ns)
-                .unwrap_or(0)
-                .saturating_sub(1);
             let current_tick = ral::read_reg!(ral::gpt, self.gpt, CNT);
-            let next_tick = current_tick.wrapping_add(ticks);
+            let next_tick = current_tick.wrapping_add(self.ticks);
             set_ticks(&self.gpt, self.output_compare, next_tick);
             atomic::compiler_fence(atomic::Ordering::Release);
             enable_interrupt(&self.gpt, self.output_compare);

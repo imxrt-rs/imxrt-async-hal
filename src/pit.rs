@@ -5,7 +5,6 @@ use core::{
     pin::Pin,
     sync::atomic,
     task::{Context, Poll, Waker},
-    time::Duration,
 };
 
 /// Periodic interrupt timer (PIT)
@@ -18,33 +17,34 @@ use core::{
 ///
 /// # Example
 ///
-/// Delay for 100us using PIT channel 3.
+/// Delay for 250ms using PIT channel 3.
 ///
 /// ```no_run
 /// use imxrt_async_hal as hal;
-/// use hal::ral::{ccm, pit};
-/// use hal::{ccm::{CCM, ClockGate}, PIT};
+/// use hal::ral;
+/// use hal::PIT;
 ///
-/// let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();
-/// let mut perclock = ccm.perclock.enable(&mut ccm.handle);
-/// let (_, _, _, mut pit) = pit::PIT::take().map(|mut pit| {
-///     perclock.set_clock_gate_pit(&mut pit, ClockGate::On);
-///     PIT::new(pit, &perclock)
-/// }).unwrap();
+/// let ccm = ral::ccm::CCM::take().unwrap();
+/// // Select 24MHz crystal oscillator, divide by 24 == 1MHz clock
+/// ral::modify_reg!(ral::ccm, ccm, CSCMR1, PERCLK_PODF: DIVIDE_24, PERCLK_CLK_SEL: 1);
+/// // Enable PIT clock gate
+/// ral::modify_reg!(ral::ccm, ccm, CCGR1, CG6: 0b11);
+/// let (_, _, _, mut pit) = ral::pit::PIT::take()
+///     .map(PIT::new)
+///     .unwrap();
 ///
 /// # async {
-/// pit.delay_us(100).await;
+/// pit.delay(250_000).await;
 /// # };
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "pit")))]
 pub struct PIT {
     channel: register::ChannelInstance,
-    hz: u32,
 }
 
 impl PIT {
     /// Acquire four PIT channels from the RAL's PIT instance
-    pub fn new(pit: ral::pit::Instance, clock: &crate::ccm::PerClock) -> (PIT, PIT, PIT, PIT) {
+    pub fn new(pit: ral::pit::Instance) -> (PIT, PIT, PIT, PIT) {
         ral::write_reg!(ral::pit, pit, MCR, MDIS: MDIS_0);
         // Reset all PIT channels
         //
@@ -57,50 +57,31 @@ impl PIT {
 
         unsafe {
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::PIT);
-            let hz = clock.frequency();
             (
                 PIT {
                     channel: register::ChannelInstance::zero(),
-                    hz,
                 },
                 PIT {
                     channel: register::ChannelInstance::one(),
-                    hz,
                 },
                 PIT {
                     channel: register::ChannelInstance::two(),
-                    hz,
                 },
                 PIT {
                     channel: register::ChannelInstance::three(),
-                    hz,
                 },
             )
         }
     }
-    /// Wait for `microseconds` to elapse
-    pub async fn delay_us(&mut self, microseconds: u32) {
+    /// Wait for the counts to elapse
+    ///
+    /// The elapsed time is a function of your clock selection and clock frequency.
+    pub async fn delay(&mut self, count: u32) {
         Delay {
             channel: &mut self.channel,
-            hz: self.hz,
-            delay_ns: microseconds.saturating_mul(1_000),
+            count,
         }
         .await
-    }
-
-    /// Wait for the specified `duration` to elapse
-    ///
-    /// If the microseconds represented by the duration cannot be represented by a `u32`, the
-    /// delay will saturate at `u32::max_value()` microseconds.
-    pub async fn delay(&mut self, duration: Duration) {
-        use core::convert::TryFrom;
-        self.delay_us(u32::try_from(duration.as_micros()).unwrap_or(u32::max_value()))
-            .await
-    }
-
-    /// Returns the PIT clock period
-    pub fn clock_period(&self) -> Duration {
-        Duration::from_nanos((1_000_000_000 / self.hz) as u64)
     }
 }
 
@@ -108,8 +89,7 @@ static mut WAKERS: [Option<Waker>; 4] = [None, None, None, None];
 
 struct Delay<'a> {
     channel: &'a mut register::ChannelInstance,
-    hz: u32,
-    delay_ns: u32,
+    count: u32,
 }
 
 impl<'a> Future for Delay<'a> {
@@ -125,13 +105,7 @@ impl<'a> Future for Delay<'a> {
             Poll::Pending
         } else {
             // Neither complete nor active; prepare to run
-            let period_ns = 1_000_000_000 / self.hz;
-            let ticks = self
-                .delay_ns
-                .checked_div(period_ns)
-                .unwrap_or(0)
-                .saturating_sub(1);
-            ral::write_reg!(register, self.channel, LDVAL, ticks);
+            ral::write_reg!(register, self.channel, LDVAL, self.count);
             unsafe {
                 WAKERS[self.channel.index()] = Some(cx.waker().clone());
             }

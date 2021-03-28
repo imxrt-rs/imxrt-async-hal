@@ -21,6 +21,7 @@ extern crate panic_halt;
 extern crate t4_startup;
 
 use futures::future;
+use hal::ral;
 use imxrt_async_hal as hal;
 
 #[cortex_m_rt::entry]
@@ -28,31 +29,14 @@ fn main() -> ! {
     let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
     let pins = teensy4_pins::t40::into_pins(pads);
     let mut led = hal::gpio::GPIO::new(pins.p13).output();
-    let hal::ccm::CCM {
-        mut handle,
-        perclock,
-        ..
-    } = hal::ral::ccm::CCM::take()
-        .map(hal::ccm::CCM::from_ral)
-        .unwrap();
-    let mut perclock = perclock.enable(&mut handle);
-    let (_, mut timer, _) = hal::GPT::new(
-        hal::ral::gpt::GPT1::take()
-            .map(|mut inst| {
-                perclock.set_clock_gate_gpt(&mut inst, hal::ccm::ClockGate::On);
-                inst
-            })
-            .unwrap(),
-        &perclock,
-    );
+
+    let ccm = hal::ral::ccm::CCM::take().unwrap();
+    // DMA clock gate on
+    ral::modify_reg!(ral::ccm, ccm, CCGR5, CG3: 0b11);
+    let (_, mut timer, _) = t4_startup::new_gpt(hal::ral::gpt::GPT1::take().unwrap(), &ccm);
 
     let mut dmas = hal::dma::channels(
-        hal::ral::dma0::DMA0::take()
-            .map(|mut dma| {
-                handle.set_clock_gate_dma(&mut dma, hal::ccm::ClockGate::On);
-                dma
-            })
-            .unwrap(),
+        hal::ral::dma0::DMA0::take().unwrap(),
         hal::ral::dmamux::DMAMUX::take().unwrap(),
     );
 
@@ -63,24 +47,24 @@ fn main() -> ! {
         let mut counter: i32 = 0;
         loop {
             tx.send(&counter).await.unwrap();
-            timer.delay_us(100_000).await;
+            t4_startup::gpt_delay_us(&mut timer, 100_000).await;
             counter = counter.wrapping_add(1);
             if counter == 20 {
                 drop(tx);
                 break;
             }
         }
-        timer.delay_us(500_000).await;
+        t4_startup::gpt_delay_us(&mut timer, 500_000).await;
         loop {
             let actual: i32 = rx2.receive().await.unwrap();
             if actual == 118 {
                 drop(rx2);
                 break;
             }
-            timer.delay_us(250_000).await;
+            t4_startup::gpt_delay_us(&mut timer, 250_000).await;
         }
         loop {
-            timer.delay_us(1_000_000).await;
+            t4_startup::gpt_delay_us(&mut timer, 1_000_000).await;
             tx3.send(&0i32).await.unwrap();
         }
     };

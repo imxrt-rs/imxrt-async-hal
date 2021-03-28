@@ -22,11 +22,10 @@ extern crate panic_halt;
 extern crate t4_startup;
 
 use hal::{
-    ccm,
     gpio::GPIO,
     iomuxc,
-    ral::{ccm::CCM, gpt::GPT1, iomuxc::IOMUXC, lpi2c::LPI2C3},
-    GPT, I2C,
+    ral::{self, ccm::CCM, gpt::GPT1, iomuxc::IOMUXC, lpi2c::LPI2C3},
+    I2C,
 };
 use imxrt_async_hal as hal;
 
@@ -34,6 +33,9 @@ const MPU9250_ADDRESS: u8 = 0x68;
 const WHO_AM_I: u8 = 0x75;
 const ACCEL_XOUT_H: u8 = 0x3B;
 const CLOCK_SPEED: hal::I2CClockSpeed = hal::I2CClockSpeed::KHz400;
+
+const SOURCE_CLOCK_HZ: u32 = 24_000_000;
+const SOURCE_CLOCK_DIVIDER: u32 = 3;
 
 const PINCONFIG: iomuxc::Config = iomuxc::Config::zero()
     .set_open_drain(iomuxc::OpenDrain::Enabled)
@@ -54,25 +56,17 @@ fn main() -> ! {
     iomuxc::configure(&mut pins.p16, PINCONFIG);
     iomuxc::configure(&mut pins.p17, PINCONFIG);
 
+    let ccm = CCM::take().unwrap();
+    ral::modify_reg!(ral::ccm, ccm, CSCDR2, LPI2C_CLK_SEL: 1, LPI2C_CLK_PODF: SOURCE_CLOCK_DIVIDER - 1);
+    ral::modify_reg!(ral::ccm, ccm, CCGR2, CG5: 0b11);
+    let (mut timer, _, _) = t4_startup::new_gpt(GPT1::take().unwrap(), &ccm);
+
     let mut led = GPIO::new(pins.p13).output();
-    let ccm::CCM {
-        mut handle,
-        perclock,
-        i2c_clock,
-        ..
-    } = CCM::take().map(ccm::CCM::from_ral).unwrap();
-    let mut perclock = perclock.enable(&mut handle);
-    let (mut timer, _, _) = GPT1::take()
-        .map(|mut inst| {
-            perclock.set_clock_gate_gpt(&mut inst, ccm::ClockGate::On);
-            GPT::new(inst, &perclock)
-        })
+
+    let i2c3 = LPI2C3::take().and_then(hal::instance::i2c).unwrap();
+    let mut i2c = I2C::new(i2c3, pins.p16, pins.p17);
+    i2c.set_clock_speed(CLOCK_SPEED, SOURCE_CLOCK_HZ / SOURCE_CLOCK_DIVIDER)
         .unwrap();
-    let mut i2c_clock = i2c_clock.enable(&mut handle);
-    let mut i2c3 = LPI2C3::take().and_then(hal::instance::i2c).unwrap();
-    i2c_clock.set_clock_gate(&mut i2c3, hal::ccm::ClockGate::On);
-    let mut i2c = I2C::new(i2c3, pins.p16, pins.p17, &i2c_clock);
-    i2c.set_clock_speed(CLOCK_SPEED).unwrap();
 
     let task = async {
         loop {
@@ -83,19 +77,19 @@ fn main() -> ! {
             if i2c.write(MPU9250_ADDRESS, &[WHO_AM_I]).await.is_err() {
                 loop {
                     led.toggle();
-                    timer.delay_us(1_000_000).await;
+                    t4_startup::gpt_delay_us(&mut timer, 1_000_000).await;
                 }
             }
-            timer.delay_us(1_000).await;
+            t4_startup::gpt_delay_us(&mut timer, 1_000).await;
             if i2c.read(MPU9250_ADDRESS, &mut input).await.is_err() || input[0] != 0x71 {
                 loop {
                     led.toggle();
-                    timer.delay_us(1_000_000).await;
+                    t4_startup::gpt_delay_us(&mut timer, 1_000_000).await;
                 }
             }
 
             led.toggle();
-            timer.delay_us(250_000).await;
+            t4_startup::gpt_delay_us(&mut timer, 250_000).await;
 
             let mut buffer = [0u8; 14];
             if i2c
@@ -105,12 +99,12 @@ fn main() -> ! {
             {
                 loop {
                     led.toggle();
-                    timer.delay_us(1_000_000).await;
+                    t4_startup::gpt_delay_us(&mut timer, 1_000_000).await;
                 }
             }
 
             led.toggle();
-            timer.delay_us(250_000).await;
+            t4_startup::gpt_delay_us(&mut timer, 250_000).await;
         }
     };
     async_embedded::task::block_on(task);

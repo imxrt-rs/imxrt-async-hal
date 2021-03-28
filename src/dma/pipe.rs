@@ -22,25 +22,18 @@
 //!
 //! # Example
 //!
-//! Transmit an incrementing counter every 100ms using DMA channel 13. The sender is delayed by a GPT timer, which delays
-//! the receiver.
+//! Transmit an incrementing counter using DMA channel 13.
 //!
 //! ```no_run
 //! use imxrt_async_hal as hal;
-//! use hal::{ccm::{CCM, ClockGate}, dma};
-//! use hal::ral::{ccm, dma0, dmamux, gpt::GPT1};
+//! use hal::dma;
+//! use hal::ral::{self, ccm, dma0, dmamux};
 //!
-//! let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();
-//! let mut perclock = ccm.perclock.enable(&mut ccm.handle);
-//! let (_, mut gpt, _) = GPT1::take()
-//!     .map(|mut inst| {
-//!         perclock.set_clock_gate_gpt(&mut inst, ClockGate::On);
-//!         hal::GPT::new(inst, &mut perclock)
-//!     })
-//!     .unwrap();
+//! let ccm = ral::ccm::CCM::take().unwrap();
+//! // DMA clock gate on
+//! ral::modify_reg!(ral::ccm, ccm, CCGR5, CG3: 0b11);
 //!
-//! let mut dma = dma0::DMA0::take().unwrap();
-//! ccm.handle.set_clock_gate_dma(&mut dma, ClockGate::On);
+//! let dma = dma0::DMA0::take().unwrap();
 //!
 //! let mut channels = dma::channels(
 //!     dma,
@@ -52,7 +45,6 @@
 //!     let mut counter: i32 = 0;
 //!     loop {
 //!         tx.send(&counter).await.unwrap();
-//!         gpt.delay_us(100_000u32).await;
 //!         counter = counter.wrapping_add(1);
 //!     }
 //! };
@@ -134,12 +126,14 @@ impl<E> Receiver<E> {
 /// [module-level documentation](self).
 /// ```no_run
 /// use imxrt_async_hal as hal;
-/// use hal::{ccm::{CCM, ClockGate}, dma};
-/// use hal::ral::{dma0, dmamux, ccm};
+/// use hal::dma;
+/// use hal::ral::{self, dma0, dmamux, ccm};
 ///
-/// let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();
-/// let mut dma = dma0::DMA0::take().unwrap();
-/// ccm.handle.set_clock_gate_dma(&mut dma, ClockGate::On);
+/// let ccm = ral::ccm::CCM::take().unwrap();
+/// // DMA clock gate on
+/// ral::modify_reg!(ral::ccm, ccm, CCGR5, CG3: 0b11);
+///
+/// let dma = dma0::DMA0::take().unwrap();
 /// let mut channels = dma::channels(
 ///     dma,
 ///     dmamux::DMAMUX::take().unwrap(),
