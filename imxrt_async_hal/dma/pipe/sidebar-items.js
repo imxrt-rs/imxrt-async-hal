@@ -1,1 +1,0 @@
-initSidebarItems({"fn":[["new","Create a pipe for sending and receiving data"]],"struct":[["Receiver","The receiving half of a pipe"],["Sender","The sending half of a pipe"]],"type":[["Result","Alias for a `Result` that might return an `Error`."]]});

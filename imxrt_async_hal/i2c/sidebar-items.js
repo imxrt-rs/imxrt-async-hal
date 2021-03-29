@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["ClockSpeed","I2C clock speed"],["Error","Errors propagated from an [`I2C`] device"],["State","I2C polling state"]],"struct":[["I2C","The I2C driver instance"],["Read","An I2C read future"],["Write","An I2C write future"],["WriteRead","An I2C write-read future"]]});

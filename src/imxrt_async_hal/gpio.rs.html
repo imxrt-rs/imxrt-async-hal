@@ -443,6 +443,9 @@
 <span id="440">440</span>
 <span id="441">441</span>
 <span id="442">442</span>
+<span id="443">443</span>
+<span id="444">444</span>
+<span id="445">445</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! GPIOs</span>
 <span class="doccomment">//!</span>
@@ -702,8 +705,8 @@
     <span class="doccomment">/// input_pin.wait_for(Trigger::RisingEdge).await;</span>
     <span class="doccomment">/// # };</span>
     <span class="doccomment">/// ```</span>
-    <span class="kw">pub</span> <span class="ident">async</span> <span class="kw">fn</span> <span class="ident">wait_for</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">trigger</span>: <span class="ident">Trigger</span>) {
-        <span class="ident">Interrupt</span>::<span class="ident">new</span>(<span class="self">self</span>, <span class="ident">trigger</span>).<span class="ident">await</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">wait_for</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">trigger</span>: <span class="ident">Trigger</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Interrupt</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">P</span><span class="op">&gt;</span> {
+        <span class="ident">Interrupt</span>::<span class="ident">new</span>(<span class="self">self</span>, <span class="ident">trigger</span>)
     }
 }
 
@@ -771,7 +774,10 @@
 }
 
 <span class="doccomment">/// A future that awaits the input trigger selection</span>
-<span class="kw">struct</span> <span class="ident">Interrupt</span><span class="op">&lt;</span><span class="lifetime">&#39;t</span>, <span class="ident">P</span><span class="op">&gt;</span> {
+<span class="doccomment">///</span>
+<span class="doccomment">/// Use [`wait_for`](crate::gpio::GPIO::wait_for()) to create the future</span>
+<span class="doccomment">/// that awaits the trigger.</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Interrupt</span><span class="op">&lt;</span><span class="lifetime">&#39;t</span>, <span class="ident">P</span><span class="op">&gt;</span> {
     <span class="ident">gpio</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;t</span> <span class="kw-2">mut</span> <span class="ident">GPIO</span><span class="op">&lt;</span><span class="ident">P</span>, <span class="ident">Input</span><span class="op">&gt;</span>,
     <span class="ident">waker</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Waker</span><span class="op">&gt;</span>,
     <span class="ident">is_ready</span>: <span class="ident">bool</span>,

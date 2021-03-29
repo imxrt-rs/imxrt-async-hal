@@ -318,106 +318,106 @@
 <span id="315">315</span>
 <span id="316">316</span>
 <span id="317">317</span>
-<span id="318">318</span>
-<span id="319">319</span>
-<span id="320">320</span>
-<span id="321">321</span>
-<span id="322">322</span>
-<span id="323">323</span>
-<span id="324">324</span>
-<span id="325">325</span>
 </pre><div class="example-wrap"><pre class="rust ">
-<span class="doccomment">//! I2C driver</span>
+<span class="doccomment">//! I2C driver, types, and futures</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! The I2C driver utilizes the internal transmit and receive FIFOs to send and</span>
+<span class="doccomment">//! receive data. When the transmit buffer is nearly full, the driver yields.</span>
+<span class="doccomment">//! When the transmit buffer can support more data, an I2C interrupt</span>
+<span class="doccomment">//! fires and wakes the executor. This cycle continues until all of the</span>
+<span class="doccomment">//! caller&#39;s data is transmitted.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! When the receive buffer does not have any data, but the caller is awaiting</span>
+<span class="doccomment">//! data, the drier yields. Once there&#39;s at least one byte in the receive buffer,</span>
+<span class="doccomment">//! an I2C interrupt fires and wakers the executor. This cycle continues until</span>
+<span class="doccomment">//! all of the caller&#39;s receive buffer is filled.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! The driver also yields when waiting for stop and repeated start conditions.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! The I2C clock speed is unspecified out of construction. Use [`set_clock_speed`](I2C::set_clock_speed())</span>
+<span class="doccomment">//! to select a valid I2C clock speed.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! The RAL instances are available in `ral::lpi2c`.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! # Pin configuration</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! You may need to configure the SCL and SDA pins to support your clock speed and data rate. The snippet below</span>
+<span class="doccomment">//! provides one possible configuration that supports both 100KHz and 400KHz I2C clock speeds.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! ```</span>
+<span class="doccomment">//! use imxrt_async_hal as hal;</span>
+<span class="doccomment">//! use hal::iomuxc;</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! const PINCONFIG: iomuxc::Config = iomuxc::Config::zero()</span>
+<span class="doccomment">//!     .set_open_drain(iomuxc::OpenDrain::Enabled)</span>
+<span class="doccomment">//!     .set_slew_rate(iomuxc::SlewRate::Fast)</span>
+<span class="doccomment">//!     .set_drive_strength(iomuxc::DriveStrength::R0_4)</span>
+<span class="doccomment">//!     .set_speed(iomuxc::Speed::Fast)</span>
+<span class="doccomment">//!     .set_pull_keep(iomuxc::PullKeep::Enabled)</span>
+<span class="doccomment">//!     .set_pull_keep_select(iomuxc::PullKeepSelect::Pull)</span>
+<span class="doccomment">//!     .set_pullupdown(iomuxc::PullUpDown::Pullup22k);</span>
+<span class="doccomment">//! ```</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! # Example</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! Prepare the I2C3 peripheral at 400KHz. Note that this example does not demonstrate how</span>
+<span class="doccomment">//! to set up the I2C peripheral clocks, and enable clock gates.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! ```no_run</span>
+<span class="doccomment">//! use imxrt_async_hal as hal;</span>
+<span class="doccomment">//! use hal::{</span>
+<span class="doccomment">//!     iomuxc, I2C, I2CClockSpeed,</span>
+<span class="doccomment">//!     ral::{self, ccm::CCM, iomuxc::IOMUXC, lpi2c::LPI2C3},</span>
+<span class="doccomment">//! };</span>
+<span class="doccomment">//! # const PINCONFIG: iomuxc::Config = iomuxc::Config::zero();</span>
+<span class="doccomment">//! const SOURCE_CLOCK_HZ: u32 = 24_000_000;</span>
+<span class="doccomment">//! const SOURCE_CLOCK_DIVIDER: u32 = 3;</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! let ccm = CCM::take().unwrap();</span>
+<span class="doccomment">//! // LPI2C clock selection: 24MHz XTAL, divide by 3</span>
+<span class="doccomment">//! ral::modify_reg!(ral::ccm, ccm, CSCDR2, LPI2C_CLK_SEL: 1, LPI2C_CLK_PODF: SOURCE_CLOCK_DIVIDER - 1);</span>
+<span class="doccomment">//! // LPI2C3 clock gate on</span>
+<span class="doccomment">//! ral::modify_reg!(ral::ccm, ccm, CCGR2, CG5: 0b11);</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! let mut pads = IOMUXC::take()</span>
+<span class="doccomment">//!     .map(iomuxc::new)</span>
+<span class="doccomment">//!     .unwrap();</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! iomuxc::configure(&amp;mut pads.ad_b1.p07, PINCONFIG);</span>
+<span class="doccomment">//! iomuxc::configure(&amp;mut pads.ad_b1.p06, PINCONFIG);</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! let mut i2c3 = LPI2C3::take().and_then(hal::instance::i2c).unwrap();</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! let mut i2c = I2C::new(i2c3, pads.ad_b1.p07, pads.ad_b1.p06);</span>
+<span class="doccomment">//! i2c.set_clock_speed(I2CClockSpeed::KHz400, SOURCE_CLOCK_HZ / SOURCE_CLOCK_DIVIDER).unwrap();</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! # async {</span>
+<span class="doccomment">//! # const DEVICE_ADDRESS: u8 = 0;</span>
+<span class="doccomment">//! let output = [1, 2, 3, 4];</span>
+<span class="doccomment">//! let mut input = [0; 7];</span>
+<span class="doccomment">//! i2c.write_read(DEVICE_ADDRESS, &amp;output, &amp;mut input).await.unwrap();</span>
+<span class="doccomment">//! # };</span>
+<span class="doccomment">//! ```</span>
 
 <span class="kw">mod</span> <span class="ident">clock</span>;
 <span class="kw">mod</span> <span class="ident">commands</span>;
+<span class="kw">mod</span> <span class="ident">read</span>;
+<span class="kw">mod</span> <span class="ident">write</span>;
+<span class="kw">mod</span> <span class="ident">write_read</span>;
 
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">clock</span>::<span class="ident">ClockSpeed</span>;
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">read</span>::<span class="ident">Read</span>;
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">write</span>::<span class="ident">Write</span>;
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">write_read</span>::<span class="ident">WriteRead</span>;
 
 <span class="kw">use</span> <span class="kw">crate</span>::{
     <span class="ident">iomuxc</span>,
     <span class="ident">ral</span>::{<span class="self">self</span>, <span class="ident">lpi2c</span>::<span class="ident">Instance</span>},
 };
 
-<span class="doccomment">/// I2C Driver</span>
+<span class="doccomment">/// The I2C driver instance</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// The I2C driver utilizes the internal transmit and receive FIFOs to send and</span>
-<span class="doccomment">/// receive data. When the transmit buffer is nearly full, the driver yields.</span>
-<span class="doccomment">/// When the transmit buffer can support more data, an I2C interrupt</span>
-<span class="doccomment">/// fires and wakes the executor. This cycle continues until all of the</span>
-<span class="doccomment">/// caller&#39;s data is transmitted.</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// When the receive buffer does not have any data, but the caller is awaiting</span>
-<span class="doccomment">/// data, the drier yields. Once there&#39;s at least one byte in the receive buffer,</span>
-<span class="doccomment">/// an I2C interrupt fires and wakers the executor. This cycle continues until</span>
-<span class="doccomment">/// all of the caller&#39;s receive buffer is filled.</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// The driver also yields when waiting for stop and repeated start conditions.</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// The I2C clock speed is unspecified out of construction. Use [`set_clock_speed`](I2C::set_clock_speed())</span>
-<span class="doccomment">/// to select a valid I2C clock speed.</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// The RAL instances are available in `ral::lpi2c`.</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// # Pin configuration</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// You may need to configure the SCL and SDA pins to support your clock speed and data rate. The snippet below</span>
-<span class="doccomment">/// provides one possible configuration that supports both 100KHz and 400KHz I2C clock speeds.</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// ```</span>
-<span class="doccomment">/// use imxrt_async_hal as hal;</span>
-<span class="doccomment">/// use hal::iomuxc;</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// const PINCONFIG: iomuxc::Config = iomuxc::Config::zero()</span>
-<span class="doccomment">///     .set_open_drain(iomuxc::OpenDrain::Enabled)</span>
-<span class="doccomment">///     .set_slew_rate(iomuxc::SlewRate::Fast)</span>
-<span class="doccomment">///     .set_drive_strength(iomuxc::DriveStrength::R0_4)</span>
-<span class="doccomment">///     .set_speed(iomuxc::Speed::Fast)</span>
-<span class="doccomment">///     .set_pull_keep(iomuxc::PullKeep::Enabled)</span>
-<span class="doccomment">///     .set_pull_keep_select(iomuxc::PullKeepSelect::Pull)</span>
-<span class="doccomment">///     .set_pullupdown(iomuxc::PullUpDown::Pullup22k);</span>
-<span class="doccomment">/// ```</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// # Example</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// Prepare the I2C3 peripheral at 400KHz. Note that this example does not demonstrate how</span>
-<span class="doccomment">/// to set up the I2C peripheral clocks, and enable clock gates.</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// ```no_run</span>
-<span class="doccomment">/// use imxrt_async_hal as hal;</span>
-<span class="doccomment">/// use hal::{</span>
-<span class="doccomment">///     iomuxc, I2C, I2CClockSpeed,</span>
-<span class="doccomment">///     ral::{self, ccm::CCM, iomuxc::IOMUXC, lpi2c::LPI2C3},</span>
-<span class="doccomment">/// };</span>
-<span class="doccomment">/// # const PINCONFIG: iomuxc::Config = iomuxc::Config::zero();</span>
-<span class="doccomment">/// const SOURCE_CLOCK_HZ: u32 = 24_000_000;</span>
-<span class="doccomment">/// const SOURCE_CLOCK_DIVIDER: u32 = 3;</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// let ccm = CCM::take().unwrap();</span>
-<span class="doccomment">/// // LPI2C clock selection: 24MHz XTAL, divide by 3</span>
-<span class="doccomment">/// ral::modify_reg!(ral::ccm, ccm, CSCDR2, LPI2C_CLK_SEL: 1, LPI2C_CLK_PODF: SOURCE_CLOCK_DIVIDER - 1);</span>
-<span class="doccomment">/// // LPI2C3 clock gate on</span>
-<span class="doccomment">/// ral::modify_reg!(ral::ccm, ccm, CCGR2, CG5: 0b11);</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// let mut pads = IOMUXC::take()</span>
-<span class="doccomment">///     .map(iomuxc::new)</span>
-<span class="doccomment">///     .unwrap();</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// iomuxc::configure(&amp;mut pads.ad_b1.p07, PINCONFIG);</span>
-<span class="doccomment">/// iomuxc::configure(&amp;mut pads.ad_b1.p06, PINCONFIG);</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// let mut i2c3 = LPI2C3::take().and_then(hal::instance::i2c).unwrap();</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// let mut i2c = I2C::new(i2c3, pads.ad_b1.p07, pads.ad_b1.p06);</span>
-<span class="doccomment">/// i2c.set_clock_speed(I2CClockSpeed::KHz400, SOURCE_CLOCK_HZ / SOURCE_CLOCK_DIVIDER).unwrap();</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// # async {</span>
-<span class="doccomment">/// # const DEVICE_ADDRESS: u8 = 0;</span>
-<span class="doccomment">/// let output = [1, 2, 3, 4];</span>
-<span class="doccomment">/// let mut input = [0; 7];</span>
-<span class="doccomment">/// i2c.write_read(DEVICE_ADDRESS, &amp;output, &amp;mut input).await.unwrap();</span>
-<span class="doccomment">/// # };</span>
-<span class="doccomment">/// ```</span>
+<span class="doccomment">/// See the [module-level documentation](mod@crate::i2c) for more information.</span>
 <span class="attribute">#[<span class="ident">cfg_attr</span>(<span class="ident">docsrs</span>, <span class="ident">doc</span>(<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;i2c&quot;</span>)))]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">I2C</span><span class="op">&lt;</span><span class="ident">SCL</span>, <span class="ident">SDA</span><span class="op">&gt;</span> {
     <span class="ident">i2c</span>: <span class="ident">Instance</span>,
@@ -518,69 +518,23 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// Sends `output`, generates a repeated start, then awaits the I2C device</span>
     <span class="doccomment">/// to send enough data for `input`.</span>
-    <span class="kw">pub</span> <span class="ident">async</span> <span class="kw">fn</span> <span class="ident">write_read</span>(
-        <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>,
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">write_read</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(
+        <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> <span class="self">self</span>,
         <span class="ident">address</span>: <span class="ident">u8</span>,
-        <span class="ident">output</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-        <span class="ident">input</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">u8</span>],
-    ) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">if</span> <span class="ident">input</span>.<span class="ident">len</span>() <span class="op">&gt;</span> <span class="number">256</span> {
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error</span>::<span class="ident">RequestTooMuchData</span>);
-        }
-
-        <span class="ident">check_busy</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">i2c</span>)<span class="question-mark">?</span>;
-
-        <span class="ident">clear_fifo</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">i2c</span>);
-        <span class="ident">clear_status</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">i2c</span>);
-
-        <span class="ident">commands</span>::<span class="ident">start_write</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">i2c</span>, <span class="ident">address</span>).<span class="ident">await</span><span class="question-mark">?</span>;
-        <span class="ident">commands</span>::<span class="ident">send</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">i2c</span>, <span class="ident">output</span>).<span class="ident">await</span><span class="question-mark">?</span>;
-        <span class="ident">commands</span>::<span class="ident">start_read</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">i2c</span>, <span class="ident">address</span>).<span class="ident">await</span><span class="question-mark">?</span>;
-        <span class="ident">commands</span>::<span class="ident">end_of_packet</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">i2c</span>).<span class="ident">await</span><span class="question-mark">?</span>;
-        <span class="kw">if</span> <span class="op">!</span><span class="ident">input</span>.<span class="ident">is_empty</span>() {
-            <span class="ident">commands</span>::<span class="ident">receive</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">i2c</span>, <span class="ident">input</span>).<span class="ident">await</span><span class="question-mark">?</span>;
-        }
-        <span class="ident">commands</span>::<span class="ident">stop</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">i2c</span>).<span class="ident">await</span><span class="question-mark">?</span>;
-
-        <span class="prelude-val">Ok</span>(())
+        <span class="ident">output</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> [<span class="ident">u8</span>],
+        <span class="ident">input</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> [<span class="ident">u8</span>],
+    ) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">write_read</span>::<span class="ident">WriteRead</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
+        <span class="ident">write_read</span>::<span class="ident">WriteRead</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">i2c</span>, <span class="ident">address</span>, <span class="ident">output</span>, <span class="ident">input</span>)
     }
 
     <span class="doccomment">/// Perform an I2C write, sending `buffer` to the I2C device identified by `address`</span>
-    <span class="kw">pub</span> <span class="ident">async</span> <span class="kw">fn</span> <span class="ident">write</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">address</span>: <span class="ident">u8</span>, <span class="ident">buffer</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">if</span> <span class="ident">buffer</span>.<span class="ident">is_empty</span>() {
-            <span class="kw">return</span> <span class="prelude-val">Ok</span>(());
-        }
-
-        <span class="ident">check_busy</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">i2c</span>)<span class="question-mark">?</span>;
-
-        <span class="ident">clear_fifo</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">i2c</span>);
-        <span class="ident">clear_status</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">i2c</span>);
-
-        <span class="ident">commands</span>::<span class="ident">start_write</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">i2c</span>, <span class="ident">address</span>).<span class="ident">await</span><span class="question-mark">?</span>;
-        <span class="ident">commands</span>::<span class="ident">send</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">i2c</span>, <span class="ident">buffer</span>).<span class="ident">await</span><span class="question-mark">?</span>;
-        <span class="ident">commands</span>::<span class="ident">stop</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">i2c</span>).<span class="ident">await</span><span class="question-mark">?</span>;
-
-        <span class="prelude-val">Ok</span>(())
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">write</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">address</span>: <span class="ident">u8</span>, <span class="ident">buffer</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> [<span class="ident">u8</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">write</span>::<span class="ident">Write</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
+        <span class="ident">write</span>::<span class="ident">Write</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">i2c</span>, <span class="ident">address</span>, <span class="ident">buffer</span>)
     }
 
     <span class="doccomment">/// Request a `buffer` of data from an I2C device identified by `address`</span>
-    <span class="kw">pub</span> <span class="ident">async</span> <span class="kw">fn</span> <span class="ident">read</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">address</span>: <span class="ident">u8</span>, <span class="ident">buffer</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">u8</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">if</span> <span class="ident">buffer</span>.<span class="ident">len</span>() <span class="op">&gt;</span> <span class="number">256</span> {
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error</span>::<span class="ident">RequestTooMuchData</span>);
-        } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">buffer</span>.<span class="ident">is_empty</span>() {
-            <span class="kw">return</span> <span class="prelude-val">Ok</span>(());
-        };
-
-        <span class="ident">check_busy</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">i2c</span>)<span class="question-mark">?</span>;
-
-        <span class="ident">clear_fifo</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">i2c</span>);
-        <span class="ident">clear_status</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">i2c</span>);
-
-        <span class="ident">commands</span>::<span class="ident">start_read</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">i2c</span>, <span class="ident">address</span>).<span class="ident">await</span><span class="question-mark">?</span>;
-        <span class="ident">commands</span>::<span class="ident">receive</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">i2c</span>, <span class="ident">buffer</span>).<span class="ident">await</span><span class="question-mark">?</span>;
-        <span class="ident">commands</span>::<span class="ident">stop</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">i2c</span>).<span class="ident">await</span><span class="question-mark">?</span>;
-
-        <span class="prelude-val">Ok</span>(())
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">read</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">address</span>: <span class="ident">u8</span>, <span class="ident">buffer</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> [<span class="ident">u8</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">read</span>::<span class="ident">Read</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
+        <span class="ident">read</span>::<span class="ident">Read</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">i2c</span>, <span class="ident">address</span>, <span class="ident">buffer</span>)
     }
 }
 
@@ -651,6 +605,36 @@
     } <span class="kw">else</span> {
         <span class="prelude-val">Ok</span>(())
     }
+}
+
+<span class="doccomment">/// Disable the I2C interrupts enabled in `enable_interrupts`</span>
+<span class="attribute">#[<span class="ident">inline</span>(<span class="ident">always</span>)]</span>
+<span class="kw">fn</span> <span class="ident">disable_interrupts</span>(<span class="ident">i2c</span>: <span class="kw-2">&amp;</span><span class="ident">Instance</span>) {
+    <span class="ident">ral</span>::<span class="macro">write_reg</span><span class="macro">!</span>(
+        <span class="ident">ral</span>::<span class="ident">lpi2c</span>,
+        <span class="ident">i2c</span>,
+        <span class="ident">MIER</span>,
+        <span class="ident">PLTIE</span>: <span class="ident">PLTIE_0</span>,
+        <span class="ident">FEIE</span>: <span class="ident">FEIE_1</span>,
+        <span class="ident">ALIE</span>: <span class="ident">ALIE_0</span>,
+        <span class="ident">NDIE</span>: <span class="ident">NDIE_0</span>,
+        <span class="ident">EPIE</span>: <span class="ident">EPIE_0</span>,
+        <span class="ident">SDIE</span>: <span class="ident">SDIE_0</span>,
+        <span class="ident">RDIE</span>: <span class="ident">RDIE_0</span>,
+        <span class="ident">TDIE</span>: <span class="ident">TDIE_0</span>
+    );
+}
+
+<span class="doccomment">/// I2C polling state</span>
+<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">State</span> {
+    <span class="ident">StartWrite</span>,
+    <span class="ident">Send</span>(<span class="ident">usize</span>),
+    <span class="ident">StartRead</span>,
+    <span class="ident">EndOfPacket</span>,
+    <span class="ident">ReceiveLength</span>,
+    <span class="ident">Receive</span>(<span class="ident">usize</span>),
+    <span class="ident">StopSetup</span>,
+    <span class="ident">Stop</span>,
 }
 </pre></div>
 </section><section id="search" class="content hidden"></section><section class="footer"></section><script>window.rootPath = "../../";window.currentCrate = "imxrt_async_hal";</script><script src="../../main.js"></script><script src="../../source-script.js"></script><script src="../../source-files.js"></script><script defer src="../../search-index.js"></script></body></html>

@@ -4,7 +4,7 @@
                 <a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class="fqn"><span class="out-of-band"><span id="render-detail"><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span></span><span class="in-band">Enum <a href="../index.html">imxrt_async_hal</a>::<wbr><a href="index.html">dma</a>::<wbr><a class="enum" href="">BandwidthControl</a></span></h1><div class="docblock type-decl hidden-by-usual-hider"><pre class="rust enum"><span class="docblock attributes top-attr">#[repr(u16)]</span>pub enum BandwidthControl {
     Stall4Cycles,
     Stall8Cycles,
-}</pre></div><div class="stability"><div class="stab portability">This is supported on <strong>crate features <code>pipe</code> or <code>spi</code> or <code>uart</code></strong> only.</div></div><div class="docblock"><p>Throttles the amount of bus bandwidth consumed by the eDMA</p>
+}</pre></div><div class="stability"><div class="stab portability">This is supported on <strong>crate features <code>spi</code> or <code>uart</code></strong> only.</div></div><div class="docblock"><p>Throttles the amount of bus bandwidth consumed by the eDMA</p>
 <p>Defines the number of stalls that the DMA engine will insert
 between most element transfers.</p>
 <p>Some stalls may not occur to minimize startup latency. See the
