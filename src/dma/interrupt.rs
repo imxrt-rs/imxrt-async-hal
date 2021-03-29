@@ -18,7 +18,6 @@ pub mod state {
     pub const READY: u32 = 1;
     pub const PENDING: u32 = 2;
     pub const COMPLETE: u32 = 3;
-    pub const DROPPED: u32 = 4;
 }
 
 /// Shared state for DMA interrupts and futures
@@ -41,9 +40,6 @@ impl Shared {
     }
     pub fn set_state(&mut self, state: u32) {
         self.state.store(state, atomic::Ordering::SeqCst);
-    }
-    pub fn state(&self) -> u32 {
-        self.state.load(atomic::Ordering::SeqCst)
     }
 }
 

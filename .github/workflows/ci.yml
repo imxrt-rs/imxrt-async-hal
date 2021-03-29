@@ -70,7 +70,7 @@ jobs:
     strategy:
       matrix:
         chip: [ imxrt1010, imxrt1060 ]
-        peripheral: [ gpio, gpt, i2c, pipe, pit, spi, uart ]
+        peripheral: [ gpio, gpt, i2c, pit, spi, uart ]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2

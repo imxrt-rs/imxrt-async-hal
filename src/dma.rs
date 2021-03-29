@@ -5,19 +5,11 @@
 //! Then, use the `Channel`s in APIs that require them. The implementation handles
 //! DMA receive and transfer operations, and ensures that the lifetime of your buffers
 //! is correct.
-//!
-//! The implementation also provides a [`pipe`], a hardware-backed
-//! communication channels (not to be confused with DMA `Channel`s). Use `pipe` senders
-//! and receivers to synchronize tasks, and transmit `Copy` data between tasks using
-//! DMA hardware.
 
 #![allow(non_snake_case)] // Compatibility with RAL
 
 mod interrupt;
 mod peripheral;
-#[cfg(feature = "pipe")]
-#[cfg_attr(docsrs, doc(cfg(feature = "pipe")))]
-pub mod pipe;
 
 pub(crate) use imxrt_dma::{Destination, Source};
 use imxrt_dma::{Element, Transfer};

@@ -37,12 +37,11 @@ default-features = false
 gpio = []
 gpt = []
 i2c = []
-pipe = []
 pit = []
 spi = []
 uart = []
 # All features on by default
-default = ["gpio", "gpt", "i2c", "pipe", "pit", "spi", "uart"]
+default = ["gpio", "gpt", "i2c", "pit", "spi", "uart"]
 # Runtime features
 rt = ["imxrt-ral/rt", "cortex-m-rt/device"]
 # Chip variant features

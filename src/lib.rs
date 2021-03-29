@@ -52,10 +52,10 @@
 //! the peripheral features from the table. The checkmarks indicate a chip's support for
 //! that peripheral.
 //!
-//! | **Chip**  | `"gpio"` | `"gpt"` | `"i2c"` | `"pipe"` | `"pit"` | `"spi"` | `"uart"` |
-//! | --------- | -------- | ------- | ------- | -------- | ------- | ------- | -------- |
-//! | imxrt1010 |    ✓     |    ✓    |    ✓    |    ✓     |    ✓    |    ✓    |     ✓    |
-//! | imxrt1060 |    ✓     |    ✓    |    ✓    |    ✓     |    ✓    |    ✓    |     ✓    |
+//! | **Chip**  | `"gpio"` | `"gpt"` | `"i2c"` | `"pit"` | `"spi"` | `"uart"` |
+//! | --------- | -------- | ------- | ------- | ------- | ------- | -------- |
+//! | imxrt1010 |    ✓     |    ✓    |    ✓    |    ✓    |    ✓    |     ✓    |
+//! | imxrt1060 |    ✓     |    ✓    |    ✓    |    ✓    |    ✓    |     ✓    |
 //!
 //! When developing a binary for your embedded system, you should enable this crate's `"rt"`
 //! feature. Otherwise, when developing libraries against the crate, you may skip the
@@ -105,7 +105,6 @@ compile_error!(concat!(
     feature = "gpt",
     feature = "i2c",
     feature = "pit",
-    feature = "pipe",
     feature = "spi",
     feature = "uart",
 ))]
@@ -123,7 +122,6 @@ macro_rules! interrupts {
     feature = "gpt",
     feature = "i2c",
     feature = "pit",
-    feature = "pipe",
     feature = "spi",
     feature = "uart",
 ))]
@@ -144,11 +142,8 @@ macro_rules! handler {
 // Modules
 //
 
-#[cfg(any(feature = "pipe", feature = "spi", feature = "uart"))]
-#[cfg_attr(
-    docsrs,
-    doc(cfg(any(feature = "pipe", feature = "spi", feature = "uart")))
-)]
+#[cfg(any(feature = "spi", feature = "uart"))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "spi", feature = "uart"))))]
 pub mod dma;
 #[cfg(feature = "gpio")]
 #[cfg_attr(docsrs, doc(cfg(feature = "gpio")))]
