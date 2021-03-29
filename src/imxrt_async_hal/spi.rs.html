@@ -295,14 +295,6 @@
 <span id="292">292</span>
 <span id="293">293</span>
 <span id="294">294</span>
-<span id="295">295</span>
-<span id="296">296</span>
-<span id="297">297</span>
-<span id="298">298</span>
-<span id="299">299</span>
-<span id="300">300</span>
-<span id="301">301</span>
-<span id="302">302</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">dma</span>, <span class="ident">instance</span>, <span class="ident">iomuxc</span>, <span class="ident">ral</span>};
 
@@ -501,16 +493,8 @@
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
 <span class="attribute">#[<span class="ident">cfg_attr</span>(<span class="ident">docsrs</span>, <span class="ident">doc</span>(<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;spi&quot;</span>)))]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">Error</span> {
-    <span class="doccomment">/// Error when coordinating a DMA transaction</span>
-    <span class="ident">DMA</span>(<span class="ident">dma</span>::<span class="ident">Error</span>),
     <span class="doccomment">/// Error when configuring the SPI serial clock</span>
     <span class="ident">ClockSpeed</span>,
-}
-
-<span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">dma</span>::<span class="ident">Error</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Error</span> {
-    <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">err</span>: <span class="ident">dma</span>::<span class="ident">Error</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
-        <span class="ident">Error</span>::<span class="ident">DMA</span>(<span class="ident">err</span>)
-    }
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">Pins</span><span class="op">&gt;</span> <span class="ident">SPI</span><span class="op">&lt;</span><span class="ident">Pins</span><span class="op">&gt;</span> {
