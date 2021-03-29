@@ -8,37 +8,19 @@
 
 #![allow(non_snake_case)] // Compatibility with RAL
 
-mod interrupt;
-mod peripheral;
-
-pub(crate) use imxrt_dma::{Destination, Source};
-use imxrt_dma::{Element, Transfer};
-pub(crate) use peripheral::{receive, receive_raw, transfer, transfer_raw};
+pub(crate) use imxrt_dma::peripheral::{Bidirectional, Destination, Source};
+pub use imxrt_dma::{
+    peripheral::{full_duplex, receive, transfer, FullDuplex, Rx, Tx},
+    Element,
+};
 
 use crate::ral;
-pub use imxrt_dma::{BandwidthControl, Channel, ErrorStatus};
+pub use imxrt_dma::{BandwidthControl, Channel, Error};
 
 #[cfg(not(feature = "imxrt1010"))]
 pub const CHANNEL_COUNT: usize = 32;
 #[cfg(feature = "imxrt1010")]
 pub const CHANNEL_COUNT: usize = 16;
-
-/// An error when preparing a transfer
-#[derive(Debug)]
-#[non_exhaustive]
-pub enum Error {
-    /// There is already a scheduled transfer
-    ///
-    /// Cancel the transfer and try again.
-    ScheduledTransfer,
-    /// Error setting up the DMA transfer
-    Setup(ErrorStatus),
-    /// The operation was cancelled
-    ///
-    /// `Cancelled` is the return from a [`pipe`] sender or
-    /// receiver when the other half is dropped.
-    Cancelled,
-}
 
 /// Initialize and acquire the DMA channels
 ///
@@ -130,4 +112,154 @@ pub fn channels(dma: ral::dma0::Instance, mux: ral::dmamux::Instance) -> [Option
     };
 
     channels
+}
+
+#[cfg(not(feature = "imxrt1010"))]
+interrupts! {
+    handler!{unsafe fn DMA0_DMA16() {
+        imxrt_dma::on_interrupt(0);
+        imxrt_dma::on_interrupt(16);
+    }}
+
+    handler!{unsafe fn DMA1_DMA17() {
+        imxrt_dma::on_interrupt(1);
+        imxrt_dma::on_interrupt(17);
+    }}
+
+    handler!{unsafe fn DMA2_DMA18() {
+        imxrt_dma::on_interrupt(2);
+        imxrt_dma::on_interrupt(18);
+    }}
+
+    handler!{unsafe fn DMA3_DMA19() {
+        imxrt_dma::on_interrupt(3);
+        imxrt_dma::on_interrupt(19);
+    }}
+
+    handler!{unsafe fn DMA4_DMA20() {
+        imxrt_dma::on_interrupt(4);
+        imxrt_dma::on_interrupt(20);
+    }}
+
+    handler!{unsafe fn DMA5_DMA21() {
+        imxrt_dma::on_interrupt(5);
+        imxrt_dma::on_interrupt(21);
+    }}
+
+    handler!{unsafe fn DMA6_DMA22() {
+        imxrt_dma::on_interrupt(6);
+        imxrt_dma::on_interrupt(22);
+    }}
+
+    handler!{unsafe fn DMA7_DMA23() {
+        imxrt_dma::on_interrupt(7);
+        imxrt_dma::on_interrupt(23);
+    }}
+
+    handler!{unsafe fn DMA8_DMA24() {
+        imxrt_dma::on_interrupt(8);
+        imxrt_dma::on_interrupt(24);
+    }}
+
+    handler!{unsafe fn DMA9_DMA25() {
+        imxrt_dma::on_interrupt(9);
+        imxrt_dma::on_interrupt(25);
+    }}
+
+    handler!{unsafe fn DMA10_DMA26() {
+        imxrt_dma::on_interrupt(10);
+        imxrt_dma::on_interrupt(26);
+    }}
+
+    handler!{unsafe fn DMA11_DMA27() {
+        imxrt_dma::on_interrupt(11);
+        imxrt_dma::on_interrupt(27);
+    }}
+
+    handler!{unsafe fn DMA12_DMA28() {
+        imxrt_dma::on_interrupt(12);
+        imxrt_dma::on_interrupt(28);
+    }}
+
+    handler!{unsafe fn DMA13_DMA29() {
+        imxrt_dma::on_interrupt(13);
+        imxrt_dma::on_interrupt(29);
+    }}
+
+    handler!{unsafe fn DMA14_DMA30() {
+        imxrt_dma::on_interrupt(14);
+        imxrt_dma::on_interrupt(30);
+    }}
+
+    handler!{unsafe fn DMA15_DMA31() {
+        imxrt_dma::on_interrupt(15);
+        imxrt_dma::on_interrupt(31);
+    }}
+}
+
+#[cfg(feature = "imxrt1010")]
+interrupts! {
+    handler!{unsafe fn DMA0() {
+        imxrt_dma::on_interrupt(0);
+    }}
+
+    handler!{unsafe fn DMA1() {
+        imxrt_dma::on_interrupt(1);
+    }}
+
+    handler!{unsafe fn DMA2() {
+        imxrt_dma::on_interrupt(2);
+    }}
+
+    handler!{unsafe fn DMA3() {
+        imxrt_dma::on_interrupt(3);
+    }}
+
+    handler!{unsafe fn DMA4() {
+        imxrt_dma::on_interrupt(4);
+    }}
+
+    handler!{unsafe fn DMA5() {
+        imxrt_dma::on_interrupt(5);
+    }}
+
+    handler!{unsafe fn DMA6() {
+        imxrt_dma::on_interrupt(6);
+    }}
+
+    handler!{unsafe fn DMA7() {
+        imxrt_dma::on_interrupt(7);
+    }}
+
+    handler!{unsafe fn DMA8() {
+        imxrt_dma::on_interrupt(8);
+    }}
+
+    handler!{unsafe fn DMA9() {
+        imxrt_dma::on_interrupt(9);
+    }}
+
+    handler!{unsafe fn DMA10() {
+        imxrt_dma::on_interrupt(10);
+    }}
+
+    handler!{unsafe fn DMA11() {
+        imxrt_dma::on_interrupt(11);
+    }}
+
+    handler!{unsafe fn DMA12() {
+        imxrt_dma::on_interrupt(12);
+    }}
+
+    handler!{unsafe fn DMA13() {
+        imxrt_dma::on_interrupt(13);
+    }}
+
+    handler!{unsafe fn DMA14() {
+        imxrt_dma::on_interrupt(14);
+    }}
+
+    handler!{unsafe fn DMA15() {
+        imxrt_dma::on_interrupt(15);
+    }}
 }

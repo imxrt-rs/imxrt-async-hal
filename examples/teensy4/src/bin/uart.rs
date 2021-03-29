@@ -49,7 +49,9 @@ fn main() -> ! {
     let uart2 = hal::ral::lpuart::LPUART2::take()
         .and_then(hal::instance::uart)
         .unwrap();
-    let mut uart = hal::UART::new(uart2, pins.p14, pins.p15, channels[7].take().unwrap());
+    let mut uart = hal::UART::new(uart2, pins.p14, pins.p15);
+    let mut channel = channels[7].take().unwrap();
+    channel.set_interrupt_on_completion(true);
     uart.set_baud(BAUD, CLOCK_FREQUENCY_HZ / CLOCK_DIVIDER)
         .unwrap();
 
@@ -63,8 +65,8 @@ fn main() -> ! {
     let echo_loop = async {
         loop {
             let mut buffer = [0; 1];
-            uart.read(&mut buffer).await.unwrap();
-            uart.write(&buffer).await.unwrap();
+            uart.dma_read(&mut channel, &mut buffer).await.unwrap();
+            uart.dma_write(&mut channel, &buffer).await.unwrap();
         }
     };
 

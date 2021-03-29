@@ -96,23 +96,25 @@ pub struct Pins<SDO, SDI, SCK, PCS0> {
 /// let mut spi = SPI::new(
 ///     spi_pins,
 ///     spi4,
-///     (channels[8].take().unwrap(), channels[9].take().unwrap()),
 /// );
+///
+/// let mut tx_channel = channels[8].take().unwrap();
+/// tx_channel.set_interrupt_on_completion(true);
+/// let mut rx_channel = channels[9].take().unwrap();
+/// rx_channel.set_interrupt_on_completion(true);
 ///
 /// spi.set_clock_speed(1_000_000, SOURCE_CLOCK_HZ / SOURCE_CLOCK_DIVIDER).unwrap();
 ///
 /// # async {
-/// let mut buffer = [1, 2, 3, 4];
+/// let mut buffer = [1u16, 2, 3, 4];
 /// // Transmit the u16 words in buffer, and receive the reply into buffer.
-/// spi.full_duplex_u16(&mut buffer).await;
+/// spi.dma_full_duplex(&mut rx_channel, &mut tx_channel, &mut buffer).await;
 /// # };
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "spi")))]
 pub struct SPI<Pins> {
     pins: Pins,
-    spi: DmaCapable,
-    tx_channel: dma::Channel,
-    rx_channel: dma::Channel,
+    spi: ral::lpspi::Instance,
 }
 
 impl<SDO, SDI, SCK, PCS0, M> SPI<Pins<SDO, SDI, SCK, PCS0>>
@@ -123,17 +125,13 @@ where
     PCS0: iomuxc::spi::Pin<Module = M, Signal = iomuxc::spi::PCS0>,
     M: iomuxc::consts::Unsigned,
 {
-    /// Create a `SPI` from a set of pins, a SPI peripheral instance, and two DMA channels
+    /// Create a `SPI` from a set of pins and a SPI instance
     ///
     /// See the [`instance` module](instance) for more information on SPI peripheral
     /// instances.
     ///
     /// The clock speed is unspecified. Make sure you change your clock speed with `set_clock_speed`.
-    pub fn new(
-        mut pins: Pins<SDO, SDI, SCK, PCS0>,
-        spi: instance::SPI<M>,
-        channels: (dma::Channel, dma::Channel),
-    ) -> Self {
+    pub fn new(mut pins: Pins<SDO, SDI, SCK, PCS0>, spi: instance::SPI<M>) -> Self {
         iomuxc::spi::prepare(&mut pins.sdo);
         iomuxc::spi::prepare(&mut pins.sdi);
         iomuxc::spi::prepare(&mut pins.sck);
@@ -148,24 +146,47 @@ where
         ral::write_reg!(ral::lpspi, spi, FCR, RXWATER: 0xF, TXWATER: 0xF);
         ral::write_reg!(ral::lpspi, spi, CR, MEN: MEN_1);
 
-        SPI {
-            pins,
-            spi: DmaCapable { spi },
-            tx_channel: channels.0,
-            rx_channel: channels.1,
-        }
+        SPI { pins, spi }
+    }
+}
+
+impl<Pins> SPI<Pins> {
+    /// Return the pins and SPI instance that are used in this `SPI`
+    /// driver
+    pub fn release(self) -> (Pins, ral::lpspi::Instance) {
+        (self.pins, self.spi)
     }
 
-    /// Return the pins, instance, and DMA channels that are used in this `SPI`
-    /// driver
-    pub fn release(
-        self,
-    ) -> (
-        Pins<SDO, SDI, SCK, PCS0>,
-        ral::lpspi::Instance,
-        (dma::Channel, dma::Channel),
-    ) {
-        (self.pins, self.spi.spi, (self.tx_channel, self.rx_channel))
+    fn set_frame_size<W>(&mut self) {
+        ral::modify_reg!(ral::lpspi, self.spi, TCR, FRAMESZ: ((core::mem::size_of::<W>() * 8 - 1) as u32));
+    }
+
+    /// Use a DMA channel to read data from the SPI peripheral
+    pub fn dma_read<'a, E: dma::Element>(
+        &'a mut self,
+        channel: &'a mut dma::Channel,
+        buffer: &'a mut [E],
+    ) -> dma::Rx<'a, Self, E> {
+        dma::receive(channel, self, buffer)
+    }
+
+    /// Use a DMA channel to write data to the SPI peripheral
+    pub fn dma_write<'a, E: dma::Element>(
+        &'a mut self,
+        channel: &'a mut dma::Channel,
+        buffer: &'a [E],
+    ) -> dma::Tx<'a, Self, E> {
+        dma::transfer(channel, buffer, self)
+    }
+
+    /// Use two DMA channels to perform a full-duplex transfer
+    pub fn dma_full_duplex<'a, E: dma::Element>(
+        &'a mut self,
+        rx_channel: &'a mut dma::Channel,
+        tx_channel: &'a mut dma::Channel,
+        buffer: &'a mut [E],
+    ) -> dma::FullDuplex<'a, Self, E> {
+        dma::full_duplex(rx_channel, tx_channel, self, buffer)
     }
 }
 
@@ -208,107 +229,6 @@ impl<Pins> SPI<Pins> {
             Ok(())
         })
     }
-
-    /// Await for a `u8` `buffer` of data from a SPI device
-    ///
-    /// Blocks until `buffer` is filled. Returns the number of bytes
-    /// placed in `buffer`.
-    pub async fn read_u8(&mut self, buffer: &mut [u8]) -> Result<usize, Error> {
-        let len = dma::receive(&mut self.rx_channel, &self.spi, buffer).await?;
-        Ok(len)
-    }
-
-    /// Await for a `u16` `buffer` of data from a SPI device
-    ///
-    /// Blocks until `buffer` is filled. Returns the number of bytes placed
-    /// in `buffer`.
-    pub async fn read_u16(&mut self, buffer: &mut [u16]) -> Result<usize, Error> {
-        let len = dma::receive(&mut self.rx_channel, &self.spi, buffer).await?;
-        Ok(len)
-    }
-
-    /// Transmit a buffer of bytes to a SPI device
-    ///
-    /// Blocks until the contents of `buffer` have been transferred from the host controller.
-    /// Returns the number of bytes written.
-    pub async fn write_u8(&mut self, buffer: &[u8]) -> Result<usize, Error> {
-        let len = dma::transfer(&mut self.tx_channel, &self.spi, buffer).await?;
-        Ok(len)
-    }
-
-    /// Transmit a buffer of `u16`s to a SPI device
-    ///
-    /// Blocks until the contents of `buffer` have been transferred from the host controller.
-    /// Returns the number of bytes written.
-    pub async fn write_u16(&mut self, buffer: &[u16]) -> Result<usize, Error> {
-        let len = dma::transfer(&mut self.tx_channel, &self.spi, buffer).await?;
-        Ok(len)
-    }
-
-    /// Transfer bytes from `buffer` while simultaneously receiving bytes into `buffer`
-    ///
-    /// Each transferred element from the buffer is replaced by an element read from
-    /// the SPI device. Returns the number of elements sent and received.
-    pub async fn full_duplex_u8(&mut self, buffer: &mut [u8]) -> Result<usize, Error> {
-        // Safety: see safety note in full_duplex_u16
-        let (tx, rx) = unsafe {
-            futures::future::join(
-                dma::receive_raw(
-                    &mut self.rx_channel,
-                    &self.spi,
-                    buffer.as_mut_ptr(),
-                    buffer.len(),
-                ),
-                dma::transfer_raw(
-                    &mut self.tx_channel,
-                    &self.spi,
-                    buffer.as_ptr(),
-                    buffer.len(),
-                ),
-            )
-            .await
-        };
-        let _ = tx?;
-        let len = rx?;
-        Ok(len)
-    }
-
-    /// Transfer `u16` words from `buffer` while simultaneously receiving `u16` words
-    /// into `buffer`
-    ///
-    /// Each transferred element from the buffer is replaced by an element read from
-    /// the SPI device. Returns the number of elements sent and received.
-    pub async fn full_duplex_u16(&mut self, buffer: &mut [u16]) -> Result<usize, Error> {
-        // Safety: the hardware is reading from and writing to the same memory. Even though
-        // there is both an immutable and mutable reference to the same memory, software does
-        // no observe the memory; it simply passes it down to the hardware.
-        //
-        // Each SPI receive is dependent on a transfer. The ordering ensures that each element
-        // will be transferred out before being overwritten by a received element.
-        //
-        // Lifetime of buffer exceed lifetime of the DMA future, as observed by the control
-        // flow of this function.
-        let (tx, rx) = unsafe {
-            futures::future::join(
-                dma::receive_raw(
-                    &mut self.rx_channel,
-                    &self.spi,
-                    buffer.as_mut_ptr(),
-                    buffer.len(),
-                ),
-                dma::transfer_raw(
-                    &mut self.tx_channel,
-                    &self.spi,
-                    buffer.as_ptr(),
-                    buffer.len(),
-                ),
-            )
-            .await
-        };
-        let _ = tx?;
-        let len = rx?;
-        Ok(len)
-    }
 }
 
 /// Must be called while SPI is disabled
@@ -331,150 +251,52 @@ fn set_clock_speed(spi: &ral::lpspi::Instance, base: u32, hz: u32) {
     );
 }
 
-/// SPI RX DMA Request signal
-///
-/// See table 4-3 of the iMXRT1060 Reference Manual (Rev 2)
-#[inline(always)]
-fn source_signal(spi: &ral::lpspi::Instance) -> u32 {
-    #[cfg(not(any(feature = "imxrt1010", feature = "imxrt1060")))]
-    compile_error!("Ensure that LPSPI DMAMUX RX channels are correct");
-
-    match &**spi as *const _ {
-        // imxrt1010, imxrt1060
-        ral::lpspi::LPSPI1 => 13,
-        // imxrt1010, imxrt1060
-        ral::lpspi::LPSPI2 => 77,
-        #[cfg(feature = "imxrt1060")]
-        ral::lpspi::LPSPI3 => 15,
-        #[cfg(feature = "imxrt1060")]
-        ral::lpspi::LPSPI4 => 79,
-        _ => unreachable!(),
-    }
-}
-
-/// SPI TX DMA Request signal
-///
-/// See table 4-3 of the iMXRT1060 Reference Manual (Rev 2)
-#[inline(always)]
-fn destination_signal(spi: &ral::lpspi::Instance) -> u32 {
-    #[cfg(not(any(feature = "imxrt1010", feature = "imxrt1060")))]
-    compile_error!("Ensure that LPSPI DMAMUX TX channels are correct");
-
-    match &**spi as *const _ {
-        // imxrt1010, imxrt1060
-        ral::lpspi::LPSPI1 => 14,
-        // imxrt1010, imxrt1060
-        ral::lpspi::LPSPI2 => 78,
-        #[cfg(feature = "imxrt1060")]
-        ral::lpspi::LPSPI3 => 16,
-        #[cfg(feature = "imxrt1060")]
-        ral::lpspi::LPSPI4 => 80,
-        _ => unreachable!(),
-    }
-}
-
-/// Adapter to support DMA peripheral traits
-/// on RAL LPSPI instances
-struct DmaCapable {
-    spi: ral::lpspi::Instance,
-}
-
-impl core::ops::Deref for DmaCapable {
-    type Target = ral::lpspi::Instance;
-    fn deref(&self) -> &Self::Target {
-        &self.spi
-    }
-}
-
-#[inline(always)]
-fn set_frame_size<Word>(spi: &ral::lpspi::Instance) {
-    ral::modify_reg!(ral::lpspi, spi, TCR, FRAMESZ: ((core::mem::size_of::<Word>() * 8 - 1) as u32));
-}
-
-#[inline(always)]
-fn enable_source<W>(spi: &ral::lpspi::Instance) {
-    set_frame_size::<W>(spi);
-    ral::modify_reg!(ral::lpspi, spi, FCR, RXWATER: 0); // No watermarks; affects DMA signaling
-    ral::modify_reg!(ral::lpspi, spi, DER, RDDE: 1);
-}
-
-#[inline(always)]
-fn enable_destination<W>(spi: &ral::lpspi::Instance) {
-    set_frame_size::<W>(spi);
-    ral::modify_reg!(ral::lpspi, spi, FCR, TXWATER: 0); // No watermarks; affects DMA signaling
-    ral::modify_reg!(ral::lpspi, spi, DER, TDDE: 1);
-}
-
-#[inline(always)]
-fn disable_source(spi: &ral::lpspi::Instance) {
-    while ral::read_reg!(ral::lpspi, spi, DER, RDDE == 1) {
-        ral::modify_reg!(ral::lpspi, spi, DER, RDDE: 0);
-    }
-}
-
-#[inline(always)]
-fn disable_destination(spi: &ral::lpspi::Instance) {
-    while ral::read_reg!(ral::lpspi, spi, DER, TDDE == 1) {
-        ral::modify_reg!(ral::lpspi, spi, DER, TDDE: 0);
-    }
-}
-
-unsafe impl dma::Source<u8> for DmaCapable {
+unsafe impl<E: dma::Element, Pins> dma::Source<E> for SPI<Pins> {
     fn source_signal(&self) -> u32 {
-        source_signal(&self.spi)
+        match &*self.spi as *const _ {
+            // imxrt1010, imxrt1060
+            ral::lpspi::LPSPI1 => 13,
+            // imxrt1010, imxrt1060
+            ral::lpspi::LPSPI2 => 77,
+            #[cfg(feature = "imxrt1060")]
+            ral::lpspi::LPSPI3 => 15,
+            #[cfg(feature = "imxrt1060")]
+            ral::lpspi::LPSPI4 => 79,
+            _ => unreachable!(),
+        }
     }
-    fn source(&self) -> *const u8 {
-        &self.spi.RDR as *const _ as *const u8
+    fn source_address(&self) -> *const E {
+        &self.spi.RDR as *const _ as *const E
     }
-    fn enable_source(&self) {
-        enable_source::<u8>(&self.spi);
+    fn enable_source(&mut self) {
+        self.set_frame_size::<E>();
+        ral::modify_reg!(ral::lpspi, self.spi, FCR, RXWATER: 0);
+        ral::modify_reg!(ral::lpspi, self.spi, DER, RDDE: 1);
     }
-    fn disable_source(&self) {
-        disable_source(&self.spi);
+    fn disable_source(&mut self) {
+        while ral::read_reg!(ral::lpspi, self.spi, DER, RDDE == 1) {
+            ral::modify_reg!(ral::lpspi, self.spi, DER, RDDE: 0);
+        }
     }
 }
 
-unsafe impl dma::Destination<u8> for DmaCapable {
+unsafe impl<E: dma::Element, Pins> dma::Destination<E> for SPI<Pins> {
     fn destination_signal(&self) -> u32 {
-        destination_signal(&self.spi)
+        <Self as dma::Source<E>>::source_signal(self) + 1
     }
-    fn destination(&self) -> *const u8 {
-        &self.spi.TDR as *const _ as *const u8
+    fn destination_address(&self) -> *const E {
+        &self.spi.TDR as *const _ as *const E
     }
-    fn enable_destination(&self) {
-        enable_destination::<u8>(&self.spi);
+    fn enable_destination(&mut self) {
+        self.set_frame_size::<E>();
+        ral::modify_reg!(ral::lpspi, self.spi, FCR, TXWATER: 0);
+        ral::modify_reg!(ral::lpspi, self.spi, DER, TDDE: 1);
     }
-    fn disable_destination(&self) {
-        disable_destination(&self.spi);
-    }
-}
-
-unsafe impl dma::Source<u16> for DmaCapable {
-    fn source_signal(&self) -> u32 {
-        source_signal(&self.spi)
-    }
-    fn source(&self) -> *const u16 {
-        &self.spi.RDR as *const _ as *const u16
-    }
-    fn enable_source(&self) {
-        enable_source::<u16>(&self.spi);
-    }
-    fn disable_source(&self) {
-        disable_source(&self.spi);
+    fn disable_destination(&mut self) {
+        while ral::read_reg!(ral::lpspi, self.spi, DER, TDDE == 1) {
+            ral::modify_reg!(ral::lpspi, self.spi, DER, TDDE: 0);
+        }
     }
 }
 
-unsafe impl dma::Destination<u16> for DmaCapable {
-    fn destination_signal(&self) -> u32 {
-        destination_signal(&self.spi)
-    }
-    fn destination(&self) -> *const u16 {
-        &self.spi.TDR as *const _ as *const u16
-    }
-    fn enable_destination(&self) {
-        enable_destination::<u16>(&self.spi);
-    }
-    fn disable_destination(&self) {
-        disable_destination(&self.spi);
-    }
-}
+unsafe impl<E: dma::Element, Pins> dma::Bidirectional<E> for SPI<Pins> {}

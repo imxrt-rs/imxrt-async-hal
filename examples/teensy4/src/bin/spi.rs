@@ -65,20 +65,21 @@ fn main() -> ! {
         sck: pins.p13,
         pcs0: pins.p10,
     };
-    let mut spi = hal::SPI::new(
-        pins,
-        spi4,
-        (channels[8].take().unwrap(), channels[9].take().unwrap()),
-    );
-
+    let mut spi = hal::SPI::new(pins, spi4);
+    let mut tx_channel = channels[8].take().unwrap();
+    let mut rx_channel = channels[9].take().unwrap();
+    tx_channel.set_interrupt_on_completion(true);
+    rx_channel.set_interrupt_on_completion(true);
     spi.set_clock_speed(SPI_CLOCK_HZ, SOURCE_CLOCK_HZ / SOURCE_CLOCK_DIVIDER)
         .unwrap();
 
     let who_am_i = async {
         loop {
             let mut buffer = [read(WHO_AM_I)];
-            let result = spi.full_duplex_u16(&mut buffer).await;
-            if result.is_err() || 1 != result.unwrap() || 0x71 != buffer[0] {
+            let result = spi
+                .dma_full_duplex(&mut rx_channel, &mut tx_channel, &mut buffer)
+                .await;
+            if result.is_err() || 0x71 != buffer[0] {
                 loop {
                     hardware_flag.set();
                 }

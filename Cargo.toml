@@ -16,7 +16,7 @@ cortex-m = "0.6"
 
 [dependencies.imxrt-dma]
 git = "https://github.com/imxrt-rs/imxrt-dma"
-rev = "a825d22"
+rev = "f1156c7dcda86a7fe61c4d70424e949283bf136e"
 
 [dependencies.imxrt-iomuxc]
 version = "0.1"

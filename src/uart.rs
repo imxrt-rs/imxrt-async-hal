@@ -49,22 +49,22 @@ use core::fmt;
 ///     uart2,
 ///     pads.ad_b1.p02, // TX
 ///     pads.ad_b1.p03, // RX
-///     channels[7].take().unwrap(),
 /// );
+/// let mut channel = channels[7].take().unwrap();
+/// channel.set_interrupt_on_completion(true);
 ///
 /// uart.set_baud(9600, SOURCE_CLOCK_HZ / SOURCE_CLOCK_DIVIDER).unwrap();
 /// # async {
 /// loop {
 ///     let mut buffer = [0; 1];
-///     uart.read(&mut buffer).await.unwrap();
-///     uart.write(&buffer).await.unwrap();
+///     uart.dma_read(&mut channel, &mut buffer).await.unwrap();
+///     uart.dma_write(&mut channel, &buffer).await.unwrap();
 /// }
 /// # };
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "uart")))]
 pub struct UART<TX, RX> {
-    uart: DmaCapable,
-    channel: dma::Channel,
+    uart: ral::lpuart::Instance,
     tx: TX,
     rx: RX,
 }
@@ -81,26 +81,18 @@ where
     RX: iomuxc::uart::Pin<Direction = iomuxc::uart::RX, Module = M>,
     M: iomuxc::consts::Unsigned,
 {
-    /// Create a new `UART` from a UART instance, TX and RX pins, and a DMA channel
+    /// Create a new `UART` from a UART instance, and TX and RX pins
     ///
     /// The baud rate of the returned `UART` is unspecified. Make sure you use [`set_baud`](UART::set_baud())
     /// to properly configure the driver.
-    pub fn new(
-        uart: crate::instance::UART<M>,
-        mut tx: TX,
-        mut rx: RX,
-        channel: dma::Channel,
-    ) -> UART<TX, RX> {
+    pub fn new(uart: crate::instance::UART<M>, mut tx: TX, mut rx: RX) -> UART<TX, RX> {
         crate::iomuxc::uart::prepare(&mut tx);
         crate::iomuxc::uart::prepare(&mut rx);
 
         let uart = UART {
-            uart: DmaCapable {
-                uart: uart.release(),
-            },
+            uart: uart.release(),
             tx,
             rx,
-            channel,
         };
         ral::modify_reg!(ral::lpuart, uart.uart, CTRL, TE: TE_1, RE: RE_1);
         uart
@@ -141,25 +133,32 @@ impl<TX, RX> UART<TX, RX> {
         res
     }
 
-    /// Return the pins, RAL instance, and DMA channel that comprise the UART driver
-    pub fn release(self) -> (TX, RX, ral::lpuart::Instance, dma::Channel) {
-        (self.tx, self.rx, self.uart.uart, self.channel)
+    /// Return the pins and RAL instance that comprise the UART driver
+    pub fn release(self) -> (TX, RX, ral::lpuart::Instance) {
+        (self.tx, self.rx, self.uart)
     }
 
-    /// Wait to receive a `buffer` of data
+    /// Use a DMA channel to write data to the UART peripheral
     ///
-    /// Returns the number of bytes placed into `buffer`, or an error.
-    pub async fn read(&mut self, buffer: &mut [u8]) -> Result<usize, Error> {
-        let len = crate::dma::receive(&mut self.channel, &self.uart, buffer).await?;
-        Ok(len)
+    /// Completes when all data in `buffer` has been written to the UART
+    /// peripheral.
+    pub fn dma_write<'a>(
+        &'a mut self,
+        channel: &'a mut dma::Channel,
+        buffer: &'a [u8],
+    ) -> dma::Tx<'a, Self, u8> {
+        dma::transfer(channel, buffer, self)
     }
 
-    /// Wait to send a `buffer` of data
+    /// Use a DMA channel to read data from the UART peripheral
     ///
-    /// Returns the number of bytes sent from `buffer`, or an error.
-    pub async fn write(&mut self, buffer: &[u8]) -> Result<usize, Error> {
-        let len = crate::dma::transfer(&mut self.channel, &self.uart, buffer).await?;
-        Ok(len)
+    /// Completes when `buffer` is filled.
+    pub fn dma_read<'a>(
+        &'a mut self,
+        channel: &'a mut dma::Channel,
+        buffer: &'a mut [u8],
+    ) -> dma::Rx<'a, Self, u8> {
+        dma::receive(channel, self, buffer)
     }
 }
 
@@ -232,62 +231,25 @@ fn timings(effective_clock: u32, baud: u32) -> Result<Timings, Error> {
     })
 }
 
-/// Adapter to support DMA peripheral traits
-/// on RAL LPSPI instances
-struct DmaCapable {
-    uart: ral::lpuart::Instance,
-}
-
-impl core::ops::Deref for DmaCapable {
-    type Target = ral::lpuart::Instance;
-    fn deref(&self) -> &Self::Target {
-        &self.uart
-    }
-}
-
-unsafe impl dma::Destination<u8> for DmaCapable {
+unsafe impl<TX, RX> dma::Destination<u8> for UART<TX, RX> {
     fn destination_signal(&self) -> u32 {
-        // Make sure that the match expression will never hit the unreachable!() case.
-        // The comments and conditional compiles show what we're currently considering in
-        // that match. If your chip isn't listed, it's not something we considered.
-        #[cfg(not(any(feature = "imxrt1010", feature = "imxrt1060")))]
-        compile_error!("Ensure that LPUART DMAMUX TX channels are correct");
-
-        // See table 4-3 of the iMXRT1060 Reference Manual (Rev 2)
-        match &*self.uart as *const _ {
-            // imxrt1010, imxrt1060
-            ral::lpuart::LPUART1 => 2,
-            // imxrt1010, imxrt1060
-            ral::lpuart::LPUART2 => 66,
-            // imxrt1010, imxrt1060
-            ral::lpuart::LPUART3 => 4,
-            // imxrt1010, imxrt1060
-            ral::lpuart::LPUART4 => 68,
-            #[cfg(feature = "imxrt1060")]
-            ral::lpuart::LPUART5 => 6,
-            #[cfg(feature = "imxrt1060")]
-            ral::lpuart::LPUART6 => 70,
-            #[cfg(feature = "imxrt1060")]
-            ral::lpuart::LPUART7 => 8,
-            #[cfg(feature = "imxrt1060")]
-            ral::lpuart::LPUART8 => 72,
-            _ => unreachable!(),
-        }
+        use dma::Source;
+        self.source_signal() - 1
     }
-    fn destination(&self) -> *const u8 {
+    fn destination_address(&self) -> *const u8 {
         &self.uart.DATA as *const _ as *const u8
     }
-    fn enable_destination(&self) {
+    fn enable_destination(&mut self) {
         ral::modify_reg!(ral::lpuart, self.uart, BAUD, TDMAE: 1);
     }
-    fn disable_destination(&self) {
+    fn disable_destination(&mut self) {
         while ral::read_reg!(ral::lpuart, self.uart, BAUD, TDMAE == 1) {
             ral::modify_reg!(ral::lpuart, self.uart, BAUD, TDMAE: 0);
         }
     }
 }
 
-unsafe impl dma::Source<u8> for DmaCapable {
+unsafe impl<TX, RX> dma::Source<u8> for UART<TX, RX> {
     fn source_signal(&self) -> u32 {
         // Make sure that the match expression will never hit the unreachable!() case.
         // The comments and conditional compiles show what we're currently considering in
@@ -316,10 +278,10 @@ unsafe impl dma::Source<u8> for DmaCapable {
             _ => unreachable!(),
         }
     }
-    fn source(&self) -> *const u8 {
+    fn source_address(&self) -> *const u8 {
         &self.uart.DATA as *const _ as *const u8
     }
-    fn enable_source(&self) {
+    fn enable_source(&mut self) {
         // Clear all status flags
         ral::modify_reg!(
             ral::lpuart,
@@ -333,7 +295,7 @@ unsafe impl dma::Source<u8> for DmaCapable {
         );
         ral::modify_reg!(ral::lpuart, self.uart, BAUD, RDMAE: 1);
     }
-    fn disable_source(&self) {
+    fn disable_source(&mut self) {
         while ral::read_reg!(ral::lpuart, self.uart, BAUD, RDMAE == 1) {
             ral::modify_reg!(ral::lpuart, self.uart, BAUD, RDMAE: 0);
         }

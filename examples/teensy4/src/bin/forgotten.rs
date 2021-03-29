@@ -46,9 +46,9 @@ static DATA: u32 = 0;
 
 /// Prepare to receive UART data from a DMA transfer into stack memory
 #[inline(never)]
-fn prepare_receive(uart: &mut hal::UART<P14, P15>) {
+fn prepare_receive(uart: &mut hal::UART<P14, P15>, channel: &mut hal::dma::Channel) {
     let mut buffer: [u8; 8] = [0; 8];
-    let mut read = uart.read(&mut buffer);
+    let mut read = uart.dma_read(channel, &mut buffer);
     let pin = unsafe { Pin::new_unchecked(&mut read) };
     let waker =
         unsafe { Waker::from_raw(RawWaker::new(&DATA as *const u32 as *const (), &VTABLE)) };
@@ -94,9 +94,10 @@ fn main() -> ! {
     let uart2 = hal::ral::lpuart::LPUART2::take()
         .and_then(hal::instance::uart)
         .unwrap();
-    let mut uart = hal::UART::new(uart2, pins.p14, pins.p15, channels[7].take().unwrap());
+    let mut uart = hal::UART::new(uart2, pins.p14, pins.p15);
+    let mut channel = channels[7].take().unwrap();
     uart.set_baud(BAUD, 24_000_000 /* XTAL Hz */).unwrap();
 
-    prepare_receive(&mut uart);
+    prepare_receive(&mut uart, &mut channel);
     watch_stack(&mut led);
 }
