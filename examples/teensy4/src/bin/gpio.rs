@@ -18,12 +18,9 @@ extern crate panic_halt;
 #[cfg(target_arch = "arm")]
 extern crate t4_startup;
 
-use core::time::Duration;
 use futures::future;
 use hal::gpio;
 use imxrt_async_hal as hal;
-
-const DELAY: Duration = Duration::from_millis(250);
 
 async fn connect<P, Q>(
     mut input: gpio::GPIO<P, gpio::Input>,
@@ -44,23 +41,12 @@ fn main() -> ! {
     let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
     let pins = teensy4_pins::t40::into_pins(pads);
     let mut p13 = hal::gpio::GPIO::new(pins.p13).output();
-    let hal::ccm::CCM {
-        mut handle,
-        perclock,
-        ..
-    } = hal::ral::ccm::CCM::take()
-        .map(hal::ccm::CCM::from_ral)
-        .unwrap();
-    let mut perclock = perclock.enable(&mut handle);
-    let (_, _, mut blink_timer) = hal::ral::gpt::GPT1::take()
-        .map(|mut inst| {
-            perclock.set_clock_gate_gpt(&mut inst, hal::ccm::ClockGate::On);
-            hal::GPT::new(inst, &perclock)
-        })
-        .unwrap();
+
+    let ccm = hal::ral::ccm::CCM::take().unwrap();
+    let (_, _, mut timer) = t4_startup::new_gpt(hal::ral::gpt::GPT2::take().unwrap(), &ccm);
     let ones = async {
         loop {
-            blink_timer.delay(DELAY).await;
+            t4_startup::gpt_delay_ms(&mut timer, 250).await;
             p13.toggle();
         }
     };

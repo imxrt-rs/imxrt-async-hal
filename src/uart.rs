@@ -17,36 +17,42 @@ use core::fmt;
 ///
 /// ```no_run
 /// use imxrt_async_hal as hal;
-/// use hal::{ccm::{self, ClockGate}, dma, iomuxc, UART, instance};
-/// use hal::ral::{
+/// use hal::{dma, iomuxc, UART, instance};
+/// use hal::ral::{self,
 ///     ccm::CCM, lpuart::LPUART2,
 ///     dma0::DMA0, dmamux::DMAMUX,
 ///     iomuxc::IOMUXC,
 /// };
 ///
+///
+/// const SOURCE_CLOCK_HZ: u32 = 24_000_000; // XTAL
+/// const SOURCE_CLOCK_DIVIDER: u32 = 1;
+///
 /// let pads = IOMUXC::take().map(iomuxc::new).unwrap();
 ///
-/// let mut ccm = CCM::take().map(ccm::CCM::from_ral).unwrap();
-/// let mut dma = DMA0::take().unwrap();
-/// ccm.handle.set_clock_gate_dma(&mut dma, ClockGate::On);
+/// let ccm = CCM::take().unwrap();
+/// // Select 24MHz XTAL as clock source, no divider...
+/// ral::modify_reg!(ral::ccm, ccm, CSCDR1, UART_CLK_SEL: 1 /* Oscillator */, UART_CLK_PODF: SOURCE_CLOCK_DIVIDER - 1);
+/// // Enable LPUART2 clock gate...
+/// ral::modify_reg!(ral::ccm, ccm, CCGR0, CG14: 0b11);
+/// // DMA clock gate on
+/// ral::modify_reg!(ral::ccm, ccm, CCGR5, CG3: 0b11);
+///
+/// let dma = DMA0::take().unwrap();
 /// let mut channels = dma::channels(
 ///     dma,
 ///     DMAMUX::take().unwrap(),
 /// );
-/// let mut uart2 = LPUART2::take().and_then(instance::uart).unwrap();
-///
-/// let mut uart_clock = ccm.uart_clock.enable(&mut ccm.handle);
-/// uart_clock.set_clock_gate(&mut uart2, ClockGate::On);
+/// let uart2 = LPUART2::take().and_then(instance::uart).unwrap();
 ///
 /// let mut uart = UART::new(
 ///     uart2,
 ///     pads.ad_b1.p02, // TX
 ///     pads.ad_b1.p03, // RX
 ///     channels[7].take().unwrap(),
-///     &uart_clock,
 /// );
 ///
-/// uart.set_baud(9600).unwrap();
+/// uart.set_baud(9600, SOURCE_CLOCK_HZ / SOURCE_CLOCK_DIVIDER).unwrap();
 /// # async {
 /// loop {
 ///     let mut buffer = [0; 1];
@@ -61,7 +67,6 @@ pub struct UART<TX, RX> {
     channel: dma::Channel,
     tx: TX,
     rx: RX,
-    hz: u32,
 }
 
 impl<TX, RX> fmt::Debug for UART<TX, RX> {
@@ -85,21 +90,18 @@ where
         mut tx: TX,
         mut rx: RX,
         channel: dma::Channel,
-        clock: &crate::ccm::UARTClock,
     ) -> UART<TX, RX> {
         crate::iomuxc::uart::prepare(&mut tx);
         crate::iomuxc::uart::prepare(&mut rx);
 
-        let mut uart = UART {
+        let uart = UART {
             uart: DmaCapable {
                 uart: uart.release(),
             },
             tx,
             rx,
             channel,
-            hz: clock.frequency(),
         };
-        let _ = uart.set_baud(9600);
         ral::modify_reg!(ral::lpuart, uart.uart, CTRL, TE: TE_1, RE: RE_1);
         uart
     }
@@ -109,8 +111,8 @@ impl<TX, RX> UART<TX, RX> {
     /// Set the serial baud rate
     ///
     /// If there is an error, the error is [`Error::Clock`](Error::Clock).
-    pub fn set_baud(&mut self, baud: u32) -> Result<(), Error> {
-        let timings = timings(self.hz, baud)?;
+    pub fn set_baud(&mut self, baud: u32, source_clock_hz: u32) -> Result<(), Error> {
+        let timings = timings(source_clock_hz, baud)?;
         self.while_disabled(|this| {
             ral::modify_reg!(
                 ral::lpuart,
@@ -337,37 +339,3 @@ unsafe impl dma::Source<u8> for DmaCapable {
         }
     }
 }
-
-/// ```no_run
-/// use imxrt_async_hal as hal;
-/// use hal::ral::{ccm::CCM, lpuart::LPUART2};
-///
-/// let hal::ccm::CCM {
-///     mut handle,
-///     uart_clock,
-///     ..
-/// } = CCM::take().map(hal::ccm::CCM::from_ral).unwrap();
-/// let mut uart_clock = uart_clock.enable(&mut handle);
-/// let mut uart2 = LPUART2::take().unwrap();
-/// uart_clock.set_clock_gate(&mut uart2, hal::ccm::ClockGate::On);
-/// ```
-#[cfg(doctest)]
-struct ClockingWeakRalInstance;
-
-/// ```no_run
-/// use imxrt_async_hal as hal;
-/// use hal::ral::{ccm::CCM, lpuart::LPUART2};
-///
-/// let hal::ccm::CCM {
-///     mut handle,
-///     uart_clock,
-///     ..
-/// } = CCM::take().map(hal::ccm::CCM::from_ral).unwrap();
-/// let mut uart_clock = uart_clock.enable(&mut handle);
-/// let mut uart2: hal::instance::UART<hal::iomuxc::consts::U2> = LPUART2::take()
-///     .and_then(hal::instance::uart)
-///     .unwrap();
-/// uart_clock.set_clock_gate(&mut uart2, hal::ccm::ClockGate::On);
-/// ```
-#[cfg(doctest)]
-struct ClockingStrongHalInstance;

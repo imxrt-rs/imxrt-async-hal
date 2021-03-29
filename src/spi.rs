@@ -53,39 +53,53 @@ pub struct Pins<SDO, SDI, SCK, PCS0> {
 ///
 /// ```no_run
 /// use imxrt_async_hal as hal;
-/// use hal::{ccm::{self, ClockGate}, dma, instance, iomuxc, SPI, SPIPins};
-/// use hal::ral::{
+/// use hal::{dma, instance, iomuxc, SPI, SPIPins};
+/// use hal::ral::{self,
 ///     ccm::CCM, dma0::DMA0, dmamux::DMAMUX,
 ///     iomuxc::IOMUXC, lpspi::LPSPI4,
 /// };
 ///
+/// // Effective LPSPI source clock (PLL2)
+/// const SOURCE_CLOCK_HZ: u32 = 528_000_000;
+/// // Any divider for the source clock
+/// const SOURCE_CLOCK_DIVIDER: u32 = 5;
+///
 /// let pads = IOMUXC::take().map(iomuxc::new).unwrap();
 ///
-/// let mut ccm = CCM::take().map(ccm::CCM::from_ral).unwrap();
-/// let mut dma = DMA0::take().unwrap();
-/// ccm.handle.set_clock_gate_dma(&mut dma, ClockGate::On);
+/// let ccm = CCM::take().unwrap();
+/// // Prepare SPI clocks
+/// ral::modify_reg!(
+///     ral::ccm,
+///     ccm,
+///     CBCMR,
+///     LPSPI_CLK_SEL: LPSPI_CLK_SEL_2, /* PLL2 */
+///     LPSPI_PODF: SOURCE_CLOCK_DIVIDER - 1
+/// );
+/// // LPSPI4 clock gate on
+/// ral::modify_reg!(ral::ccm, ccm, CCGR1, CG3: 0b11);
+/// // DMA clock on
+/// ral::modify_reg!(ral::ccm, ccm, CCGR5, CG3: 0b11);
+///
+/// let dma = DMA0::take().unwrap();
 /// let mut channels = dma::channels(
 ///     dma,
 ///     DMAMUX::take().unwrap(),
 /// );
 ///
-/// let mut spi_clock = ccm.spi_clock.enable(&mut ccm.handle);
 /// let spi_pins = SPIPins {
 ///     sdo: pads.b0.p02,
 ///     sdi: pads.b0.p01,
 ///     sck: pads.b0.p03,
 ///     pcs0: pads.b0.p00,
 /// };
-/// let mut spi4 = LPSPI4::take().and_then(instance::spi).unwrap();
-/// spi_clock.set_clock_gate(&mut spi4, ClockGate::On);
+/// let spi4 = LPSPI4::take().and_then(instance::spi).unwrap();
 /// let mut spi = SPI::new(
 ///     spi_pins,
 ///     spi4,
 ///     (channels[8].take().unwrap(), channels[9].take().unwrap()),
-///     &spi_clock,
 /// );
 ///
-/// spi.set_clock_speed(1_000_000).unwrap();
+/// spi.set_clock_speed(1_000_000, SOURCE_CLOCK_HZ / SOURCE_CLOCK_DIVIDER).unwrap();
 ///
 /// # async {
 /// let mut buffer = [1, 2, 3, 4];
@@ -99,10 +113,7 @@ pub struct SPI<Pins> {
     spi: DmaCapable,
     tx_channel: dma::Channel,
     rx_channel: dma::Channel,
-    hz: u32,
 }
-
-const DEFAULT_CLOCK_SPEED_HZ: u32 = 8_000_000;
 
 impl<SDO, SDI, SCK, PCS0, M> SPI<Pins<SDO, SDI, SCK, PCS0>>
 where
@@ -116,11 +127,12 @@ where
     ///
     /// See the [`instance` module](instance) for more information on SPI peripheral
     /// instances.
+    ///
+    /// The clock speed is unspecified. Make sure you change your clock speed with `set_clock_speed`.
     pub fn new(
         mut pins: Pins<SDO, SDI, SCK, PCS0>,
         spi: instance::SPI<M>,
         channels: (dma::Channel, dma::Channel),
-        clock: &crate::ccm::SPIClock,
     ) -> Self {
         iomuxc::spi::prepare(&mut pins.sdo);
         iomuxc::spi::prepare(&mut pins.sdi);
@@ -131,7 +143,6 @@ where
 
         ral::write_reg!(ral::lpspi, spi, CR, RST: RST_1);
         ral::write_reg!(ral::lpspi, spi, CR, RST: RST_0);
-        set_clock_speed(&spi, clock.frequency(), DEFAULT_CLOCK_SPEED_HZ);
         ral::write_reg!(ral::lpspi, spi, CFGR1, MASTER: MASTER_1, SAMPLE: SAMPLE_1);
         // spi.set_mode(embedded_hal::spi::MODE_0).unwrap();
         ral::write_reg!(ral::lpspi, spi, FCR, RXWATER: 0xF, TXWATER: 0xF);
@@ -142,7 +153,6 @@ where
             spi: DmaCapable { spi },
             tx_channel: channels.0,
             rx_channel: channels.1,
-            hz: clock.frequency(),
         }
     }
 
@@ -191,10 +201,10 @@ impl<Pins> SPI<Pins> {
     /// construction is unspecified.
     ///
     /// If an error occurs, it's an [`crate::spi::Error::ClockSpeed`].
-    pub fn set_clock_speed(&mut self, hz: u32) -> Result<(), Error> {
+    pub fn set_clock_speed(&mut self, hz: u32, source_clock_hz: u32) -> Result<(), Error> {
         self.with_master_disabled(|| {
             // Safety: master is disabled
-            set_clock_speed(&self.spi, self.hz, hz);
+            set_clock_speed(&self.spi, source_clock_hz, hz);
             Ok(())
         })
     }
@@ -468,37 +478,3 @@ unsafe impl dma::Destination<u16> for DmaCapable {
         disable_destination(&self.spi);
     }
 }
-
-/// ```no_run
-/// use imxrt_async_hal as hal;
-/// use hal::ral::{ccm::CCM, lpspi::LPSPI2};
-///
-/// let hal::ccm::CCM {
-///     mut handle,
-///     spi_clock,
-///     ..
-/// } = CCM::take().map(hal::ccm::CCM::from_ral).unwrap();
-/// let mut spi_clock = spi_clock.enable(&mut handle);
-/// let mut spi2 = LPSPI2::take().unwrap();
-/// spi_clock.set_clock_gate(&mut spi2, hal::ccm::ClockGate::On);
-/// ```
-#[cfg(doctest)]
-struct ClockingWeakRalInstance;
-
-/// ```no_run
-/// use imxrt_async_hal as hal;
-/// use hal::ral::{ccm::CCM, lpspi::LPSPI2};
-///
-/// let hal::ccm::CCM {
-///     mut handle,
-///     spi_clock,
-///     ..
-/// } = CCM::take().map(hal::ccm::CCM::from_ral).unwrap();
-/// let mut spi_clock = spi_clock.enable(&mut handle);
-/// let mut spi2: hal::instance::SPI<hal::iomuxc::consts::U2> = LPSPI2::take()
-///     .and_then(hal::instance::spi)
-///     .unwrap();
-/// spi_clock.set_clock_gate(&mut spi2, hal::ccm::ClockGate::On);
-/// ```
-#[cfg(doctest)]
-struct ClockingStrongHalInstance;

@@ -8,22 +8,24 @@
 //!
 //! # Example
 //!
-//! Delay for 100us using PIT channel 3.
+//! Delay for 250ms using PIT channel 3.
 //!
 //! ```no_run
 //! use imxrt_async_hal as hal;
-//! use hal::ral::{ccm, pit};
-//! use hal::{ccm::{CCM, ClockGate}, PIT};
+//! use hal::ral;
+//! use hal::PIT;
 //!
-//! let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();
-//! let mut perclock = ccm.perclock.enable(&mut ccm.handle);
-//! let (_, _, _, mut pit) = pit::PIT::take().map(|mut pit| {
-//!     perclock.set_clock_gate_pit(&mut pit, ClockGate::On);
-//!     PIT::new(pit, &perclock)
-//! }).unwrap();
+//! let ccm = ral::ccm::CCM::take().unwrap();
+//! // Select 24MHz crystal oscillator, divide by 24 == 1MHz clock
+//! ral::modify_reg!(ral::ccm, ccm, CSCMR1, PERCLK_PODF: DIVIDE_24, PERCLK_CLK_SEL: 1);
+//! // Enable PIT clock gate
+//! ral::modify_reg!(ral::ccm, ccm, CCGR1, CG6: 0b11);
+//! let (_, _, _, mut pit) = ral::pit::PIT::take()
+//!     .map(PIT::new)
+//!     .unwrap();
 //!
 //! # async {
-//! pit.delay_us(100).await;
+//! pit.delay(250_000).await;
 //! # };
 //! ```
 
@@ -35,7 +37,6 @@ use core::{
     pin::Pin,
     sync::atomic,
     task::{Context, Poll, Waker},
-    time::Duration,
 };
 
 /// Periodic interrupt timer (PIT)
@@ -44,12 +45,11 @@ use core::{
 #[cfg_attr(docsrs, doc(cfg(feature = "pit")))]
 pub struct PIT {
     channel: register::ChannelInstance,
-    hz: u32,
 }
 
 impl PIT {
     /// Acquire four PIT channels from the RAL's PIT instance
-    pub fn new(pit: ral::pit::Instance, clock: &crate::ccm::PerClock) -> (PIT, PIT, PIT, PIT) {
+    pub fn new(pit: ral::pit::Instance) -> (PIT, PIT, PIT, PIT) {
         ral::write_reg!(ral::pit, pit, MCR, MDIS: MDIS_0);
         // Reset all PIT channels
         //
@@ -62,86 +62,58 @@ impl PIT {
 
         unsafe {
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::PIT);
-            let hz = clock.frequency();
             (
                 PIT {
                     channel: register::ChannelInstance::zero(),
-                    hz,
                 },
                 PIT {
                     channel: register::ChannelInstance::one(),
-                    hz,
                 },
                 PIT {
                     channel: register::ChannelInstance::two(),
-                    hz,
                 },
                 PIT {
                     channel: register::ChannelInstance::three(),
-                    hz,
                 },
             )
         }
     }
-    /// Wait for `microseconds` to elapse
-    pub fn delay_us(&mut self, microseconds: u32) -> Delay<'_> {
+    /// Wait for the counts to elapse
+    ///
+    /// The elapsed time is a function of your clock selection and clock frequency.
+    pub fn delay(&mut self, count: u32) -> Delay<'_> {
         Delay {
             channel: &mut self.channel,
-            ticks: ticks(microseconds, self.hz),
+            count,
             _pin: PhantomPinned,
         }
-    }
-
-    /// Wait for the specified `duration` to elapse
-    ///
-    /// If the microseconds represented by the duration cannot be represented by a `u32`, the
-    /// delay will saturate at `u32::max_value()` microseconds.
-    pub fn delay(&mut self, duration: Duration) -> Delay<'_> {
-        use core::convert::TryFrom;
-        self.delay_us(u32::try_from(duration.as_micros()).unwrap_or(u32::max_value()))
-    }
-
-    /// Returns the PIT clock period
-    pub fn clock_period(&self) -> Duration {
-        Duration::from_nanos((1_000_000_000 / self.hz) as u64)
     }
 }
 
 static mut WAKERS: [Option<Waker>; 4] = [None, None, None, None];
 
 /// A future that yields once the PIT timer elapses
-///
-/// Use [`delay_us`](crate::pit::PIT::delay_us) to create a `Delay`.
 pub struct Delay<'a> {
     channel: &'a mut register::ChannelInstance,
-    ticks: u32,
     _pin: PhantomPinned,
+    count: u32,
 }
 
 impl<'a> Future for Delay<'a> {
     type Output = ();
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let ticks = self.ticks;
+        let count = self.count;
         // Safety: future is safely Unpin; only exposed as !Unpin, just in case.
         let this = unsafe { Pin::into_inner_unchecked(self) };
-        poll_delay(&mut this.channel, cx, ticks)
+        poll_delay(&mut this.channel, cx, count)
     }
-}
-
-fn ticks(delay_us: u32, hz: u32) -> u32 {
-    let delay_ns: u32 = delay_us.saturating_mul(1_000);
-    let period_ns = 1_000_000_000 / hz;
-    delay_ns
-        .checked_div(period_ns)
-        .unwrap_or(0)
-        .saturating_sub(1)
 }
 
 fn poll_delay(
     channel: &mut register::ChannelInstance,
     cx: &mut Context<'_>,
-    ticks: u32,
+    count: u32,
 ) -> Poll<()> {
     if ral::read_reg!(register, channel, TFLG, TIF == 1) {
         // Complete! W1C
@@ -152,7 +124,7 @@ fn poll_delay(
         Poll::Pending
     } else {
         // Neither complete nor active; prepare to run
-        ral::write_reg!(register, channel, LDVAL, ticks);
+        ral::write_reg!(register, channel, LDVAL, count);
         unsafe {
             WAKERS[channel.index()] = Some(cx.waker().clone());
         }

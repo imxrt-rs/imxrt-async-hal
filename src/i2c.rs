@@ -39,15 +39,24 @@
 //!
 //! # Example
 //!
-//! Prepare the I2C3 peripheral at 400KHz, using Teensy pins 16 and 17.
+//! Prepare the I2C3 peripheral at 400KHz. Note that this example does not demonstrate how
+//! to set up the I2C peripheral clocks, and enable clock gates.
 //!
 //! ```no_run
 //! use imxrt_async_hal as hal;
 //! use hal::{
-//!     ccm, iomuxc, I2C, I2CClockSpeed,
-//!     ral::{ccm::CCM, iomuxc::IOMUXC, lpi2c::LPI2C3},
+//!     iomuxc, I2C, I2CClockSpeed,
+//!     ral::{self, ccm::CCM, iomuxc::IOMUXC, lpi2c::LPI2C3},
 //! };
 //! # const PINCONFIG: iomuxc::Config = iomuxc::Config::zero();
+//! const SOURCE_CLOCK_HZ: u32 = 24_000_000;
+//! const SOURCE_CLOCK_DIVIDER: u32 = 3;
+//!
+//! let ccm = CCM::take().unwrap();
+//! // LPI2C clock selection: 24MHz XTAL, divide by 3
+//! ral::modify_reg!(ral::ccm, ccm, CSCDR2, LPI2C_CLK_SEL: 1, LPI2C_CLK_PODF: SOURCE_CLOCK_DIVIDER - 1);
+//! // LPI2C3 clock gate on
+//! ral::modify_reg!(ral::ccm, ccm, CCGR2, CG5: 0b11);
 //!
 //! let mut pads = IOMUXC::take()
 //!     .map(iomuxc::new)
@@ -56,13 +65,10 @@
 //! iomuxc::configure(&mut pads.ad_b1.p07, PINCONFIG);
 //! iomuxc::configure(&mut pads.ad_b1.p06, PINCONFIG);
 //!
-//! let mut ccm = CCM::take().map(ccm::CCM::from_ral).unwrap();
-//! let mut i2c_clock = ccm.i2c_clock.enable(&mut ccm.handle);
 //! let mut i2c3 = LPI2C3::take().and_then(hal::instance::i2c).unwrap();
-//! i2c_clock.set_clock_gate(&mut i2c3, ccm::ClockGate::On);
 //!
-//! let mut i2c = I2C::new(i2c3, pads.ad_b1.p07, pads.ad_b1.p06, &i2c_clock);
-//! i2c.set_clock_speed(I2CClockSpeed::KHz400).unwrap();
+//! let mut i2c = I2C::new(i2c3, pads.ad_b1.p07, pads.ad_b1.p06);
+//! i2c.set_clock_speed(I2CClockSpeed::KHz400, SOURCE_CLOCK_HZ / SOURCE_CLOCK_DIVIDER).unwrap();
 //!
 //! # async {
 //! # const DEVICE_ADDRESS: u8 = 0;
@@ -96,7 +102,6 @@ pub struct I2C<SCL, SDA> {
     i2c: Instance,
     scl: SCL,
     sda: SDA,
-    hz: u32,
 }
 
 impl<SCL, SDA, M> I2C<SCL, SDA>
@@ -109,12 +114,7 @@ where
     ///
     /// The I2C clock speed of the returned `I2C` driver is unspecified and may not be valid.
     /// Use [`set_clock_speed`](I2C::set_clock_speed()) to select a valid I2C clock speed.
-    pub fn new(
-        i2c: crate::instance::I2C<M>,
-        mut scl: SCL,
-        mut sda: SDA,
-        clock: &crate::ccm::I2CClock,
-    ) -> Self {
+    pub fn new(i2c: crate::instance::I2C<M>, mut scl: SCL, mut sda: SDA) -> Self {
         iomuxc::i2c::prepare(&mut scl);
         iomuxc::i2c::prepare(&mut sda);
 
@@ -122,10 +122,6 @@ where
         ral::write_reg!(ral::lpi2c, i2c, MCR, RST: RST_1);
         // Reset is sticky; needs to be explicitly cleared
         ral::write_reg!(ral::lpi2c, i2c, MCR, RST: RST_0);
-        // Should already be disabled, but just in case...
-        while_disabled(&i2c, |i2c| {
-            clock::set_speed(ClockSpeed::KHz100, clock.frequency(), i2c);
-        });
         ral::write_reg!(ral::lpi2c, i2c, MFCR, TXWATER: 3, RXWATER: 0);
         ral::modify_reg!(ral::lpi2c, i2c, MCR, MEN: MEN_1);
 
@@ -144,12 +140,7 @@ where
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::LPI2C4);
         });
 
-        I2C {
-            i2c,
-            scl,
-            sda,
-            hz: clock.frequency(),
-        }
+        I2C { i2c, scl, sda }
     }
 }
 
@@ -191,9 +182,13 @@ impl<SCL, SDA> I2C<SCL, SDA> {
     /// Set the I2C clock speed
     ///
     /// If there is an error, error variant is [`crate::i2c::Error::ClockSpeed`].
-    pub fn set_clock_speed(&mut self, clock_speed: ClockSpeed) -> Result<(), Error> {
+    pub fn set_clock_speed(
+        &mut self,
+        clock_speed: ClockSpeed,
+        source_clock_hz: u32,
+    ) -> Result<(), Error> {
         while_disabled(&self.i2c, |i2c| {
-            clock::set_speed(clock_speed, self.hz, i2c);
+            clock::set_speed(clock_speed, source_clock_hz, i2c);
         });
         Ok(())
     }
@@ -320,37 +315,3 @@ pub enum State {
     StopSetup,
     Stop,
 }
-
-/// ```no_run
-/// use imxrt_async_hal as hal;
-/// use hal::ral::{ccm::CCM, lpi2c::LPI2C2};
-///
-/// let hal::ccm::CCM {
-///     mut handle,
-///     i2c_clock,
-///     ..
-/// } = CCM::take().map(hal::ccm::CCM::from_ral).unwrap();
-/// let mut i2c_clock = i2c_clock.enable(&mut handle);
-/// let mut i2c2 = LPI2C2::take().unwrap();
-/// i2c_clock.set_clock_gate(&mut i2c2, hal::ccm::ClockGate::On);
-/// ```
-#[cfg(doctest)]
-struct ClockingWeakRalInstance;
-
-/// ```no_run
-/// use imxrt_async_hal as hal;
-/// use hal::ral::{ccm::CCM, lpi2c::LPI2C2};
-///
-/// let hal::ccm::CCM {
-///     mut handle,
-///     i2c_clock,
-///     ..
-/// } = CCM::take().map(hal::ccm::CCM::from_ral).unwrap();
-/// let mut i2c_clock = i2c_clock.enable(&mut handle);
-/// let mut i2c2: hal::instance::I2C<hal::iomuxc::consts::U2> = LPI2C2::take()
-///     .and_then(hal::instance::i2c)
-///     .unwrap();
-/// i2c_clock.set_clock_gate(&mut i2c2, hal::ccm::ClockGate::On);
-/// ```
-#[cfg(doctest)]
-struct ClockingStrongHalInstance;
