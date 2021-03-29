@@ -256,8 +256,8 @@ where
     /// input_pin.wait_for(Trigger::RisingEdge).await;
     /// # };
     /// ```
-    pub async fn wait_for(&mut self, trigger: Trigger) {
-        Interrupt::new(self, trigger).await
+    pub fn wait_for(&mut self, trigger: Trigger) -> Interrupt<'_, P> {
+        Interrupt::new(self, trigger)
     }
 }
 
@@ -325,7 +325,10 @@ pub enum Trigger {
 }
 
 /// A future that awaits the input trigger selection
-struct Interrupt<'t, P> {
+///
+/// Use [`wait_for`](crate::gpio::GPIO::wait_for()) to create the future
+/// that awaits the trigger.
+pub struct Interrupt<'t, P> {
     gpio: &'t mut GPIO<P, Input>,
     waker: Option<Waker>,
     is_ready: bool,
