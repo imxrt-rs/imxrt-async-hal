@@ -256,39 +256,6 @@
 <span id="253">253</span>
 <span id="254">254</span>
 <span id="255">255</span>
-<span id="256">256</span>
-<span id="257">257</span>
-<span id="258">258</span>
-<span id="259">259</span>
-<span id="260">260</span>
-<span id="261">261</span>
-<span id="262">262</span>
-<span id="263">263</span>
-<span id="264">264</span>
-<span id="265">265</span>
-<span id="266">266</span>
-<span id="267">267</span>
-<span id="268">268</span>
-<span id="269">269</span>
-<span id="270">270</span>
-<span id="271">271</span>
-<span id="272">272</span>
-<span id="273">273</span>
-<span id="274">274</span>
-<span id="275">275</span>
-<span id="276">276</span>
-<span id="277">277</span>
-<span id="278">278</span>
-<span id="279">279</span>
-<span id="280">280</span>
-<span id="281">281</span>
-<span id="282">282</span>
-<span id="283">283</span>
-<span id="284">284</span>
-<span id="285">285</span>
-<span id="286">286</span>
-<span id="287">287</span>
-<span id="288">288</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">ral</span>;
 <span class="kw">use</span> <span class="ident">core</span>::{
@@ -296,13 +263,13 @@
     <span class="ident">pin</span>::<span class="ident">Pin</span>,
     <span class="ident">sync</span>::<span class="ident">atomic</span>,
     <span class="ident">task</span>::{<span class="ident">Context</span>, <span class="ident">Poll</span>, <span class="ident">Waker</span>},
-    <span class="ident">time</span>::<span class="ident">Duration</span>,
 };
 
 <span class="doccomment">/// General purpose timers (GPT)</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// The timer **divides the input clock by 5**. This may affect very precise</span>
-<span class="doccomment">/// timing. For a more precise timer, see [`PIT`](crate::PIT).</span>
+<span class="doccomment">/// You&#39;re expected to configure your clock selection, and divider. The</span>
+<span class="doccomment">/// driver will make other modifications on the control register to give</span>
+<span class="doccomment">/// the appearance of three, independent timers.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// Each GPT instance turns into three GPT timers. Use [`new`](crate::GPT::new)</span>
 <span class="doccomment">/// to acquire the three timers.</span>
@@ -313,37 +280,37 @@
 <span class="doccomment">///</span>
 <span class="doccomment">/// ```no_run</span>
 <span class="doccomment">/// use imxrt_async_hal as hal;</span>
-<span class="doccomment">/// use hal::ral::{ccm, gpt};</span>
-<span class="doccomment">/// use hal::{ccm::{CCM, ClockGate}, GPT};</span>
+<span class="doccomment">/// use hal::ral as ral;</span>
+<span class="doccomment">/// use ral::{ccm, gpt};</span>
+<span class="doccomment">/// use hal::GPT;</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();</span>
-<span class="doccomment">/// let mut perclock = ccm.perclock.enable(&amp;mut ccm.handle);</span>
-<span class="doccomment">/// let (mut gpt, _, _) = gpt::GPT1::take().map(|mut gpt| {</span>
-<span class="doccomment">///     perclock.set_clock_gate_gpt(&amp;mut gpt, ClockGate::On);</span>
-<span class="doccomment">///     GPT::new(gpt, &amp;perclock)</span>
-<span class="doccomment">/// }).unwrap();</span>
+<span class="doccomment">/// let ccm = ccm::CCM::take().unwrap();</span>
+<span class="doccomment">/// // Select 24MHz crystal oscillator, divide by 24 == 1MHz clock</span>
+<span class="doccomment">/// ral::modify_reg!(ral::ccm, ccm, CSCMR1, PERCLK_PODF: DIVIDE_24, PERCLK_CLK_SEL: 1);</span>
+<span class="doccomment">/// // Enable GPT1 clock gate</span>
+<span class="doccomment">/// ral::modify_reg!(ral::ccm, ccm, CCGR1, CG10: 0b11, CG11: 0b11);</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// let gpt = hal::ral::gpt::GPT1::take().unwrap();</span>
+<span class="doccomment">/// ral::write_reg!(</span>
+<span class="doccomment">///     ral::gpt,</span>
+<span class="doccomment">///     gpt,</span>
+<span class="doccomment">///     CR,</span>
+<span class="doccomment">///     EN_24M: 1, // Enable crystal oscillator</span>
+<span class="doccomment">///     CLKSRC: 0b101 // Crystal oscillator clock source</span>
+<span class="doccomment">/// );</span>
+<span class="doccomment">/// ral::write_reg!(ral::gpt, gpt, PR, PRESCALER24M: 4); // 1MHz / 5 == 200KHz</span>
+
+<span class="doccomment">/// let (mut gpt, _, _) = GPT::new(gpt);</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// # async {</span>
-<span class="doccomment">/// gpt.delay_us(250_000u32).await;</span>
-<span class="doccomment">/// gpt.delay(core::time::Duration::from_millis(250)).await; // Equivalent</span>
+<span class="doccomment">/// gpt.delay(250_000u32 / 5).await;</span>
 <span class="doccomment">/// # };</span>
 <span class="doccomment">/// ```</span>
 <span class="attribute">#[<span class="ident">cfg_attr</span>(<span class="ident">docsrs</span>, <span class="ident">doc</span>(<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;gpt&quot;</span>)))]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">GPT</span> {
     <span class="ident">gpt</span>: <span class="ident">ral</span>::<span class="ident">gpt</span>::<span class="ident">Instance</span>,
-    <span class="ident">hz</span>: <span class="ident">u32</span>,
     <span class="ident">output_compare</span>: <span class="ident">OutputCompare</span>,
 }
-
-<span class="doccomment">/// GPT clock divider</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// This crystal oscillator is very sensitive. Not all values</span>
-<span class="doccomment">/// seem to work. 5 is one of them that does. So is 3. 10 does</span>
-<span class="doccomment">/// not work. The field is supposed to support values up to 0xF.</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// The seL4 project also notes issues with this divider value.</span>
-<span class="doccomment">/// Can&#39;t find anything in the errata...</span>
-<span class="kw">const</span> <span class="ident">DIVIDER</span>: <span class="ident">u32</span> <span class="op">=</span> <span class="number">5</span>;
 
 <span class="kw">fn</span> <span class="ident">steal</span>(<span class="ident">gpt</span>: <span class="kw-2">&amp;</span><span class="ident">ral</span>::<span class="ident">gpt</span>::<span class="ident">Instance</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">ral</span>::<span class="ident">gpt</span>::<span class="ident">Instance</span> {
     <span class="comment">// Safety: we already have a GPT instance, so users won&#39;t notice</span>
@@ -359,21 +326,12 @@
 
 <span class="kw">impl</span> <span class="ident">GPT</span> {
     <span class="doccomment">/// Create a new `GPT` from a RAL GPT instance</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">gpt</span>: <span class="ident">ral</span>::<span class="ident">gpt</span>::<span class="ident">Instance</span>, <span class="ident">clock</span>: <span class="kw-2">&amp;</span><span class="kw">crate</span>::<span class="ident">ccm</span>::<span class="ident">PerClock</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="self">Self</span>, <span class="self">Self</span>, <span class="self">Self</span>) {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">gpt</span>: <span class="ident">ral</span>::<span class="ident">gpt</span>::<span class="ident">Instance</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="self">Self</span>, <span class="self">Self</span>, <span class="self">Self</span>) {
         <span class="kw">let</span> <span class="ident">irq</span> <span class="op">=</span> <span class="kw">match</span> <span class="kw-2">&amp;</span><span class="kw-2">*</span><span class="ident">gpt</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="kw">_</span> {
             <span class="ident">ral</span>::<span class="ident">gpt</span>::<span class="ident">GPT1</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ral</span>::<span class="ident">interrupt</span>::<span class="ident">GPT1</span>,
             <span class="ident">ral</span>::<span class="ident">gpt</span>::<span class="ident">GPT2</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ral</span>::<span class="ident">interrupt</span>::<span class="ident">GPT2</span>,
             <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">unreachable</span><span class="macro">!</span>(<span class="string">&quot;There are only two GPTs&quot;</span>),
         };
-
-        <span class="ident">ral</span>::<span class="macro">write_reg</span><span class="macro">!</span>(
-            <span class="ident">ral</span>::<span class="ident">gpt</span>,
-            <span class="ident">gpt</span>,
-            <span class="ident">CR</span>,
-            <span class="ident">EN_24M</span>: <span class="number">1</span>, <span class="comment">// Enable crystal oscillator</span>
-            <span class="ident">CLKSRC</span>: <span class="number">0b101</span> <span class="comment">// Crystal Oscillator</span>
-        );
-        <span class="ident">ral</span>::<span class="macro">write_reg</span><span class="macro">!</span>(<span class="ident">ral</span>::<span class="ident">gpt</span>, <span class="ident">gpt</span>, <span class="ident">PR</span>, <span class="ident">PRESCALER24M</span>: <span class="ident">DIVIDER</span> <span class="op">-</span> <span class="number">1</span>);
 
         <span class="comment">// Clear all statuses</span>
         <span class="ident">ral</span>::<span class="macro">write_reg</span><span class="macro">!</span>(<span class="ident">ral</span>::<span class="ident">gpt</span>, <span class="ident">gpt</span>, <span class="ident">SR</span>, <span class="number">0b11_1111</span>);
@@ -390,49 +348,32 @@
         );
 
         <span class="kw">unsafe</span> { <span class="ident">cortex_m</span>::<span class="ident">peripheral</span>::<span class="ident">NVIC</span>::<span class="ident">unmask</span>(<span class="ident">irq</span>) };
-        <span class="kw">let</span> <span class="ident">hz</span> <span class="op">=</span> <span class="ident">clock</span>.<span class="ident">frequency</span>() <span class="op">/</span> <span class="ident">DIVIDER</span>;
         (
             <span class="ident">GPT</span> {
                 <span class="ident">gpt</span>: <span class="ident">steal</span>(<span class="kw-2">&amp;</span><span class="ident">gpt</span>),
-                <span class="ident">hz</span>,
                 <span class="ident">output_compare</span>: <span class="ident">OutputCompare</span>::<span class="ident">Channel1</span>,
             },
             <span class="ident">GPT</span> {
                 <span class="ident">gpt</span>: <span class="ident">steal</span>(<span class="kw-2">&amp;</span><span class="ident">gpt</span>),
-                <span class="ident">hz</span>,
                 <span class="ident">output_compare</span>: <span class="ident">OutputCompare</span>::<span class="ident">Channel2</span>,
             },
             <span class="ident">GPT</span> {
                 <span class="ident">gpt</span>,
-                <span class="ident">hz</span>,
                 <span class="ident">output_compare</span>: <span class="ident">OutputCompare</span>::<span class="ident">Channel3</span>,
             },
         )
     }
 
-    <span class="doccomment">/// Wait for the specified `duration` to elapse</span>
+    <span class="doccomment">/// Wait for `ticks` clock counts to elapse</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// If the microseconds represented by the duration cannot fit in a `u32`, the</span>
-    <span class="doccomment">/// delay will saturate at `u32::max_value()` microseconds.</span>
-    <span class="kw">pub</span> <span class="ident">async</span> <span class="kw">fn</span> <span class="ident">delay</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">duration</span>: <span class="ident">Duration</span>) {
-        <span class="kw">use</span> <span class="ident">core</span>::<span class="ident">convert</span>::<span class="ident">TryFrom</span>;
-        <span class="self">self</span>.<span class="ident">delay_us</span>(<span class="ident">u32</span>::<span class="ident">try_from</span>(<span class="ident">duration</span>.<span class="ident">as_micros</span>()).<span class="ident">unwrap_or</span>(<span class="ident">u32</span>::<span class="ident">max_value</span>()))
-            .<span class="ident">await</span>
-    }
-    <span class="doccomment">/// Wait for `microseconds` to elapse</span>
-    <span class="kw">pub</span> <span class="ident">async</span> <span class="kw">fn</span> <span class="ident">delay_us</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">microseconds</span>: <span class="ident">u32</span>) {
+    <span class="doccomment">/// The elapsed time depends on your clock configuration.</span>
+    <span class="kw">pub</span> <span class="ident">async</span> <span class="kw">fn</span> <span class="ident">delay</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">ticks</span>: <span class="ident">u32</span>) {
         <span class="ident">Delay</span> {
             <span class="ident">gpt</span>: <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">gpt</span>,
-            <span class="ident">delay_ns</span>: <span class="ident">microseconds</span>.<span class="ident">saturating_mul</span>(<span class="number">1_000</span>),
-            <span class="ident">hz</span>: <span class="self">self</span>.<span class="ident">hz</span>,
+            <span class="ident">ticks</span>,
             <span class="ident">output_compare</span>: <span class="self">self</span>.<span class="ident">output_compare</span>,
         }
         .<span class="ident">await</span>
-    }
-
-    <span class="doccomment">/// Returns the `GPT` clock period</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">clock_period</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Duration</span> {
-        <span class="ident">Duration</span>::<span class="ident">from_micros</span>((<span class="number">1_000_000</span> <span class="op">/</span> <span class="self">self</span>.<span class="ident">hz</span>) <span class="kw">as</span> <span class="ident">u64</span>)
     }
 }
 
@@ -500,8 +441,7 @@
 <span class="kw">struct</span> <span class="ident">Delay</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
     <span class="ident">gpt</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">ral</span>::<span class="ident">gpt</span>::<span class="ident">Instance</span>,
     <span class="ident">output_compare</span>: <span class="ident">OutputCompare</span>,
-    <span class="ident">hz</span>: <span class="ident">u32</span>,
-    <span class="ident">delay_ns</span>: <span class="ident">u32</span>,
+    <span class="ident">ticks</span>: <span class="ident">u32</span>,
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">Future</span> <span class="kw">for</span> <span class="ident">Delay</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
@@ -514,14 +454,8 @@
             <span class="ident">Poll</span>::<span class="ident">Pending</span>
         } <span class="kw">else</span> {
             <span class="kw-2">*</span><span class="ident">waker</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">gpt</span>, <span class="self">self</span>.<span class="ident">output_compare</span>) <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">cx</span>.<span class="ident">waker</span>().<span class="ident">clone</span>());
-            <span class="kw">let</span> <span class="ident">period_ns</span> <span class="op">=</span> <span class="number">1_000_000_000</span> <span class="op">/</span> <span class="self">self</span>.<span class="ident">hz</span>;
-            <span class="kw">let</span> <span class="ident">ticks</span> <span class="op">=</span> <span class="self">self</span>
-                .<span class="ident">delay_ns</span>
-                .<span class="ident">checked_div</span>(<span class="ident">period_ns</span>)
-                .<span class="ident">unwrap_or</span>(<span class="number">0</span>)
-                .<span class="ident">saturating_sub</span>(<span class="number">1</span>);
             <span class="kw">let</span> <span class="ident">current_tick</span> <span class="op">=</span> <span class="ident">ral</span>::<span class="macro">read_reg</span><span class="macro">!</span>(<span class="ident">ral</span>::<span class="ident">gpt</span>, <span class="self">self</span>.<span class="ident">gpt</span>, <span class="ident">CNT</span>);
-            <span class="kw">let</span> <span class="ident">next_tick</span> <span class="op">=</span> <span class="ident">current_tick</span>.<span class="ident">wrapping_add</span>(<span class="ident">ticks</span>);
+            <span class="kw">let</span> <span class="ident">next_tick</span> <span class="op">=</span> <span class="ident">current_tick</span>.<span class="ident">wrapping_add</span>(<span class="self">self</span>.<span class="ident">ticks</span>);
             <span class="ident">set_ticks</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">gpt</span>, <span class="self">self</span>.<span class="ident">output_compare</span>, <span class="ident">next_tick</span>);
             <span class="ident">atomic</span>::<span class="ident">compiler_fence</span>(<span class="ident">atomic</span>::<span class="ident">Ordering</span>::<span class="ident">Release</span>);
             <span class="ident">enable_interrupt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">gpt</span>, <span class="self">self</span>.<span class="ident">output_compare</span>);

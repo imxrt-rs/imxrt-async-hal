@@ -342,38 +342,6 @@
 <span id="339">339</span>
 <span id="340">340</span>
 <span id="341">341</span>
-<span id="342">342</span>
-<span id="343">343</span>
-<span id="344">344</span>
-<span id="345">345</span>
-<span id="346">346</span>
-<span id="347">347</span>
-<span id="348">348</span>
-<span id="349">349</span>
-<span id="350">350</span>
-<span id="351">351</span>
-<span id="352">352</span>
-<span id="353">353</span>
-<span id="354">354</span>
-<span id="355">355</span>
-<span id="356">356</span>
-<span id="357">357</span>
-<span id="358">358</span>
-<span id="359">359</span>
-<span id="360">360</span>
-<span id="361">361</span>
-<span id="362">362</span>
-<span id="363">363</span>
-<span id="364">364</span>
-<span id="365">365</span>
-<span id="366">366</span>
-<span id="367">367</span>
-<span id="368">368</span>
-<span id="369">369</span>
-<span id="370">370</span>
-<span id="371">371</span>
-<span id="372">372</span>
-<span id="373">373</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! UART serial driver</span>
 
@@ -394,36 +362,42 @@
 <span class="doccomment">///</span>
 <span class="doccomment">/// ```no_run</span>
 <span class="doccomment">/// use imxrt_async_hal as hal;</span>
-<span class="doccomment">/// use hal::{ccm::{self, ClockGate}, dma, iomuxc, UART, instance};</span>
-<span class="doccomment">/// use hal::ral::{</span>
+<span class="doccomment">/// use hal::{dma, iomuxc, UART, instance};</span>
+<span class="doccomment">/// use hal::ral::{self,</span>
 <span class="doccomment">///     ccm::CCM, lpuart::LPUART2,</span>
 <span class="doccomment">///     dma0::DMA0, dmamux::DMAMUX,</span>
 <span class="doccomment">///     iomuxc::IOMUXC,</span>
 <span class="doccomment">/// };</span>
 <span class="doccomment">///</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// const SOURCE_CLOCK_HZ: u32 = 24_000_000; // XTAL</span>
+<span class="doccomment">/// const SOURCE_CLOCK_DIVIDER: u32 = 1;</span>
+<span class="doccomment">///</span>
 <span class="doccomment">/// let pads = IOMUXC::take().map(iomuxc::new).unwrap();</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// let mut ccm = CCM::take().map(ccm::CCM::from_ral).unwrap();</span>
-<span class="doccomment">/// let mut dma = DMA0::take().unwrap();</span>
-<span class="doccomment">/// ccm.handle.set_clock_gate_dma(&amp;mut dma, ClockGate::On);</span>
+<span class="doccomment">/// let ccm = CCM::take().unwrap();</span>
+<span class="doccomment">/// // Select 24MHz XTAL as clock source, no divider...</span>
+<span class="doccomment">/// ral::modify_reg!(ral::ccm, ccm, CSCDR1, UART_CLK_SEL: 1 /* Oscillator */, UART_CLK_PODF: SOURCE_CLOCK_DIVIDER - 1);</span>
+<span class="doccomment">/// // Enable LPUART2 clock gate...</span>
+<span class="doccomment">/// ral::modify_reg!(ral::ccm, ccm, CCGR0, CG14: 0b11);</span>
+<span class="doccomment">/// // DMA clock gate on</span>
+<span class="doccomment">/// ral::modify_reg!(ral::ccm, ccm, CCGR5, CG3: 0b11);</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// let dma = DMA0::take().unwrap();</span>
 <span class="doccomment">/// let mut channels = dma::channels(</span>
 <span class="doccomment">///     dma,</span>
 <span class="doccomment">///     DMAMUX::take().unwrap(),</span>
 <span class="doccomment">/// );</span>
-<span class="doccomment">/// let mut uart2 = LPUART2::take().and_then(instance::uart).unwrap();</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// let mut uart_clock = ccm.uart_clock.enable(&amp;mut ccm.handle);</span>
-<span class="doccomment">/// uart_clock.set_clock_gate(&amp;mut uart2, ClockGate::On);</span>
+<span class="doccomment">/// let uart2 = LPUART2::take().and_then(instance::uart).unwrap();</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// let mut uart = UART::new(</span>
 <span class="doccomment">///     uart2,</span>
 <span class="doccomment">///     pads.ad_b1.p02, // TX</span>
 <span class="doccomment">///     pads.ad_b1.p03, // RX</span>
 <span class="doccomment">///     channels[7].take().unwrap(),</span>
-<span class="doccomment">///     &amp;uart_clock,</span>
 <span class="doccomment">/// );</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// uart.set_baud(9600).unwrap();</span>
+<span class="doccomment">/// uart.set_baud(9600, SOURCE_CLOCK_HZ / SOURCE_CLOCK_DIVIDER).unwrap();</span>
 <span class="doccomment">/// # async {</span>
 <span class="doccomment">/// loop {</span>
 <span class="doccomment">///     let mut buffer = [0; 1];</span>
@@ -438,7 +412,6 @@
     <span class="ident">channel</span>: <span class="ident">dma</span>::<span class="ident">Channel</span>,
     <span class="ident">tx</span>: <span class="ident">TX</span>,
     <span class="ident">rx</span>: <span class="ident">RX</span>,
-    <span class="ident">hz</span>: <span class="ident">u32</span>,
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">TX</span>, <span class="ident">RX</span><span class="op">&gt;</span> <span class="ident">fmt</span>::<span class="ident">Debug</span> <span class="kw">for</span> <span class="ident">UART</span><span class="op">&lt;</span><span class="ident">TX</span>, <span class="ident">RX</span><span class="op">&gt;</span> {
@@ -462,21 +435,18 @@
         <span class="kw-2">mut</span> <span class="ident">tx</span>: <span class="ident">TX</span>,
         <span class="kw-2">mut</span> <span class="ident">rx</span>: <span class="ident">RX</span>,
         <span class="ident">channel</span>: <span class="ident">dma</span>::<span class="ident">Channel</span>,
-        <span class="ident">clock</span>: <span class="kw-2">&amp;</span><span class="kw">crate</span>::<span class="ident">ccm</span>::<span class="ident">UARTClock</span>,
     ) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">UART</span><span class="op">&lt;</span><span class="ident">TX</span>, <span class="ident">RX</span><span class="op">&gt;</span> {
         <span class="kw">crate</span>::<span class="ident">iomuxc</span>::<span class="ident">uart</span>::<span class="ident">prepare</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">tx</span>);
         <span class="kw">crate</span>::<span class="ident">iomuxc</span>::<span class="ident">uart</span>::<span class="ident">prepare</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">rx</span>);
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">uart</span> <span class="op">=</span> <span class="ident">UART</span> {
+        <span class="kw">let</span> <span class="ident">uart</span> <span class="op">=</span> <span class="ident">UART</span> {
             <span class="ident">uart</span>: <span class="ident">DmaCapable</span> {
                 <span class="ident">uart</span>: <span class="ident">uart</span>.<span class="ident">release</span>(),
             },
             <span class="ident">tx</span>,
             <span class="ident">rx</span>,
             <span class="ident">channel</span>,
-            <span class="ident">hz</span>: <span class="ident">clock</span>.<span class="ident">frequency</span>(),
         };
-        <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="ident">uart</span>.<span class="ident">set_baud</span>(<span class="number">9600</span>);
         <span class="ident">ral</span>::<span class="macro">modify_reg</span><span class="macro">!</span>(<span class="ident">ral</span>::<span class="ident">lpuart</span>, <span class="ident">uart</span>.<span class="ident">uart</span>, <span class="ident">CTRL</span>, <span class="ident">TE</span>: <span class="ident">TE_1</span>, <span class="ident">RE</span>: <span class="ident">RE_1</span>);
         <span class="ident">uart</span>
     }
@@ -486,8 +456,8 @@
     <span class="doccomment">/// Set the serial baud rate</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// If there is an error, the error is [`Error::Clock`](Error::Clock).</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">set_baud</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">baud</span>: <span class="ident">u32</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">timings</span> <span class="op">=</span> <span class="ident">timings</span>(<span class="self">self</span>.<span class="ident">hz</span>, <span class="ident">baud</span>)<span class="question-mark">?</span>;
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">set_baud</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">baud</span>: <span class="ident">u32</span>, <span class="ident">source_clock_hz</span>: <span class="ident">u32</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">timings</span> <span class="op">=</span> <span class="ident">timings</span>(<span class="ident">source_clock_hz</span>, <span class="ident">baud</span>)<span class="question-mark">?</span>;
         <span class="self">self</span>.<span class="ident">while_disabled</span>(<span class="op">|</span><span class="ident">this</span><span class="op">|</span> {
             <span class="ident">ral</span>::<span class="macro">modify_reg</span><span class="macro">!</span>(
                 <span class="ident">ral</span>::<span class="ident">lpuart</span>,
@@ -714,39 +684,5 @@
         }
     }
 }
-
-<span class="doccomment">/// ```no_run</span>
-<span class="doccomment">/// use imxrt_async_hal as hal;</span>
-<span class="doccomment">/// use hal::ral::{ccm::CCM, lpuart::LPUART2};</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// let hal::ccm::CCM {</span>
-<span class="doccomment">///     mut handle,</span>
-<span class="doccomment">///     uart_clock,</span>
-<span class="doccomment">///     ..</span>
-<span class="doccomment">/// } = CCM::take().map(hal::ccm::CCM::from_ral).unwrap();</span>
-<span class="doccomment">/// let mut uart_clock = uart_clock.enable(&amp;mut handle);</span>
-<span class="doccomment">/// let mut uart2 = LPUART2::take().unwrap();</span>
-<span class="doccomment">/// uart_clock.set_clock_gate(&amp;mut uart2, hal::ccm::ClockGate::On);</span>
-<span class="doccomment">/// ```</span>
-<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">doctest</span>)]</span>
-<span class="kw">struct</span> <span class="ident">ClockingWeakRalInstance</span>;
-
-<span class="doccomment">/// ```no_run</span>
-<span class="doccomment">/// use imxrt_async_hal as hal;</span>
-<span class="doccomment">/// use hal::ral::{ccm::CCM, lpuart::LPUART2};</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// let hal::ccm::CCM {</span>
-<span class="doccomment">///     mut handle,</span>
-<span class="doccomment">///     uart_clock,</span>
-<span class="doccomment">///     ..</span>
-<span class="doccomment">/// } = CCM::take().map(hal::ccm::CCM::from_ral).unwrap();</span>
-<span class="doccomment">/// let mut uart_clock = uart_clock.enable(&amp;mut handle);</span>
-<span class="doccomment">/// let mut uart2: hal::instance::UART&lt;hal::iomuxc::consts::U2&gt; = LPUART2::take()</span>
-<span class="doccomment">///     .and_then(hal::instance::uart)</span>
-<span class="doccomment">///     .unwrap();</span>
-<span class="doccomment">/// uart_clock.set_clock_gate(&amp;mut uart2, hal::ccm::ClockGate::On);</span>
-<span class="doccomment">/// ```</span>
-<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">doctest</span>)]</span>
-<span class="kw">struct</span> <span class="ident">ClockingStrongHalInstance</span>;
 </pre></div>
 </section><section id="search" class="content hidden"></section><section class="footer"></section><script>window.rootPath = "../../";window.currentCrate = "imxrt_async_hal";</script><script src="../../main.js"></script><script src="../../source-script.js"></script><script src="../../source-files.js"></script><script defer src="../../search-index.js"></script></body></html>

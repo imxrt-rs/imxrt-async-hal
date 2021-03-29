@@ -341,12 +341,6 @@
 <span id="338">338</span>
 <span id="339">339</span>
 <span id="340">340</span>
-<span id="341">341</span>
-<span id="342">342</span>
-<span id="343">343</span>
-<span id="344">344</span>
-<span id="345">345</span>
-<span id="346">346</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Cross-task communication with DMA channels</span>
 <span class="doccomment">//!</span>
@@ -372,25 +366,18 @@
 <span class="doccomment">//!</span>
 <span class="doccomment">//! # Example</span>
 <span class="doccomment">//!</span>
-<span class="doccomment">//! Transmit an incrementing counter every 100ms using DMA channel 13. The sender is delayed by a GPT timer, which delays</span>
-<span class="doccomment">//! the receiver.</span>
+<span class="doccomment">//! Transmit an incrementing counter using DMA channel 13.</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! ```no_run</span>
 <span class="doccomment">//! use imxrt_async_hal as hal;</span>
-<span class="doccomment">//! use hal::{ccm::{CCM, ClockGate}, dma};</span>
-<span class="doccomment">//! use hal::ral::{ccm, dma0, dmamux, gpt::GPT1};</span>
+<span class="doccomment">//! use hal::dma;</span>
+<span class="doccomment">//! use hal::ral::{self, ccm, dma0, dmamux};</span>
 <span class="doccomment">//!</span>
-<span class="doccomment">//! let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();</span>
-<span class="doccomment">//! let mut perclock = ccm.perclock.enable(&amp;mut ccm.handle);</span>
-<span class="doccomment">//! let (_, mut gpt, _) = GPT1::take()</span>
-<span class="doccomment">//!     .map(|mut inst| {</span>
-<span class="doccomment">//!         perclock.set_clock_gate_gpt(&amp;mut inst, ClockGate::On);</span>
-<span class="doccomment">//!         hal::GPT::new(inst, &amp;mut perclock)</span>
-<span class="doccomment">//!     })</span>
-<span class="doccomment">//!     .unwrap();</span>
+<span class="doccomment">//! let ccm = ral::ccm::CCM::take().unwrap();</span>
+<span class="doccomment">//! // DMA clock gate on</span>
+<span class="doccomment">//! ral::modify_reg!(ral::ccm, ccm, CCGR5, CG3: 0b11);</span>
 <span class="doccomment">//!</span>
-<span class="doccomment">//! let mut dma = dma0::DMA0::take().unwrap();</span>
-<span class="doccomment">//! ccm.handle.set_clock_gate_dma(&amp;mut dma, ClockGate::On);</span>
+<span class="doccomment">//! let dma = dma0::DMA0::take().unwrap();</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! let mut channels = dma::channels(</span>
 <span class="doccomment">//!     dma,</span>
@@ -402,7 +389,6 @@
 <span class="doccomment">//!     let mut counter: i32 = 0;</span>
 <span class="doccomment">//!     loop {</span>
 <span class="doccomment">//!         tx.send(&amp;counter).await.unwrap();</span>
-<span class="doccomment">//!         gpt.delay_us(100_000u32).await;</span>
 <span class="doccomment">//!         counter = counter.wrapping_add(1);</span>
 <span class="doccomment">//!     }</span>
 <span class="doccomment">//! };</span>
@@ -484,12 +470,14 @@
 <span class="doccomment">/// [module-level documentation](self).</span>
 <span class="doccomment">/// ```no_run</span>
 <span class="doccomment">/// use imxrt_async_hal as hal;</span>
-<span class="doccomment">/// use hal::{ccm::{CCM, ClockGate}, dma};</span>
-<span class="doccomment">/// use hal::ral::{dma0, dmamux, ccm};</span>
+<span class="doccomment">/// use hal::dma;</span>
+<span class="doccomment">/// use hal::ral::{self, dma0, dmamux, ccm};</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();</span>
-<span class="doccomment">/// let mut dma = dma0::DMA0::take().unwrap();</span>
-<span class="doccomment">/// ccm.handle.set_clock_gate_dma(&amp;mut dma, ClockGate::On);</span>
+<span class="doccomment">/// let ccm = ral::ccm::CCM::take().unwrap();</span>
+<span class="doccomment">/// // DMA clock gate on</span>
+<span class="doccomment">/// ral::modify_reg!(ral::ccm, ccm, CCGR5, CG3: 0b11);</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// let dma = dma0::DMA0::take().unwrap();</span>
 <span class="doccomment">/// let mut channels = dma::channels(</span>
 <span class="doccomment">///     dma,</span>
 <span class="doccomment">///     dmamux::DMAMUX::take().unwrap(),</span>

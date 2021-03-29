@@ -140,6 +140,8 @@
 <span id="137">137</span>
 <span id="138">138</span>
 <span id="139">139</span>
+<span id="140">140</span>
+<span id="141">141</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Direct Memory Access (DMA) for async I/O</span>
 <span class="doccomment">//!</span>
@@ -196,8 +198,8 @@
 <span class="doccomment">/// The return is 32 channels. However, **only the first [`CHANNEL_COUNT`] channels</span>
 <span class="doccomment">/// are initialized to `Some(channel)`. The rest are `None`**.</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// You should enable the clock gates before calling `channels`. See</span>
-<span class="doccomment">/// [`ccm::Handle::clock_gate_dma`](super::ccm::Handle::set_clock_gate_dma()) for more information.</span>
+<span class="doccomment">/// You should enable the clock gates before calling `channels`. See the example for more</span>
+<span class="doccomment">/// information on enabling clock gates.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// # Example</span>
 <span class="doccomment">///</span>
@@ -205,14 +207,16 @@
 <span class="doccomment">///</span>
 <span class="doccomment">/// ```no_run</span>
 <span class="doccomment">/// use imxrt_async_hal as hal;</span>
-<span class="doccomment">/// use hal::{ccm::{CCM, ClockGate}, dma};</span>
-<span class="doccomment">/// use hal::ral::{dma0, dmamux, ccm};</span>
+<span class="doccomment">/// use hal::dma;</span>
+<span class="doccomment">/// use hal::ral::{self, dma0, dmamux, ccm};</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// fn prepare_peripheral(channel: dma::Channel) { /* ... */ }</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// let mut ccm = ccm::CCM::take().map(CCM::from_ral).unwrap();</span>
+<span class="doccomment">/// let ccm = ccm::CCM::take().unwrap();</span>
+<span class="doccomment">/// // DMA clock gate on</span>
+<span class="doccomment">/// ral::modify_reg!(ral::ccm, ccm, CCGR5, CG3: 0b11);</span>
+<span class="doccomment">///</span>
 <span class="doccomment">/// let mut dma = dma0::DMA0::take().unwrap();</span>
-<span class="doccomment">/// ccm.handle.set_clock_gate_dma(&amp;mut dma, ClockGate::On);</span>
 <span class="doccomment">/// let mut channels = dma::channels(</span>
 <span class="doccomment">///     dma,</span>
 <span class="doccomment">///     dmamux::DMAMUX::take().unwrap(),</span>
