@@ -195,16 +195,8 @@ impl<Pins> SPI<Pins> {
 #[derive(Debug)]
 #[cfg_attr(docsrs, doc(cfg(feature = "spi")))]
 pub enum Error {
-    /// Error when coordinating a DMA transaction
-    DMA(dma::Error),
     /// Error when configuring the SPI serial clock
     ClockSpeed,
-}
-
-impl From<dma::Error> for Error {
-    fn from(err: dma::Error) -> Self {
-        Error::DMA(err)
-    }
 }
 
 impl<Pins> SPI<Pins> {

@@ -180,14 +180,6 @@ struct Timings {
 pub enum Error {
     /// There was an error when preparing the baud rate or clocks
     Clock,
-    /// Error when preparing a DMA transaction
-    DMA(dma::Error),
-}
-
-impl From<dma::Error> for Error {
-    fn from(error: dma::Error) -> Self {
-        Error::DMA(error)
-    }
 }
 
 /// Compute timings for a UART peripheral. Returns the timings,
