@@ -11,10 +11,7 @@
 //! while clocking-out data.
 
 use super::Error;
-use crate::{
-    instance::Inst,
-    ral::{self, lpi2c::Instance},
-};
+use crate::ral::{self, lpi2c::RegisterBlock};
 
 use core::{
     sync::atomic,
@@ -22,7 +19,7 @@ use core::{
 };
 
 /// Resolves when there's space in the transmit FIFO
-fn poll_transmit_ready(i2c: &Instance, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
+fn poll_transmit_ready(i2c: &RegisterBlock, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
     if let Err(err) = super::check_errors(&i2c) {
         Poll::Ready(Err(err))
     } else if ral::read_reg!(ral::lpi2c, i2c, MSR, TDF == TDF_1) {
@@ -37,7 +34,7 @@ fn poll_transmit_ready(i2c: &Instance, cx: &mut Context<'_>) -> Poll<Result<(), 
 
 /// Command a write to `address`
 pub fn poll_start_write(
-    i2c: &Instance,
+    i2c: &RegisterBlock,
     cx: &mut Context<'_>,
     address: u8,
 ) -> Poll<Result<(), Error>> {
@@ -48,7 +45,7 @@ pub fn poll_start_write(
 
 /// Command a read from `address`
 pub fn poll_start_read(
-    i2c: &Instance,
+    i2c: &RegisterBlock,
     cx: &mut Context<'_>,
     address: u8,
 ) -> Poll<Result<(), Error>> {
@@ -58,14 +55,14 @@ pub fn poll_start_read(
 }
 
 /// Send `value` to the I2C device
-pub fn poll_send(i2c: &Instance, cx: &mut Context<'_>, value: u8) -> Poll<Result<(), Error>> {
+pub fn poll_send(i2c: &RegisterBlock, cx: &mut Context<'_>, value: u8) -> Poll<Result<(), Error>> {
     poll_transmit_ready(i2c, cx).map_ok(|_| {
         ral::write_reg!(ral::lpi2c, i2c, MTDR, CMD: CMD_0, DATA: value as u32);
     })
 }
 
 /// Resolves when we acknowledge and end of packet (repeated start, or stop condition)
-pub fn poll_end_of_packet(i2c: &Instance, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
+pub fn poll_end_of_packet(i2c: &RegisterBlock, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
     if let Err(err) = super::check_errors(&i2c) {
         Poll::Ready(Err(err))
     } else if ral::read_reg!(ral::lpi2c, i2c, MSR, EPF == EPF_1) {
@@ -82,7 +79,7 @@ pub fn poll_end_of_packet(i2c: &Instance, cx: &mut Context<'_>) -> Poll<Result<(
 
 /// Prepare to receive `len` bytes from the I2C device
 pub fn poll_receive_length(
-    i2c: &Instance,
+    i2c: &RegisterBlock,
     cx: &mut Context<'_>,
     len: usize,
 ) -> Poll<Result<(), Error>> {
@@ -91,7 +88,7 @@ pub fn poll_receive_length(
 }
 
 /// Receive a byte from the I2C device
-pub fn poll_receive(i2c: &Instance, cx: &mut Context<'_>) -> Poll<Result<u8, Error>> {
+pub fn poll_receive(i2c: &RegisterBlock, cx: &mut Context<'_>) -> Poll<Result<u8, Error>> {
     if let Err(err) = super::check_errors(&i2c) {
         Poll::Ready(Err(err))
     } else if ral::read_reg!(ral::lpi2c, i2c, MSR, RDF == RDF_1) {
@@ -106,14 +103,14 @@ pub fn poll_receive(i2c: &Instance, cx: &mut Context<'_>) -> Poll<Result<u8, Err
 }
 
 /// Command a stop, resolving once the command is enqueued
-pub fn poll_stop_setup(i2c: &Instance, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
+pub fn poll_stop_setup(i2c: &RegisterBlock, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
     poll_transmit_ready(i2c, cx).map_ok(|_| {
         ral::write_reg!(ral::lpi2c, i2c, MTDR, CMD: CMD_2);
     })
 }
 
 /// Resolves when the stop condition generates an interrupt
-pub fn poll_stop(i2c: &Instance, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
+pub fn poll_stop(i2c: &RegisterBlock, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
     if let Err(err) = super::check_errors(&i2c) {
         Poll::Ready(Err(err))
     } else if ral::read_reg!(ral::lpi2c, i2c, MSR, SDF == SDF_1) {
@@ -138,7 +135,7 @@ enum InterruptKind {
 
 /// Enable the I2C interrupts of interest
 #[inline(always)]
-fn enable_interrupts(i2c: &Instance, kind: InterruptKind) {
+fn enable_interrupts(i2c: &RegisterBlock, kind: InterruptKind) {
     ral::write_reg!(
         ral::lpi2c,
         i2c,
@@ -155,7 +152,7 @@ fn enable_interrupts(i2c: &Instance, kind: InterruptKind) {
 }
 
 #[inline(always)]
-fn on_interrupt(i2c: &Instance) {
+fn on_interrupt(i2c: &RegisterBlock) {
     super::disable_interrupts(i2c);
     if let Some(waker) = waker(i2c).take() {
         waker.wake();
@@ -163,9 +160,18 @@ fn on_interrupt(i2c: &Instance) {
 }
 
 /// Returns the waker state associated with this I2C instance
-fn waker(i2c: &Instance) -> &'static mut Option<Waker> {
+fn waker(i2c: &RegisterBlock) -> &'static mut Option<Waker> {
     static mut WAKERS: [Option<Waker>; 4] = [None, None, None, None];
-    unsafe { &mut WAKERS[i2c.inst().wrapping_sub(1)] }
+    let inst = match &*i2c as *const _ {
+        ral::lpi2c::LPI2C1 => 0,
+        ral::lpi2c::LPI2C2 => 1,
+        #[cfg(feature = "imxrt1060")]
+        ral::lpi2c::LPI2C3 => 2,
+        #[cfg(feature = "imxrt1060")]
+        ral::lpi2c::LPI2C4 => 3,
+        _ => unreachable!(),
+    };
+    unsafe { &mut WAKERS[inst] }
 }
 
 #[cfg(not(any(feature = "imxrt1010", feature = "imxrt1060")))]

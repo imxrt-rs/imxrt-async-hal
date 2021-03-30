@@ -45,7 +45,7 @@
 //! ```no_run
 //! use imxrt_async_hal as hal;
 //! use hal::{
-//!     iomuxc, I2C, I2CClockSpeed,
+//!     iomuxc, I2c, I2cClockSpeed,
 //!     ral::{self, ccm::CCM, iomuxc::IOMUXC, lpi2c::LPI2C3},
 //! };
 //! # const PINCONFIG: iomuxc::Config = iomuxc::Config::zero();
@@ -65,10 +65,10 @@
 //! iomuxc::configure(&mut pads.ad_b1.p07, PINCONFIG);
 //! iomuxc::configure(&mut pads.ad_b1.p06, PINCONFIG);
 //!
-//! let mut i2c3 = LPI2C3::take().and_then(hal::instance::i2c).unwrap();
+//! let mut i2c3 = LPI2C3::take().unwrap();
 //!
-//! let mut i2c = I2C::new(i2c3, pads.ad_b1.p07, pads.ad_b1.p06);
-//! i2c.set_clock_speed(I2CClockSpeed::KHz400, SOURCE_CLOCK_HZ / SOURCE_CLOCK_DIVIDER).unwrap();
+//! let mut i2c = I2c::new(i2c3, pads.ad_b1.p07, pads.ad_b1.p06);
+//! i2c.set_clock_speed(I2cClockSpeed::KHz400, SOURCE_CLOCK_HZ / SOURCE_CLOCK_DIVIDER).unwrap();
 //!
 //! # async {
 //! # const DEVICE_ADDRESS: u8 = 0;
@@ -91,20 +91,23 @@ pub use write_read::WriteRead;
 
 use crate::{
     iomuxc,
-    ral::{self, lpi2c::Instance},
+    ral::{
+        self,
+        lpi2c::{Instance, RegisterBlock},
+    },
 };
 
 /// The I2C driver instance
 ///
 /// See the [module-level documentation](mod@crate::i2c) for more information.
 #[cfg_attr(docsrs, doc(cfg(feature = "i2c")))]
-pub struct I2C<SCL, SDA> {
-    i2c: Instance,
+pub struct I2c<N, SCL, SDA> {
+    i2c: Instance<N>,
     scl: SCL,
     sda: SDA,
 }
 
-impl<SCL, SDA, M> I2C<SCL, SDA>
+impl<M, SCL, SDA> I2c<M, SCL, SDA>
 where
     M: iomuxc::consts::Unsigned,
     SCL: iomuxc::i2c::Pin<Signal = iomuxc::i2c::SCL, Module = M>,
@@ -114,11 +117,10 @@ where
     ///
     /// The I2C clock speed of the returned `I2C` driver is unspecified and may not be valid.
     /// Use [`set_clock_speed`](I2C::set_clock_speed()) to select a valid I2C clock speed.
-    pub fn new(i2c: crate::instance::I2C<M>, mut scl: SCL, mut sda: SDA) -> Self {
+    pub fn new(i2c: Instance<M>, mut scl: SCL, mut sda: SDA) -> Self {
         iomuxc::i2c::prepare(&mut scl);
         iomuxc::i2c::prepare(&mut sda);
 
-        let i2c = i2c.release();
         ral::write_reg!(ral::lpi2c, i2c, MCR, RST: RST_1);
         // Reset is sticky; needs to be explicitly cleared
         ral::write_reg!(ral::lpi2c, i2c, MCR, RST: RST_0);
@@ -140,7 +142,7 @@ where
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::LPI2C4);
         });
 
-        I2C { i2c, scl, sda }
+        I2c { i2c, scl, sda }
     }
 }
 
@@ -158,9 +160,9 @@ pub enum Error {
     /// SCL and / or SDA went low for too long
     PinLowTimeout,
     /// Detected a NACK when sending an address or data
-    UnexpectedNACK,
+    UnexpectedNack,
     /// Sending or receiving data without a START condition
-    FIFO,
+    Fifo,
     /// Requesting too much data in a receive
     ///
     /// Upper limit is `u8::max_value()`.
@@ -173,9 +175,9 @@ pub enum Error {
     BusyIsBusy,
 }
 
-impl<SCL, SDA> I2C<SCL, SDA> {
+impl<N, SCL, SDA> I2c<N, SCL, SDA> {
     /// Release the I2C peripheral components
-    pub fn release(self) -> (Instance, SCL, SDA) {
+    pub fn release(self) -> (Instance<N>, SCL, SDA) {
         (self.i2c, self.scl, self.sda)
     }
 
@@ -220,7 +222,7 @@ impl<SCL, SDA> I2C<SCL, SDA> {
 /// Runs `f` while the I2C peripheral is disabled
 ///
 /// If the peripheral was previously enabled, it will be re-enabled once `while_disabled` returns.
-fn while_disabled<F: FnOnce(&Instance) -> R, R>(i2c: &Instance, f: F) -> R {
+fn while_disabled<F: FnOnce(&RegisterBlock) -> R, R>(i2c: &RegisterBlock, f: F) -> R {
     let was_enabled = ral::read_reg!(ral::lpi2c, i2c, MCR, MEN == MEN_1);
     ral::modify_reg!(ral::lpi2c, i2c, MCR, MEN: MEN_0);
     let result = f(i2c);
@@ -235,7 +237,7 @@ fn while_disabled<F: FnOnce(&Instance) -> R, R>(i2c: &Instance, f: F) -> R {
 ///
 /// All flags are W1C.
 #[inline(always)]
-fn clear_status(i2c: &Instance) {
+fn clear_status(i2c: &RegisterBlock) {
     ral::write_reg!(
         ral::lpi2c,
         i2c,
@@ -252,13 +254,13 @@ fn clear_status(i2c: &Instance) {
 
 /// Clear both the receiver and transmit FIFOs
 #[inline(always)]
-fn clear_fifo(i2c: &Instance) {
+fn clear_fifo(i2c: &RegisterBlock) {
     ral::modify_reg!(ral::lpi2c, i2c, MCR, RRF: RRF_1, RTF: RTF_1);
 }
 
 /// Check master status flags for erroneous conditions
 #[inline(always)]
-fn check_errors(i2c: &Instance) -> Result<u32, Error> {
+fn check_errors(i2c: &RegisterBlock) -> Result<u32, Error> {
     use ral::lpi2c::MSR::*;
     let status = ral::read_reg!(ral::lpi2c, i2c, MSR);
     if (status & PLTF::mask) != 0 {
@@ -266,9 +268,9 @@ fn check_errors(i2c: &Instance) -> Result<u32, Error> {
     } else if (status & ALF::mask) != 0 {
         Err(Error::LostBusArbitration)
     } else if (status & NDF::mask) != 0 {
-        Err(Error::UnexpectedNACK)
+        Err(Error::UnexpectedNack)
     } else if (status & FEF::mask) != 0 {
-        Err(Error::FIFO)
+        Err(Error::Fifo)
     } else {
         Ok(status)
     }
@@ -276,7 +278,7 @@ fn check_errors(i2c: &Instance) -> Result<u32, Error> {
 
 /// Returns `true` if the bus is busy, which could block the caller
 #[inline(always)]
-fn check_busy(i2c: &Instance) -> Result<(), Error> {
+fn check_busy(i2c: &RegisterBlock) -> Result<(), Error> {
     use ral::lpi2c::MSR;
     let msr = ral::read_reg!(ral::lpi2c, i2c, MSR);
     if (msr & MSR::MBF::mask != 0) || (msr & MSR::BBF::mask != 0) {
@@ -288,7 +290,7 @@ fn check_busy(i2c: &Instance) -> Result<(), Error> {
 
 /// Disable the I2C interrupts enabled in `enable_interrupts`
 #[inline(always)]
-fn disable_interrupts(i2c: &Instance) {
+fn disable_interrupts(i2c: &RegisterBlock) {
     ral::write_reg!(
         ral::lpi2c,
         i2c,

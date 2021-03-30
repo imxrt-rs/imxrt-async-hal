@@ -1,6 +1,6 @@
 //! I2C write implementation
 
-use super::{commands, Error, Instance, State};
+use super::{commands, Error, RegisterBlock, State};
 
 use core::{
     future::Future,
@@ -13,7 +13,7 @@ use core::{
 ///
 /// Use [`write`](crate::I2C::write) to create this future.
 pub struct Write<'a> {
-    i2c: &'a Instance,
+    i2c: &'a RegisterBlock,
     address: u8,
     buffer: &'a [u8],
     state: Option<State>,
@@ -21,7 +21,7 @@ pub struct Write<'a> {
 }
 
 impl<'a> Write<'a> {
-    pub(super) fn new(i2c: &'a Instance, address: u8, buffer: &'a [u8]) -> Self {
+    pub(super) fn new(i2c: &'a RegisterBlock, address: u8, buffer: &'a [u8]) -> Self {
         Write {
             i2c,
             address,

@@ -23,8 +23,8 @@ use hal::gpio;
 use imxrt_async_hal as hal;
 
 async fn connect<P, Q>(
-    mut input: gpio::GPIO<P, gpio::Input>,
-    mut output: gpio::GPIO<Q, gpio::Output>,
+    mut input: gpio::Gpio<P, gpio::Input>,
+    mut output: gpio::Gpio<Q, gpio::Output>,
 ) -> !
 where
     P: hal::iomuxc::gpio::Pin,
@@ -40,7 +40,7 @@ where
 fn main() -> ! {
     let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
     let pins = teensy4_pins::t40::into_pins(pads);
-    let mut p13 = hal::gpio::GPIO::new(pins.p13).output();
+    let mut p13 = hal::gpio::Gpio::new(pins.p13).output();
 
     let ccm = hal::ral::ccm::CCM::take().unwrap();
     let (_, _, mut timer) = t4_startup::new_gpt(hal::ral::gpt::GPT2::take().unwrap(), &ccm);
@@ -51,16 +51,16 @@ fn main() -> ! {
         }
     };
 
-    let p12 = hal::gpio::GPIO::new(pins.p12);
-    let p14 = hal::gpio::GPIO::new(pins.p14).output();
+    let p12 = hal::gpio::Gpio::new(pins.p12);
+    let p14 = hal::gpio::Gpio::new(pins.p14).output();
     let twos = connect(p12, p14);
 
-    let p11 = hal::gpio::GPIO::new(pins.p11);
-    let p15 = hal::gpio::GPIO::new(pins.p15).output();
+    let p11 = hal::gpio::Gpio::new(pins.p11);
+    let p15 = hal::gpio::Gpio::new(pins.p15).output();
     let fours = connect(p11, p15);
 
-    let p10 = hal::gpio::GPIO::new(pins.p10);
-    let p16 = hal::gpio::GPIO::new(pins.p16).output();
+    let p10 = hal::gpio::Gpio::new(pins.p10);
+    let p16 = hal::gpio::Gpio::new(pins.p16).output();
     let eights = connect(p10, p16);
 
     async_embedded::task::block_on(future::join4(ones, twos, fours, eights));

@@ -46,7 +46,10 @@ static DATA: u32 = 0;
 
 /// Prepare to receive UART data from a DMA transfer into stack memory
 #[inline(never)]
-fn prepare_receive(uart: &mut hal::UART<P14, P15>, channel: &mut hal::dma::Channel) {
+fn prepare_receive(
+    uart: &mut hal::Uart<hal::iomuxc::consts::U2, P14, P15>,
+    channel: &mut hal::dma::Channel,
+) {
     let mut buffer: [u8; 8] = [0; 8];
     let mut read = uart.dma_read(channel, &mut buffer);
     let pin = unsafe { Pin::new_unchecked(&mut read) };
@@ -59,7 +62,7 @@ fn prepare_receive(uart: &mut hal::UART<P14, P15>, channel: &mut hal::dma::Chann
 
 /// Watch the stack memory, and turn on the LED when its non-zero
 #[inline(never)]
-fn watch_stack(led: &mut hal::gpio::GPIO<P13, hal::gpio::Output>) -> ! {
+fn watch_stack(led: &mut hal::gpio::Gpio<P13, hal::gpio::Output>) -> ! {
     let buffer: [u8; 256] = [0; 256];
     loop {
         for elem in &buffer {
@@ -77,7 +80,7 @@ fn watch_stack(led: &mut hal::gpio::GPIO<P13, hal::gpio::Output>) -> ! {
 fn main() -> ! {
     let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
     let pins = teensy4_pins::t40::into_pins(pads);
-    let mut led = hal::gpio::GPIO::new(pins.p13).output();
+    let mut led = hal::gpio::Gpio::new(pins.p13).output();
 
     let ccm = hal::ral::ccm::CCM::take().unwrap();
     ral::modify_reg!(ral::ccm, ccm, CSCDR1, UART_CLK_SEL: 1 /* XTAL */, UART_CLK_PODF: 0);
@@ -91,10 +94,8 @@ fn main() -> ! {
         hal::ral::dmamux::DMAMUX::take().unwrap(),
     );
 
-    let uart2 = hal::ral::lpuart::LPUART2::take()
-        .and_then(hal::instance::uart)
-        .unwrap();
-    let mut uart = hal::UART::new(uart2, pins.p14, pins.p15);
+    let uart2 = hal::ral::lpuart::LPUART2::take().unwrap();
+    let mut uart = hal::Uart::new(uart2, pins.p14, pins.p15);
     let mut channel = channels[7].take().unwrap();
     uart.set_baud(BAUD, 24_000_000 /* XTAL Hz */).unwrap();
 

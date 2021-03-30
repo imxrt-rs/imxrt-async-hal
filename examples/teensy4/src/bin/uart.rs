@@ -29,7 +29,7 @@ const CLOCK_DIVIDER: u32 = 1;
 fn main() -> ! {
     let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
     let pins = teensy4_pins::t40::into_pins(pads);
-    let mut led = hal::gpio::GPIO::new(pins.p13).output();
+    let mut led = hal::gpio::Gpio::new(pins.p13).output();
     let gpt = hal::ral::gpt::GPT2::take().unwrap();
 
     let ccm = hal::ral::ccm::CCM::take().unwrap();
@@ -46,10 +46,8 @@ fn main() -> ! {
         hal::ral::dmamux::DMAMUX::take().unwrap(),
     );
 
-    let uart2 = hal::ral::lpuart::LPUART2::take()
-        .and_then(hal::instance::uart)
-        .unwrap();
-    let mut uart = hal::UART::new(uart2, pins.p14, pins.p15);
+    let uart2 = hal::ral::lpuart::LPUART2::take().unwrap();
+    let mut uart = hal::Uart::new(uart2, pins.p14, pins.p15);
     let mut channel = channels[7].take().unwrap();
     channel.set_interrupt_on_completion(true);
     uart.set_baud(BAUD, CLOCK_FREQUENCY_HZ / CLOCK_DIVIDER)

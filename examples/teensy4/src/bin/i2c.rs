@@ -22,17 +22,17 @@ extern crate panic_halt;
 extern crate t4_startup;
 
 use hal::{
-    gpio::GPIO,
+    gpio::Gpio,
     iomuxc,
     ral::{self, ccm::CCM, gpt::GPT1, iomuxc::IOMUXC, lpi2c::LPI2C3},
-    I2C,
+    I2c,
 };
 use imxrt_async_hal as hal;
 
 const MPU9250_ADDRESS: u8 = 0x68;
 const WHO_AM_I: u8 = 0x75;
 const ACCEL_XOUT_H: u8 = 0x3B;
-const CLOCK_SPEED: hal::I2CClockSpeed = hal::I2CClockSpeed::KHz400;
+const CLOCK_SPEED: hal::I2cClockSpeed = hal::I2cClockSpeed::KHz400;
 
 const SOURCE_CLOCK_HZ: u32 = 24_000_000;
 const SOURCE_CLOCK_DIVIDER: u32 = 3;
@@ -61,10 +61,10 @@ fn main() -> ! {
     ral::modify_reg!(ral::ccm, ccm, CCGR2, CG5: 0b11);
     let (mut timer, _, _) = t4_startup::new_gpt(GPT1::take().unwrap(), &ccm);
 
-    let mut led = GPIO::new(pins.p13).output();
+    let mut led = Gpio::new(pins.p13).output();
 
-    let i2c3 = LPI2C3::take().and_then(hal::instance::i2c).unwrap();
-    let mut i2c = I2C::new(i2c3, pins.p16, pins.p17);
+    let i2c3 = LPI2C3::take().unwrap();
+    let mut i2c = I2c::new(i2c3, pins.p16, pins.p17);
     i2c.set_clock_speed(CLOCK_SPEED, SOURCE_CLOCK_HZ / SOURCE_CLOCK_DIVIDER)
         .unwrap();
 

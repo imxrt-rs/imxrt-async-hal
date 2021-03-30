@@ -1,6 +1,6 @@
 //! I2C clock configuration
 
-use crate::ral::{self, lpi2c::Instance};
+use crate::ral::{self, lpi2c::RegisterBlock};
 
 /// I2C clock speed
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -15,7 +15,7 @@ pub enum ClockSpeed {
 /// Commit the clock speed to the I2C peripheral
 ///
 /// Should only be called while the I2C peripheral is disabled.
-pub fn set_speed(clock_speed: ClockSpeed, base_hz: u32, reg: &Instance) {
+pub fn set_speed(clock_speed: ClockSpeed, base_hz: u32, reg: &RegisterBlock) {
     // Baud rate = (source_clock/2^prescale)/(CLKLO+1+CLKHI+1 + FLOOR((2+FILTSCL)/2^prescale)
     // Assume CLKLO = 2*CLKHI, SETHOLD = CLKHI, DATAVD = CLKHI/2, FILTSCL = FILTSDA = 0,
     // and that risetime is negligible (less than 1 cycle).
