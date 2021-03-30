@@ -3,7 +3,7 @@
 //! The timer **divides the input clock by 5**. This may affect very precise
 //! timing. For a more precise timer, see [`PIT`](crate::pit::PIT).
 //!
-//! Each GPT instance turns into three GPT timers. Use [`new`](crate::gpt::GPT::new)
+//! Each GPT instance turns into three GPT timers. Use [`new`](crate::gpt::Gpt::new)
 //! to acquire the three timers.
 //!
 //! # Example
@@ -14,7 +14,7 @@
 //! use imxrt_async_hal as hal;
 //! use hal::ral as ral;
 //! use ral::{ccm, gpt};
-//! use hal::GPT;
+//! use hal::Gpt;
 //!
 //! let ccm = ccm::CCM::take().unwrap();
 //! // Select 24MHz crystal oscillator, divide by 24 == 1MHz clock
@@ -31,7 +31,7 @@
 //!     CLKSRC: 0b101 // Crystal oscillator clock source
 //! );
 //! ral::write_reg!(ral::gpt, gpt, PR, PRESCALER24M: 4); // 1MHz / 5 == 200KHz
-//! let (mut gpt, _, _) = GPT::new(gpt);
+//! let (mut gpt, _, _) = Gpt::new(gpt);
 //!
 //! # async {
 //! gpt.delay(250_000u32 / 5).await;
@@ -51,13 +51,13 @@ use core::{
 ///
 /// See the [module-level documentation](mod@crate::gpt) for more information.
 #[cfg_attr(docsrs, doc(cfg(feature = "gpt")))]
-pub struct GPT {
+pub struct Gpt {
     gpt: *const ral::gpt::RegisterBlock,
     output_compare: OutputCompare,
 }
 
-impl GPT {
-    /// Create a new `GPT` from a RAL GPT instance
+impl Gpt {
+    /// Create a new `Gpt` from a RAL GPT instance
     pub fn new<N>(gpt: ral::gpt::Instance<N>) -> (Self, Self, Self) {
         let irq = match &*gpt as *const _ {
             ral::gpt::GPT1 => ral::interrupt::GPT1,
@@ -81,15 +81,15 @@ impl GPT {
 
         unsafe { cortex_m::peripheral::NVIC::unmask(irq) };
         (
-            GPT {
+            Gpt {
                 gpt: &*gpt,
                 output_compare: OutputCompare::Channel1,
             },
-            GPT {
+            Gpt {
                 gpt: &*gpt,
                 output_compare: OutputCompare::Channel2,
             },
-            GPT {
+            Gpt {
                 gpt: &*gpt,
                 output_compare: OutputCompare::Channel3,
             },

@@ -31,7 +31,7 @@ const SOURCE_CLOCK_DIVIDER: u32 = 5;
 fn main() -> ! {
     let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
     let pins = teensy4_pins::t40::into_pins(pads);
-    let mut hardware_flag = hal::gpio::GPIO::new(pins.p14).output();
+    let mut hardware_flag = hal::gpio::Gpio::new(pins.p14).output();
     hardware_flag.clear();
 
     let ccm = hal::ral::ccm::CCM::take().unwrap();
@@ -57,13 +57,13 @@ fn main() -> ! {
     );
 
     let spi4 = hal::ral::lpspi::LPSPI4::take().unwrap();
-    let pins = hal::SPIPins {
+    let pins = hal::SpiPins {
         sdo: pins.p11,
         sdi: pins.p12,
         sck: pins.p13,
         pcs0: pins.p10,
     };
-    let mut spi = hal::SPI::new(pins, spi4);
+    let mut spi = hal::Spi::new(pins, spi4);
     let mut tx_channel = channels[8].take().unwrap();
     let mut rx_channel = channels[9].take().unwrap();
     tx_channel.set_interrupt_on_completion(true);

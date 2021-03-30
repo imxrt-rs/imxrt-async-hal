@@ -168,15 +168,15 @@ use cortex_m_rt as rt;
 // Module re-exports
 //
 #[cfg(feature = "gpt")]
-pub use gpt::GPT;
+pub use gpt::Gpt;
 #[cfg(feature = "i2c")]
-pub use i2c::{ClockSpeed as I2CClockSpeed, Error as I2CError, I2C};
+pub use i2c::{ClockSpeed as I2cClockSpeed, Error as I2cError, I2c};
 #[cfg(feature = "pit")]
-pub use pit::PIT;
+pub use pit::Pit;
 #[cfg(feature = "spi")]
-pub use spi::{Error as SPIError, Pins as SPIPins, SPI};
+pub use spi::{Error as SpiError, Pins as SpiPins, Spi};
 #[cfg(feature = "uart")]
-pub use uart::{Error as UARTError, UART};
+pub use uart::{Error as UartError, Uart};
 
 /// A `once` sentinel, since it doesn't exist in `core::sync`.
 #[cfg(any(feature = "gpio", feature = "i2c"))]

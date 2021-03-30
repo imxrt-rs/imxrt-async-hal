@@ -3,7 +3,7 @@
 //! The PIT timer channels are the most precise timers in the HAL. PIT timers run on the periodic clock
 //! frequency.
 //!
-//! A single hardware PIT instance has four PIT channels. Use [`new`](PIT::new()) to acquire these four
+//! A single hardware PIT instance has four PIT channels. Use [`new`](Pit::new()) to acquire these four
 //! channels.
 //!
 //! # Example
@@ -13,7 +13,7 @@
 //! ```no_run
 //! use imxrt_async_hal as hal;
 //! use hal::ral;
-//! use hal::PIT;
+//! use hal::Pit;
 //!
 //! let ccm = ral::ccm::CCM::take().unwrap();
 //! // Select 24MHz crystal oscillator, divide by 24 == 1MHz clock
@@ -21,7 +21,7 @@
 //! // Enable PIT clock gate
 //! ral::modify_reg!(ral::ccm, ccm, CCGR1, CG6: 0b11);
 //! let (_, _, _, mut pit) = ral::pit::PIT::take()
-//!     .map(PIT::new)
+//!     .map(Pit::new)
 //!     .unwrap();
 //!
 //! # async {
@@ -43,13 +43,13 @@ use core::{
 ///
 /// See the [module-level documentation](crate::pit) for more information.
 #[cfg_attr(docsrs, doc(cfg(feature = "pit")))]
-pub struct PIT {
+pub struct Pit {
     channel: register::ChannelInstance,
 }
 
-impl PIT {
+impl Pit {
     /// Acquire four PIT channels from the RAL's PIT instance
-    pub fn new(pit: ral::pit::Instance) -> (PIT, PIT, PIT, PIT) {
+    pub fn new(pit: ral::pit::Instance) -> (Pit, Pit, Pit, Pit) {
         ral::write_reg!(ral::pit, pit, MCR, MDIS: MDIS_0);
         // Reset all PIT channels
         //
@@ -63,16 +63,16 @@ impl PIT {
         unsafe {
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::PIT);
             (
-                PIT {
+                Pit {
                     channel: register::ChannelInstance::zero(),
                 },
-                PIT {
+                Pit {
                     channel: register::ChannelInstance::one(),
                 },
-                PIT {
+                Pit {
                     channel: register::ChannelInstance::two(),
                 },
-                PIT {
+                Pit {
                     channel: register::ChannelInstance::three(),
                 },
             )

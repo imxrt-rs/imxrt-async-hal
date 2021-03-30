@@ -45,7 +45,7 @@
 //! ```no_run
 //! use imxrt_async_hal as hal;
 //! use hal::{
-//!     iomuxc, I2C, I2CClockSpeed,
+//!     iomuxc, I2c, I2cClockSpeed,
 //!     ral::{self, ccm::CCM, iomuxc::IOMUXC, lpi2c::LPI2C3},
 //! };
 //! # const PINCONFIG: iomuxc::Config = iomuxc::Config::zero();
@@ -67,8 +67,8 @@
 //!
 //! let mut i2c3 = LPI2C3::take().unwrap();
 //!
-//! let mut i2c = I2C::new(i2c3, pads.ad_b1.p07, pads.ad_b1.p06);
-//! i2c.set_clock_speed(I2CClockSpeed::KHz400, SOURCE_CLOCK_HZ / SOURCE_CLOCK_DIVIDER).unwrap();
+//! let mut i2c = I2c::new(i2c3, pads.ad_b1.p07, pads.ad_b1.p06);
+//! i2c.set_clock_speed(I2cClockSpeed::KHz400, SOURCE_CLOCK_HZ / SOURCE_CLOCK_DIVIDER).unwrap();
 //!
 //! # async {
 //! # const DEVICE_ADDRESS: u8 = 0;
@@ -101,13 +101,13 @@ use crate::{
 ///
 /// See the [module-level documentation](mod@crate::i2c) for more information.
 #[cfg_attr(docsrs, doc(cfg(feature = "i2c")))]
-pub struct I2C<N, SCL, SDA> {
+pub struct I2c<N, SCL, SDA> {
     i2c: Instance<N>,
     scl: SCL,
     sda: SDA,
 }
 
-impl<M, SCL, SDA> I2C<M, SCL, SDA>
+impl<M, SCL, SDA> I2c<M, SCL, SDA>
 where
     M: iomuxc::consts::Unsigned,
     SCL: iomuxc::i2c::Pin<Signal = iomuxc::i2c::SCL, Module = M>,
@@ -142,7 +142,7 @@ where
             cortex_m::peripheral::NVIC::unmask(crate::ral::interrupt::LPI2C4);
         });
 
-        I2C { i2c, scl, sda }
+        I2c { i2c, scl, sda }
     }
 }
 
@@ -160,9 +160,9 @@ pub enum Error {
     /// SCL and / or SDA went low for too long
     PinLowTimeout,
     /// Detected a NACK when sending an address or data
-    UnexpectedNACK,
+    UnexpectedNack,
     /// Sending or receiving data without a START condition
-    FIFO,
+    Fifo,
     /// Requesting too much data in a receive
     ///
     /// Upper limit is `u8::max_value()`.
@@ -175,7 +175,7 @@ pub enum Error {
     BusyIsBusy,
 }
 
-impl<N, SCL, SDA> I2C<N, SCL, SDA> {
+impl<N, SCL, SDA> I2c<N, SCL, SDA> {
     /// Release the I2C peripheral components
     pub fn release(self) -> (Instance<N>, SCL, SDA) {
         (self.i2c, self.scl, self.sda)
@@ -268,9 +268,9 @@ fn check_errors(i2c: &RegisterBlock) -> Result<u32, Error> {
     } else if (status & ALF::mask) != 0 {
         Err(Error::LostBusArbitration)
     } else if (status & NDF::mask) != 0 {
-        Err(Error::UnexpectedNACK)
+        Err(Error::UnexpectedNack)
     } else if (status & FEF::mask) != 0 {
-        Err(Error::FIFO)
+        Err(Error::Fifo)
     } else {
         Ok(status)
     }

@@ -34,7 +34,7 @@ unsafe fn pre_init() {
 pub fn new_gpt<N>(
     gpt: ral::gpt::Instance<N>,
     ccm: &ral::ccm::Instance,
-) -> (hal::GPT, hal::GPT, hal::GPT) {
+) -> (hal::Gpt, hal::Gpt, hal::Gpt) {
     // Select 24MHz crystal oscillator, divide by 24 == 1MHz clock
     ral::modify_reg!(ral::ccm, ccm, CSCMR1, PERCLK_PODF: DIVIDE_24, PERCLK_CLK_SEL: 1);
 
@@ -54,15 +54,15 @@ pub fn new_gpt<N>(
     );
     ral::write_reg!(ral::gpt, gpt, PR, PRESCALER24M: 4); // 1MHz / 5 == 200KHz
 
-    hal::GPT::new(gpt)
+    hal::Gpt::new(gpt)
 }
 
 /// Use a GPT to delay `ms` milliseconds
-pub async fn gpt_delay_ms(gpt: &mut hal::GPT, ms: u32) {
+pub async fn gpt_delay_ms(gpt: &mut hal::Gpt, ms: u32) {
     gpt.delay(ms * 1_000 / 5).await
 }
 
 /// Use a GPT to delay `us` microseconds
-pub async fn gpt_delay_us(gpt: &mut hal::GPT, us: u32) {
+pub async fn gpt_delay_us(gpt: &mut hal::Gpt, us: u32) {
     gpt.delay(us / 5).await
 }

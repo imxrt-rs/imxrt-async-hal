@@ -5,8 +5,8 @@ use core::fmt;
 
 /// UART Serial driver
 ///
-/// `UART` can send and receive byte buffers using a transfer / receive two-wire interface.
-/// After constructing a `UART`, the baud rate is unspecified. Use [`set_baud`](UART::set_baud())
+/// `Uart` can send and receive byte buffers using a transfer / receive two-wire interface.
+/// After constructing a `Uart`, the baud rate is unspecified. Use [`set_baud`](UART::set_baud())
 /// to configure your serial device.
 ///
 /// The RAL instances are available in `ral::lpuart`.
@@ -17,7 +17,7 @@ use core::fmt;
 ///
 /// ```no_run
 /// use imxrt_async_hal as hal;
-/// use hal::{dma, iomuxc, UART};
+/// use hal::{dma, iomuxc, Uart};
 /// use hal::ral::{self,
 ///     ccm::CCM, lpuart::LPUART2,
 ///     dma0::DMA0, dmamux::DMAMUX,
@@ -45,7 +45,7 @@ use core::fmt;
 /// );
 /// let uart2 = LPUART2::take().unwrap();
 ///
-/// let mut uart = UART::new(
+/// let mut uart = Uart::new(
 ///     uart2,
 ///     pads.ad_b1.p02, // TX
 ///     pads.ad_b1.p03, // RX
@@ -63,39 +63,39 @@ use core::fmt;
 /// # };
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "uart")))]
-pub struct UART<N, TX, RX> {
+pub struct Uart<N, TX, RX> {
     uart: ral::lpuart::Instance<N>,
     tx: TX,
     rx: RX,
 }
 
-impl<N: iomuxc::consts::Unsigned, TX, RX> fmt::Debug for UART<N, TX, RX> {
+impl<N: iomuxc::consts::Unsigned, TX, RX> fmt::Debug for Uart<N, TX, RX> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "UART{}", N::USIZE)
     }
 }
 
-impl<M, TX, RX> UART<M, TX, RX>
+impl<M, TX, RX> Uart<M, TX, RX>
 where
     TX: iomuxc::uart::Pin<Direction = iomuxc::uart::TX, Module = M>,
     RX: iomuxc::uart::Pin<Direction = iomuxc::uart::RX, Module = M>,
     M: iomuxc::consts::Unsigned,
 {
-    /// Create a new `UART` from a UART instance, and TX and RX pins
+    /// Create a new `Uart` from a UART instance, and TX and RX pins
     ///
-    /// The baud rate of the returned `UART` is unspecified. Make sure you use [`set_baud`](UART::set_baud())
+    /// The baud rate of the returned `Uart` is unspecified. Make sure you use [`set_baud`](Uart::set_baud())
     /// to properly configure the driver.
     pub fn new(uart: crate::ral::lpuart::Instance<M>, mut tx: TX, mut rx: RX) -> Self {
         crate::iomuxc::uart::prepare(&mut tx);
         crate::iomuxc::uart::prepare(&mut rx);
 
-        let uart = UART { uart, tx, rx };
+        let uart = Uart { uart, tx, rx };
         ral::modify_reg!(ral::lpuart, uart.uart, CTRL, TE: TE_1, RE: RE_1);
         uart
     }
 }
 
-impl<N, TX, RX> UART<N, TX, RX> {
+impl<N, TX, RX> Uart<N, TX, RX> {
     /// Set the serial baud rate
     ///
     /// If there is an error, the error is [`Error::Clock`](Error::Clock).
@@ -169,7 +169,7 @@ struct Timings {
     sbr: u16,
 }
 
-/// Errors propagated from a [`UART`] device
+/// Errors propagated from a [`Uart`] device
 #[non_exhaustive]
 #[derive(Debug)]
 #[cfg_attr(docsrs, doc(cfg(feature = "uart")))]
@@ -219,7 +219,7 @@ fn timings(effective_clock: u32, baud: u32) -> Result<Timings, Error> {
     })
 }
 
-unsafe impl<N, TX, RX> dma::Destination<u8> for UART<N, TX, RX> {
+unsafe impl<N, TX, RX> dma::Destination<u8> for Uart<N, TX, RX> {
     fn destination_signal(&self) -> u32 {
         use dma::Source;
         self.source_signal() - 1
@@ -237,7 +237,7 @@ unsafe impl<N, TX, RX> dma::Destination<u8> for UART<N, TX, RX> {
     }
 }
 
-unsafe impl<N, TX, RX> dma::Source<u8> for UART<N, TX, RX> {
+unsafe impl<N, TX, RX> dma::Source<u8> for Uart<N, TX, RX> {
     fn source_signal(&self) -> u32 {
         // Make sure that the match expression will never hit the unreachable!() case.
         // The comments and conditional compiles show what we're currently considering in

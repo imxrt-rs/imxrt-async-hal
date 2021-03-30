@@ -15,8 +15,8 @@ use imxrt_async_hal as hal;
 fn main() -> ! {
     let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
     let pins = teensy4_pins::t40::into_pins(pads);
-    let mut led = hal::gpio::GPIO::new(pins.p13).output();
-    let mut pin14 = hal::gpio::GPIO::new(pins.p14).output();
+    let mut led = hal::gpio::Gpio::new(pins.p13).output();
+    let mut pin14 = hal::gpio::Gpio::new(pins.p14).output();
 
     let ccm = ral::ccm::CCM::take().unwrap();
     // Select 24MHz crystal oscillator, divide by 24 == 1MHz clock
@@ -34,7 +34,7 @@ fn main() -> ! {
     );
     ral::write_reg!(ral::gpt, gpt, PR, PRESCALER24M: 4); // 1MHz / 5 == 200KHz
 
-    let (mut blink_timer, mut gpio_timer, _) = hal::GPT::new(gpt);
+    let (mut blink_timer, mut gpio_timer, _) = hal::Gpt::new(gpt);
     let blink_loop = async {
         loop {
             blink_timer.delay(250_000u32 / 5).await;

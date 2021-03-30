@@ -2,14 +2,14 @@ use crate::{dma, iomuxc, ral};
 
 /// Pins for a SPI device
 ///
-/// Consider using type aliases to simplify your [`SPI`] usage:
+/// Consider using type aliases to simplify your [`Spi`] usage:
 ///
 /// ```no_run
 /// use imxrt_async_hal as hal;
 /// use hal::iomuxc::pads::b0::*;
 ///
 /// // SPI pins used in my application
-/// type SPIPins = hal::SPIPins<
+/// type SpiPins = hal::SpiPins<
 ///     B0_02,
 ///     B0_01,
 ///     B0_03,
@@ -17,7 +17,7 @@ use crate::{dma, iomuxc, ral};
 /// >;
 ///
 /// // Helper type for your SPI peripheral
-/// type SPI<N> = hal::SPI<N, SPIPins>;
+/// type Spi<N> = hal::Spi<N, SpiPins>;
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "spi")))]
 pub struct Pins<SDO, SDI, SCK, PCS0> {
@@ -39,10 +39,10 @@ pub struct Pins<SDO, SDI, SCK, PCS0> {
 
 /// Serial Peripheral Interface (SPI)
 ///
-/// A `SPI` peripheral uses DMA for asynchronous I/O. Using up to two DMA channels, `SPI` peripherals
+/// A `Spi` peripheral uses DMA for asynchronous I/O. Using up to two DMA channels, `Spi` peripherals
 /// can perform SPI device reads, writes, and full-duplex transfers with `u8` and `u16` elements.
 ///
-/// The SPI serial clock speed after construction is unspecified. Use [`set_clock_speed`](SPI::set_clock_speed())
+/// The SPI serial clock speed after construction is unspecified. Use [`set_clock_speed`](Spi::set_clock_speed())
 /// to choose your SPI serial clock speed.
 ///
 /// The RAL instances are available in `ral::lpspi`.
@@ -53,7 +53,7 @@ pub struct Pins<SDO, SDI, SCK, PCS0> {
 ///
 /// ```no_run
 /// use imxrt_async_hal as hal;
-/// use hal::{dma, iomuxc, SPI, SPIPins};
+/// use hal::{dma, iomuxc, Spi, SpiPins};
 /// use hal::ral::{self,
 ///     ccm::CCM, dma0::DMA0, dmamux::DMAMUX,
 ///     iomuxc::IOMUXC, lpspi::LPSPI4,
@@ -86,14 +86,14 @@ pub struct Pins<SDO, SDI, SCK, PCS0> {
 ///     DMAMUX::take().unwrap(),
 /// );
 ///
-/// let spi_pins = SPIPins {
+/// let spi_pins = SpiPins {
 ///     sdo: pads.b0.p02,
 ///     sdi: pads.b0.p01,
 ///     sck: pads.b0.p03,
 ///     pcs0: pads.b0.p00,
 /// };
 /// let spi4 = LPSPI4::take().unwrap();
-/// let mut spi = SPI::new(
+/// let mut spi = Spi::new(
 ///     spi_pins,
 ///     spi4,
 /// );
@@ -112,12 +112,12 @@ pub struct Pins<SDO, SDI, SCK, PCS0> {
 /// # };
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "spi")))]
-pub struct SPI<N, Pins> {
+pub struct Spi<N, Pins> {
     pins: Pins,
     spi: ral::lpspi::Instance<N>,
 }
 
-impl<SDO, SDI, SCK, PCS0, M> SPI<M, Pins<SDO, SDI, SCK, PCS0>>
+impl<SDO, SDI, SCK, PCS0, M> Spi<M, Pins<SDO, SDI, SCK, PCS0>>
 where
     SDO: iomuxc::spi::Pin<Module = M, Signal = iomuxc::spi::SDO>,
     SDI: iomuxc::spi::Pin<Module = M, Signal = iomuxc::spi::SDI>,
@@ -125,7 +125,7 @@ where
     PCS0: iomuxc::spi::Pin<Module = M, Signal = iomuxc::spi::PCS0>,
     M: iomuxc::consts::Unsigned,
 {
-    /// Create a `SPI` from a set of pins and a SPI instance
+    /// Create a `Spi` from a set of pins and a SPI instance
     ///
     /// See the [`instance` module](instance) for more information on SPI peripheral
     /// instances.
@@ -144,12 +144,12 @@ where
         ral::write_reg!(ral::lpspi, spi, FCR, RXWATER: 0xF, TXWATER: 0xF);
         ral::write_reg!(ral::lpspi, spi, CR, MEN: MEN_1);
 
-        SPI { pins, spi }
+        Spi { pins, spi }
     }
 }
 
-impl<Pins, M> SPI<M, Pins> {
-    /// Return the pins and SPI instance that are used in this `SPI`
+impl<Pins, M> Spi<M, Pins> {
+    /// Return the pins and SPI instance that are used in this `Spi`
     /// driver
     pub fn release(self) -> (Pins, ral::lpspi::Instance<M>) {
         (self.pins, self.spi)
@@ -188,7 +188,7 @@ impl<Pins, M> SPI<M, Pins> {
     }
 }
 
-/// Errors propagated from a [`SPI`] device
+/// Errors propagated from a [`Spi`] device
 #[non_exhaustive]
 #[derive(Debug)]
 #[cfg_attr(docsrs, doc(cfg(feature = "spi")))]
@@ -197,7 +197,7 @@ pub enum Error {
     ClockSpeed,
 }
 
-impl<N, Pins> SPI<N, Pins> {
+impl<N, Pins> Spi<N, Pins> {
     fn with_master_disabled<F: FnMut() -> R, R>(&self, mut act: F) -> R {
         let men = ral::read_reg!(ral::lpspi, self.spi, CR, MEN == MEN_1);
         ral::modify_reg!(ral::lpspi, self.spi, CR, MEN: MEN_0);
@@ -208,7 +208,7 @@ impl<N, Pins> SPI<N, Pins> {
 
     /// Set the SPI master clock speed
     ///
-    /// Consider calling `set_clock_speed` after creating a `SPI`, since the clock speed after
+    /// Consider calling `set_clock_speed` after creating a `Spi`, since the clock speed after
     /// construction is unspecified.
     ///
     /// If an error occurs, it's an [`crate::spi::Error::ClockSpeed`].
@@ -241,7 +241,7 @@ fn set_clock_speed(spi: &ral::lpspi::RegisterBlock, base: u32, hz: u32) {
     );
 }
 
-unsafe impl<E: dma::Element, Pins, N> dma::Source<E> for SPI<N, Pins> {
+unsafe impl<E: dma::Element, Pins, N> dma::Source<E> for Spi<N, Pins> {
     fn source_signal(&self) -> u32 {
         match &*self.spi as *const _ {
             // imxrt1010, imxrt1060
@@ -270,7 +270,7 @@ unsafe impl<E: dma::Element, Pins, N> dma::Source<E> for SPI<N, Pins> {
     }
 }
 
-unsafe impl<E: dma::Element, Pins, N> dma::Destination<E> for SPI<N, Pins> {
+unsafe impl<E: dma::Element, Pins, N> dma::Destination<E> for Spi<N, Pins> {
     fn destination_signal(&self) -> u32 {
         <Self as dma::Source<E>>::source_signal(self) + 1
     }
@@ -289,4 +289,4 @@ unsafe impl<E: dma::Element, Pins, N> dma::Destination<E> for SPI<N, Pins> {
     }
 }
 
-unsafe impl<E: dma::Element, Pins, N> dma::Bidirectional<E> for SPI<N, Pins> {}
+unsafe impl<E: dma::Element, Pins, N> dma::Bidirectional<E> for Spi<N, Pins> {}

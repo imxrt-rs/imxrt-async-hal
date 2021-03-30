@@ -1,29 +1,29 @@
 //! GPIOs
 //!
-//! [`GPIO`s](GPIO) can be in either input or output states. GPIO inputs can
+//! [`Gpio`s](Gpio) can be in either input or output states. GPIO inputs can
 //! read the high / low status of physical pins. Based on a [`Trigger`]
 //! selection, GPIO inputs can wait for transitions on the input pin.
 //!
 //! ```no_run
 //! use imxrt_async_hal as hal;
-//! use hal::gpio::{GPIO, Trigger};
+//! use hal::gpio::{Gpio, Trigger};
 //!
 //! # async {
 //! let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
-//! let mut input = GPIO::new(pads.b0.p03);
+//! let mut input = Gpio::new(pads.b0.p03);
 //! input.wait_for(Trigger::FallingEdge).await;
 //! // Transitioned from high to low!
 //! assert!(!input.is_set());
 //! # };
 //! ```
 //!
-//! `GPIO`s outputs can drive the associated pin high or low, and they can toggle the pin.
+//! `Gpio`s outputs can drive the associated pin high or low, and they can toggle the pin.
 //!
 //! ```no_run
 //! use imxrt_async_hal as hal;
 //!
 //! let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
-//! let input = hal::gpio::GPIO::new(pads.b0.p03);
+//! let input = hal::gpio::Gpio::new(pads.b0.p03);
 //! let mut output = input.output();
 //!
 //! output.set();
@@ -39,12 +39,12 @@
 //!
 //! ```no_run
 //! use imxrt_async_hal as hal;
-//! use hal::gpio::{GPIO, Trigger};
+//! use hal::gpio::{Gpio, Trigger};
 //!
 //! # fn block_on<F: core::future::Future<Output = ()>>(f: F) {}
 //! # let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
-//! let mut led = GPIO::new(pads.b0.p03).output();
-//! let mut input_pin = GPIO::new(pads.b0.p02);
+//! let mut led = Gpio::new(pads.b0.p03).output();
+//! let mut input_pin = Gpio::new(pads.b0.p02);
 //!
 //! let blinking_loop = async {
 //!     loop {
@@ -75,28 +75,28 @@ pub enum Output {}
 
 /// A wrapper around an i.MX RT processor pad, supporting simple I/O
 ///
-/// Use [`new`](GPIO::new()) with a pad from the [`iomuxc`](super::iomuxc)
-/// module. All GPIOs start in the input state. Use [`output`](GPIO::output()) to become an output pin.
+/// Use [`new`](Gpio::new()) with a pad from the [`iomuxc`](super::iomuxc)
+/// module. All GPIOs start in the input state. Use [`output`](Gpio::output()) to become an output pin.
 ///
 /// ```no_run
 /// use imxrt_async_hal as hal;
-/// use hal::gpio::GPIO;
+/// use hal::gpio::Gpio;
 ///
 /// let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
-/// let mut led = GPIO::new(pads.b0.p03);
+/// let mut led = Gpio::new(pads.b0.p03);
 /// assert!(!led.is_set());
 /// let mut led = led.output();
 /// led.set();
 /// ```
 ///
-/// When using a `GPIO` as an input, you can wait for transitions using [`wait_for`](GPIO::wait_for()).
+/// When using a `Gpio` as an input, you can wait for transitions using [`wait_for`](Gpio::wait_for()).
 #[cfg_attr(docsrs, doc(cfg(feature = "gpio")))]
-pub struct GPIO<P, D> {
+pub struct Gpio<P, D> {
     pin: P,
     dir: PhantomData<D>,
 }
 
-impl<P, D> GPIO<P, D>
+impl<P, D> Gpio<P, D>
 where
     P: Pin,
 {
@@ -144,7 +144,7 @@ where
     }
 }
 
-impl<P> GPIO<P, Input>
+impl<P> Gpio<P, Input>
 where
     P: Pin,
 {
@@ -154,10 +154,10 @@ where
     ///
     /// ```no_run
     /// use imxrt_async_hal as hal;
-    /// use hal::gpio::GPIO;
+    /// use hal::gpio::Gpio;
     ///
     /// let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
-    /// let input_pin = GPIO::new(pads.b0.p03);
+    /// let input_pin = Gpio::new(pads.b0.p03);
     /// ```
     pub fn new(mut pin: P) -> Self {
         crate::iomuxc::gpio::prepare(&mut pin);
@@ -191,13 +191,13 @@ where
     }
 
     /// Transition the GPIO from an input to an output
-    pub fn output(self) -> GPIO<P, Output> {
+    pub fn output(self) -> Gpio<P, Output> {
         // Safety: critical section ensures consistency
         cortex_m::interrupt::free(|_| unsafe {
             ral::modify_reg!(ral::gpio, self.register_block(), GDIR, |gdir| gdir
                 | self.offset());
         });
-        GPIO {
+        Gpio {
             pin: self.pin,
             dir: PhantomData,
         }
@@ -247,10 +247,10 @@ where
     ///
     /// ```no_run
     /// use imxrt_async_hal as hal;
-    /// use hal::gpio::{GPIO, Trigger};
+    /// use hal::gpio::{Gpio, Trigger};
     ///
     /// let pads = hal::iomuxc::new(hal::ral::iomuxc::IOMUXC::take().unwrap());
-    /// let mut input_pin = GPIO::new(pads.ad_b1.p02);
+    /// let mut input_pin = Gpio::new(pads.ad_b1.p02);
     /// // ...
     /// # async {
     /// input_pin.wait_for(Trigger::RisingEdge).await;
@@ -261,18 +261,18 @@ where
     }
 }
 
-impl<P> GPIO<P, Output>
+impl<P> Gpio<P, Output>
 where
     P: Pin,
 {
     /// Transition the pin from an output to an input
-    pub fn input(self) -> GPIO<P, Input> {
+    pub fn input(self) -> Gpio<P, Input> {
         // Safety: critical section ensures consistency
         cortex_m::interrupt::free(|_| unsafe {
             ral::modify_reg!(ral::gpio, self.register_block(), GDIR, |gdir| gdir
                 & !self.offset());
         });
-        GPIO {
+        Gpio {
             pin: self.pin,
             dir: PhantomData,
         }
@@ -298,7 +298,7 @@ where
 
     /// Alternate the state of the pin
     ///
-    /// Using `toggle` will be more efficient than checking [`is_set`](GPIO::is_set())
+    /// Using `toggle` will be more efficient than checking [`is_set`](Gpio::is_set())
     /// and then selecting the opposite state.
     pub fn toggle(&mut self) {
         // Safety: atomic write
@@ -308,7 +308,7 @@ where
 
 /// Input interrupt triggers
 ///
-/// See [`GPIO::wait_for`](GPIO::wait_for()) for more information.
+/// See [`Gpio::wait_for`](Gpio::wait_for()) for more information.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(docsrs, doc(cfg(feature = "gpio")))]
 pub enum Trigger {
@@ -326,17 +326,17 @@ pub enum Trigger {
 
 /// A future that awaits the input trigger selection
 ///
-/// Use [`wait_for`](crate::gpio::GPIO::wait_for()) to create the future
+/// Use [`wait_for`](crate::gpio::Gpio::wait_for()) to create the future
 /// that awaits the trigger.
 pub struct Interrupt<'t, P> {
-    gpio: &'t mut GPIO<P, Input>,
+    gpio: &'t mut Gpio<P, Input>,
     waker: Option<Waker>,
     is_ready: bool,
     trigger: Trigger,
 }
 
 impl<'t, P> Interrupt<'t, P> {
-    fn new(gpio: &'t mut GPIO<P, Input>, trigger: Trigger) -> Self {
+    fn new(gpio: &'t mut Gpio<P, Input>, trigger: Trigger) -> Self {
         Interrupt {
             gpio,
             waker: None,
